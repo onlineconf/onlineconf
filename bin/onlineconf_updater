@@ -1,0 +1,57 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use YAML;
+use MR::OnlineConf::Updater;
+
+
+sub usage {
+    print <<HLP;
+$0 - online config updater
+
+    --config / -c  - updater config file
+    --debug / -d   - enable debug
+    --nologroate   - put logs into stderr instead log file
+
+    --help         - this message 
+HLP
+    return 1;
+}
+
+my $CONFIG = {
+    config => '/usr/local/etc/onlineconf.yaml'
+};
+
+Getopt::Long::Configure(qw/no_ignore_case bundling/);
+
+GetOptions($CONFIG, qw/
+   config|c=s
+   nologrotate
+   debug|d 
+   help 
+/);
+
+(local $/=$_) =~ s/-/_/g and $CONFIG->{$/} = delete $CONFIG->{$_}
+    for keys %$CONFIG;
+
+usage() && exit 0 if delete $CONFIG->{help};
+
+my $config = eval { YAML::LoadFile($CONFIG->{config})};
+if ($@ || !$config){
+    warn "\ncant open config file at $CONFIG->{config}\n\n";
+    usage() and exit 0;
+}
+
+$config->{debug} = 99 if exists $CONFIG->{debug};
+
+my $updater = MR::OnlineConf::Updater->new($config);
+
+my $STOP = 0;
+
+
+$updater->updatePeriodically(!$CONFIG->{nologrotate});
+
+exit 0;

@@ -1,0 +1,12 @@
+database:
+  host: xxx
+  user: xxx
+  password: xxx
+  base: xxx
+  timeout: 2  
+data_dir: /usr/local/etc/onlineconf/
+logfile: /var/log/onlineconf_updater.log
+pidfile: /var/run/onlineconf_updater.pid
+reload_local: 10
+update_interval: 60
+debug: 1 

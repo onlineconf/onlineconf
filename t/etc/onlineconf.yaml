@@ -1,0 +1,12 @@
+database:
+  host: bf-stat.alei.mail.ru
+  user: alei
+  password: XXXX
+  base: journal_common
+  timeout: 2  
+data_dir: /usr/local/etc/onlineconf/
+logfile: /var/log/onlineconf_updater.log
+pidfile: /var/run/onlineconf_updater.pid
+reload_local: 2
+update_interval: 5
+debug: 1 
