@@ -9,7 +9,6 @@ use Digest::MD5 qw/md5_hex/;
 use EV;
 use AnyEvent;
 use POSIX qw/strftime/;
-use JSON::XS;
 use Scalar::Util qw/weaken/;
 use IO::Handle;
 
