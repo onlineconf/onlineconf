@@ -6,7 +6,8 @@ use MR::OnlineConf::Updater;
 use Class::Singleton;
 use Exporter;
 use Data::Dumper;
-use Carp qw/carp/;
+use YAML;
+use Carp qw/carp confess/;
 use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
@@ -17,12 +18,14 @@ sub _new_instance {
         debug=>1,
         check_interval=>5,
         %opts);
+    my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml') or 
+        confess "cant load config file at /usr/local/etc/onlineconf.yaml";
     my $self = {
         cache=>{},
         check_all => 0,
         checks    => {},
         load      => {},
-        updater   => MR::OnlineConf::Updater->new({debug=>$opts{debug}}),
+        updater   => MR::OnlineConf::Updater->new($config),
         cfg       => \%opts
     };
     return bless $self , $class;
