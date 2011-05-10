@@ -19,4 +19,7 @@ WriteMakefile(
     EXE_FILES => [
         'bin/onlineconf_updater',
     ],
+    INSTALLSCRIPT       => '/usr/local/bin' ,
+    INSTALLSITESCRIPT   => '/usr/local/bin' ,
+    INSTALLVENDORSCRIPT => '/usr/local/bin' ,
 );
