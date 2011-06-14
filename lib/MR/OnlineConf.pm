@@ -43,7 +43,7 @@ sub get {
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
     $self->reload($module);
-    $self->_say(-1,"cant find key $key in module $module: use default value\n") 
+    $self->_say(1,"cant find key $key in module $module: use default value\n") 
         and return $default unless exists $self->{cache}{$module} && exists $self->{cache}{$module}{$key};
     return $self->{cache}{$module}{$key};
 }
