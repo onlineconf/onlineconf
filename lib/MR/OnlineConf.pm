@@ -12,14 +12,36 @@ use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
 
+my $DEFAULT_CONFIG = {
+    database=> {
+        host      => 'unknown', 
+        user      => 'unknown',
+        password  => 'unknown',
+        base      => 'unknown',
+        timeout   => 2,                                                                                                           
+    },
+    data_dir => '/usr/local/etc/onlineconf/',
+    logfile  => '/var/log/onlineconf_updater.log', 
+    pidfile  => '/var/run/onlineconf_updater.pid',
+    reload_local => 10,
+    update_interval => 60,
+    debug => 0,
+};
+
 sub _new_instance {
     my ($class,%opts) = @_;
     %opts = (
-        debug=>1,
+        debug=>0,
         check_interval=>5,
         %opts);
-    my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml') or 
-        confess "cant load config file at /usr/local/etc/onlineconf.yaml";
+    my $config = {};
+    if (-f '/usr/local/etc/onlineconf.yaml'){
+        $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml') or 
+            confess "cant load config file at /usr/local/etc/onlineconf.yaml";
+    }else{
+        warn "WARNING: onlineconf can't load config file from `/usr/local/etc/onlineconf.yaml`. default config will be used.\n";
+        $config = $DEFAULT_CONFIG;
+    }
     my $self = {
         cache=>{},
         check_all => 0,
