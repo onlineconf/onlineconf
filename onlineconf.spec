@@ -23,7 +23,7 @@ Requires:	    perl-Class-Singleton
 Requires:	    perl-DBD-mysql
 Requires:	    perl-JSON-XS
 Requires:       perl-YAML
-Conflicts:      onlineconf
+Obsoletes:      onlineconf
 Provides:       perl-MR-Onlineconf
 
 Source0:	onlineconf.init
