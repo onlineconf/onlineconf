@@ -58,7 +58,7 @@ find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 chmod -R u+w $RPM_BUILD_ROOT/*
 mkdir -p %{buildroot}/etc/init.d %{buildroot}/etc/logrotate.d/ %{buildroot}/usr/local/etc/
-install -m 755 %SOURCE0 %{buildroot}/etc/init.d/%{name}
+install -m 755 %SOURCE0 %{buildroot}/etc/init.d/onlineconf
 install -m 640 %SOURCE1 %{buildroot}/usr/local/etc/
 install -m 644 %SOURCE2 %{buildroot}/etc/logrotate.d/onlineconf
 
@@ -71,7 +71,7 @@ install -m 644 %SOURCE2 %{buildroot}/etc/logrotate.d/onlineconf
 %config(noreplace) %{_sysconfdir}/logrotate.d/onlineconf
 
 %post
-/sbin/chkconfig --add %{name}
+/sbin/chkconfig --add onlineconf
 
 %changelog
 * Wed Jun 22 2011 Eugene Dubravsky <dubravsky@corp.mail.ru>
