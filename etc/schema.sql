@@ -5,6 +5,7 @@ CREATE TABLE `my_config` (
     `Value` text,
     `Flags` int(11) default '0',
     `Access` int(11) default '1',
+    `Comment` varchar(256) default NULL,
     UNIQUE KEY `Module` (`Module`,`Key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;
 
@@ -12,6 +13,7 @@ CREATE TABLE `my_config_module` (
     `ID` int(11) NOT NULL auto_increment,
     `Name` varchar(64) NOT NULL,
     `Version` int(11) NOT NULL default '0',
+    `Comment` varchar(256) default NULL,
     PRIMARY KEY  (`ID`),
     UNIQUE KEY `Name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;
@@ -32,5 +34,6 @@ REATE TABLE `my_config_log` (
     `Value` text,
     `Flags` int(11) default '0',
     `Access` int(11) default '1',
+    `Comment` varchar(256) default NULL,
     KEY `Module` (`Module`,`Version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;

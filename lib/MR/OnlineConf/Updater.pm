@@ -12,7 +12,8 @@ use POSIX qw/strftime/;
 use Scalar::Util qw/weaken/;
 use IO::Handle;
 
-sub LOCAL_CFG_PATH() {$_[0]->{config}{data_dir} }
+sub LOCAL_CFG_PATH()    {$_[0]->{config}{data_dir} }
+sub OVERLOAD_MODULE()   {'@OVERLOAD'}
 
 sub new {
     my ($class,$opts) = @_;
@@ -100,12 +101,21 @@ sub needUpdate {
         return ();
     }
     $self->{remote} = { map {$_->{Name} => $_} @$modules};
+
     my %to_update;
+    my $overload_updated;
     foreach my $m (@$modules){
         unless ($self->{local}{$m->{Name}} && $self->{local}{$m->{Name}}{Version} == $m->{Version}){
-            $to_update{$m->{Name}} = 1 if $m->{Version} > 0;
+            if($m->{Version} > 0) {
+                $to_update{$m->{Name}} = 1;
+                $overload_updated = 1 if $m->{Name} eq OVERLOAD_MODULE();
+            }
         }
     }
+    if($overload_updated) {
+        %to_update = map {$_->{Name} => 1} @$modules;
+    }
+
     my %mod = map {$_->{Name} => 1} @$modules;
     foreach my $m (keys %{$self->{local}}){
         unless (exists $mod{$m}){
@@ -119,6 +129,12 @@ sub needUpdate {
 sub update {
     my ($self,@mod) = @_;
     return 1 unless @mod;
+
+    my $overload;
+    if(grep {$_ eq OVERLOAD_MODULE} @mod) {
+        $overload = $self->_get_oveload();
+    }
+
     my $data = $self->{storage}->getAllFromModules([ map {$self->{remote}{$_}{ID}} @mod ]);
     my %names = map {$_->{ID}=>$_} values %{$self->{remote}};
     unless ($data && ref $data eq 'HASH'){
@@ -131,6 +147,7 @@ sub update {
             $self->_say(-1,"unknown module id $k\n");
             next;
         }
+
         my $ver = max map {$_->{Version}} values %{$data->{$k}};
         my $str = $self->dump(
             {
@@ -160,6 +177,18 @@ sub update {
 #       close MD5;
         $self->{local}{$name}{Version} = $ver;
     }
+}
+
+sub _get_overload {
+    my ($self) = @_;
+
+    my $hostname = `hostname`;
+    unless($hostname) {
+        $self->_say(-1,"cant get hostname: $!");
+        return;
+    }
+
+    my $data = $self->{storage}->getAll($module,json2perl=>0);
 }
 
 sub _start_logrotate {

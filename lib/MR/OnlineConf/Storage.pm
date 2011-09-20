@@ -210,12 +210,12 @@ sub getMulti {
     $opts{version} ||= MY_CONFIG_CURRENT_VER;
     if ($opts{version} == MY_CONFIG_CURRENT_VER){
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access` FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment` FROM ".$self->CURRENT_TABLE.
                 " as log WHERE log.`Module` = ? AND log.`Key` IN (".(join ',' , map {'?'} @$keys).") $addon",
                 $mid->{ID}, @$keys, @addon_f);
     }else{
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`  FROM ".$self->LOG_TABLE." as log,
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
                     (SELECT max(log1.`Version`) as ver , log1.`Key`, log1.`Module` from ".$self->LOG_TABLE." as log1 
                         WHERE log1.`Module` = ? AND log1.`Version` <= ? AND log1.`Key` IN (".(join ',' , map {'?'} @$keys).") GROUP BY log1.`Key`,log1.`Module`)
                      as max_ver
@@ -280,11 +280,11 @@ sub getAll {
     $opts{version} ||= MY_CONFIG_CURRENT_VER;
     if ($opts{version} == MY_CONFIG_CURRENT_VER){
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`  FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->CURRENT_TABLE.
                 " as log WHERE `Module` = ? $addon ",$mid->{ID},@addon_f);
     }else{
        $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`  FROM ".$self->LOG_TABLE." as log,
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
                     (SELECT max(log1.`Version`) as ver , log1.`Key`, log1.`Module` from ".$self->LOG_TABLE." as log1 
                         WHERE log1.`Module` = ? AND log1.`Version` <= ? GROUP BY log1.`Key`,log1.`Module`)
                      as max_ver
@@ -304,7 +304,7 @@ sub getAllFromModules {
     my ($self,$mod) = @_;
     return {} unless $mod && ref $mod eq 'ARRAY' && @$mod;
     my $r = $self->_db_query_array(
-                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Module`, md.`Version` FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Module`,log.`Comment` md.`Version` FROM ".$self->CURRENT_TABLE.
                 " as log LEFT JOIN ".$self->MODULE_TABLE." as md ON md.`ID` = log.`Module`
                 WHERE log.`Module` IN (".(join ',' , map {'?'} @$mod).")",
                 @$mod) || $self->_db_warn;
@@ -322,16 +322,16 @@ sub _add {
     foreach my $k (keys %$values){
         $values->{$k}{Flags} ||=0;
         $values->{$k}{Access} |= MY_CONFIG_ACCESS_ADMIN; 
-        unless ($self->_db_update("INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`) 
-                                       VALUES(?,?,?,?,?,?)",
-                                       $version,$mid,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access})){
+        unless ($self->_db_update("INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`) 
+                                       VALUES(?,?,?,?,?,?,?)",
+                                       $version,$mid,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment})){
             $self->_db_warn;
             return E_UNDEFINED;            
         }
     } 
     unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`)
-            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
+            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN (".(join "," , map {"?"} keys %$values).")",    
             $mid,keys %$values)){
         $self->_db_warn;
@@ -355,19 +355,19 @@ sub _update {
         $values->{$k}{Flags} ||=0;
         $values->{$k}{Access} |= MY_CONFIG_ACCESS_ADMIN; 
         unless ($self->_db_update(
-               "INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`) 
-                VALUES(?,?,?,?,?,?) ON
-                DUPLICATE KEY UPDATE `Version` = ? ,`Value` = ?,`Flags` = ?,`Access`=?", 
-                $version,$module,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},
-                $version,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access})){
+               "INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`) 
+                VALUES(?,?,?,?,?,?,?) ON
+                DUPLICATE KEY UPDATE `Version` = ? ,`Value` = ?,`Flags` = ?,`Access`=?,`Comment`=?", 
+                $version,$module,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment},
+                $version,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment})){
             $self->_db_warn;
             return E_UNDEFINED      
         }
     }
     my $p = join "," , map {'?'} keys %$values;
     unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`)
-            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
+            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN ($p)",    
             $module,keys %$values)){
         $self->_db_warn;
@@ -381,8 +381,8 @@ sub _delete {
    my $values = ref $val eq 'HASH' ? [keys %$val] : ref $val eq 'ARRAY' ? $val : [];
    my $p = join "," , map {'?'} @$values;
    unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`)
-            SELECT $version,`Module`,`Key`,`Value`,`Flags`|".MY_CONFIG_DELETED_FLAG.",`Access` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
+            SELECT $version,`Module`,`Key`,`Value`,`Flags`|".MY_CONFIG_DELETED_FLAG.",`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN ($p)",    
             $module,@$values)){
         $self->_db_warn;
@@ -398,7 +398,8 @@ sub _delete {
 sub _eq {
     return $_[0]->{Value} eq $_[1]->{Value} && 
            $_[0]->{Flags} == $_[1]->{Flags} &&
-           $_[0]->{Access} == $_[1]->{Access};
+           $_[0]->{Access} == $_[1]->{Access} &&
+           $_[0]->{Comment} eq $_[1]->{Comment};
            
 }
 
@@ -408,6 +409,7 @@ sub _replaceAll {
    foreach my $v (values %$values){
         $v->{Flags} = 0 unless defined $v->{Flags};
         $v->{Access} = MY_CONFIG_ACCESS_ADMIN unless defined $v->{Access}; 
+        $v->{Comment} = '' unless defined $v->{Comment};
    }
  
    $self->_debug(3,"replace all " , $values);
@@ -563,7 +565,7 @@ sub diff {
         $swap = 1;
         ($left,$right) = ($right,$left);
     }
-    my $r = $self->_db_query_array("SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags` FROM ".$self->LOG_TABLE." as log, 
+    my $r = $self->_db_query_array("SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Comment` FROM ".$self->LOG_TABLE." as log, 
             (SELECT max(log1.`Version`) as max_ver,log1.`Key`,log1.`Module`
                 FROM ".$self->LOG_TABLE." as log1 WHERE log1.`Module` = ? AND log1.`Version` > ? AND log1.`Version` <=?
                 GROUP BY log1.`Key`,log1.`Module`)
@@ -589,7 +591,7 @@ sub diff {
 
 sub modules {
     my ($self) = @_;
-    my $r = $self->_db_query_array("SELECT `ID`,`Name`,`Version` FROM ".$self->MODULE_TABLE." ORDER BY `Name`");
+    my $r = $self->_db_query_array("SELECT `ID`,`Name`,`Version`,`Comment` FROM ".$self->MODULE_TABLE." ORDER BY `Name`");
     unless ($r && ref $r eq 'ARRAY'){
         $self->_db_warn;
         return undef;
@@ -610,16 +612,16 @@ sub _module_by {
     my ($self,%opt) = @_;
     my ($f,$v) = ($opt{id} ? ('ID',$opt{id}) : ('Name',$opt{name}));
     return undef unless $f && $v;
-    my $r = $self->_db_query_array("SELECT `ID`,`Name`,`Version` FROM ".$self->MODULE_TABLE." WHERE `$f` = ?",$v) 
+    my $r = $self->_db_query_array("SELECT `ID`,`Name`,`Version`,`Comment` FROM ".$self->MODULE_TABLE." WHERE `$f` = ?",$v) 
             || $self->_db_warn;
     return ($r && @$r ? $r->[0] : undef);
 }
 
 sub saveModule {
-    my ($self,$name) = @_;
+    my ($self,$name,$comment) = @_;
     $name =~s/^\s*(.+?)\s*$/$1/;
     return undef unless $name;
-    unless ($self->_db_update("INSERT INTO ".$self->MODULE_TABLE."(`Name`) VALUES(?)",$name)){
+    unless ($self->_db_update("INSERT INTO ".$self->MODULE_TABLE."(`Name`,`Comment`) VALUES(?,?)",$name,$comment)){
         $self->_db_warn;
         return undef;
     }
