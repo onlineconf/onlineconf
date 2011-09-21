@@ -12,8 +12,9 @@ use POSIX qw/strftime/;
 use Scalar::Util qw/weaken/;
 use IO::Handle;
 
-sub LOCAL_CFG_PATH()    {$_[0]->{config}{data_dir} }
-sub OVERLOAD_MODULE()   {'@OVERLOAD'}
+sub LOCAL_CFG_PATH()        {$_[0]->{config}{data_dir} }
+sub OVERLOAD_MODULE()       {'@OVERLOAD'}
+sub OVERLOAD_MODULE_ID()    {2147483647}
 
 sub new {
     my ($class,$opts) = @_;
@@ -132,11 +133,12 @@ sub update {
 
     my $overload;
     if(grep {$_ eq OVERLOAD_MODULE} @mod) {
-        $overload = $self->_get_oveload();
+        $overload = $self->_get_overload({map {$_ => 1} @mod});
     }
 
     my $data = $self->{storage}->getAllFromModules([ map {$self->{remote}{$_}{ID}} @mod ]);
     my %names = map {$_->{ID}=>$_} values %{$self->{remote}};
+    my %ids   = map {$_->{Name}=>$_} values  %{$self->{remote}};
     unless ($data && ref $data eq 'HASH'){
         $self->_say(-1,"cant load config from modules [ @mod ]\n");
         return undef;
@@ -149,6 +151,17 @@ sub update {
         }
 
         my $ver = max map {$_->{Version}} values %{$data->{$k}};
+        
+        if($overload) {
+            foreach my $overload_module (keys %$overload) {
+                foreach my $overload_key (keys %{$overload->{$overload_module}}) {
+                    my $mid = $ids{$overload_module}->{ID};
+                    $data->{$mid}->{$overload_key}->{Key} = $overload_key;
+                    $data->{$mid}->{$overload_key}->{Value} = $overload->{$overload_module}->{$overload_key};
+                }
+            }
+        }
+
         my $str = $self->dump(
             {
                 Name=>$name,
@@ -180,15 +193,41 @@ sub update {
 }
 
 sub _get_overload {
-    my ($self) = @_;
+    my ($self,$known_modules) = @_;
 
     my $hostname = `hostname`;
+    chomp $hostname;
+
     unless($hostname) {
         $self->_say(-1,"cant get hostname: $!");
         return;
     }
+    $self->_say(4,"hostname = $hostname");
 
-    my $data = $self->{storage}->getAll($module,json2perl=>0);
+    my $data = $self->{storage}->getAll(OVERLOAD_MODULE_ID,json2perl=>0);
+    unless($data && keys %$data) {
+        $self->_say(-1,"nothing for overload");
+        return;
+    }
+
+    my $overload;
+    for my $k (keys %$data) {
+        my ($host,$module,$key) = split /:/, $k, 3;
+        unless($host && $module && $key) {
+            $self->_say(-1,"illegal overload key format $k");
+            next;
+        }
+        $self->_say(4,"fetch for overload host = $host, module = $module, key = $key");
+        next unless $host eq $hostname;
+
+        unless($known_modules->{$module}) {
+            $self->_say(-1,"unknown module for overload $module");
+            next;
+        }
+        $overload->{$module}->{$key} = $data->{$k}->{Value};
+        $self->_say(-1,"overload $module.$key with value = ".$overload->{$module}->{$key});
+    }
+    return $overload;
 }
 
 sub _start_logrotate {

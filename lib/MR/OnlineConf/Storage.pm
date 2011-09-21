@@ -304,7 +304,7 @@ sub getAllFromModules {
     my ($self,$mod) = @_;
     return {} unless $mod && ref $mod eq 'ARRAY' && @$mod;
     my $r = $self->_db_query_array(
-                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Module`,log.`Comment` md.`Version` FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Module`,log.`Comment`, md.`Version` FROM ".$self->CURRENT_TABLE.
                 " as log LEFT JOIN ".$self->MODULE_TABLE." as md ON md.`ID` = log.`Module`
                 WHERE log.`Module` IN (".(join ',' , map {'?'} @$mod).")",
                 @$mod) || $self->_db_warn;

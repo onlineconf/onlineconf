@@ -14,7 +14,7 @@ $0 - online config updater
 
     --config / -c  - updater config file
     --debug / -d   - enable debug
-    --nologroate   - put logs into stderr instead log file
+    --nologrotate  - put logs into stderr instead log file
 
     --help         - this message 
 HLP
