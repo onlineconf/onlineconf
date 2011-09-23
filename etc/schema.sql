@@ -48,5 +48,5 @@ CREATE TABLE `my_config_activity` (
 insert into my_config_module (Name,Version,Comment) VALUES ('@OVERLOAD',0,'Overloaded config params');
 update my_config_module set ID=2147483647 where Name='@OVERLOAD';
 
-insert into my_config_module (Name,Version,Comment) VALUES ('@SELFTEST',0,'OnlineConf Sefl Test');
+insert into my_config_module (Name,Version,Comment) VALUES ('@SELFTEST',0,'OnlineConf Self Test');
 update my_config_module set ID=2147483646 where Name='@SELFTEST';

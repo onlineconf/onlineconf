@@ -66,7 +66,7 @@ sub _logerr {
     $self->_say($level,@msg);
 
     open(F,'>>'.ERRORLOG());
-    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg));
+    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg))."\n";
     close(F);
 }
 
