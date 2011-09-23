@@ -18,6 +18,7 @@ WriteMakefile(
     },
     EXE_FILES => [
         'bin/onlineconf_updater',
+        'bin/self_test_updarer',
     ],
     INSTALLSCRIPT       => '/usr/local/bin' ,
     INSTALLSITESCRIPT   => '/usr/local/bin' ,

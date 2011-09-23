@@ -3,6 +3,7 @@ package MR::OnlineConf::Updater;
 use strict;
 use MR::OnlineConf::Storage;
 use MR::OnlineConf::Util qw/from_json to_json/;
+use MR::OnlineConf::Const qw/:const/;
 use Data::Dumper;
 use List::Util qw/max/;
 use Digest::MD5 qw/md5_hex/;
@@ -13,8 +14,6 @@ use Scalar::Util qw/weaken/;
 use IO::Handle;
 
 sub LOCAL_CFG_PATH()        {$_[0]->{config}{data_dir} }
-sub OVERLOAD_MODULE()       {'@OVERLOAD'}
-sub OVERLOAD_MODULE_ID()    {2147483647}
 
 sub new {
     my ($class,$opts) = @_;
@@ -109,7 +108,7 @@ sub needUpdate {
         unless ($self->{local}{$m->{Name}} && $self->{local}{$m->{Name}}{Version} == $m->{Version}){
             if($m->{Version} > 0) {
                 $to_update{$m->{Name}} = 1;
-                $overload_updated = 1 if $m->{Name} eq OVERLOAD_MODULE();
+                $overload_updated = 1 if $m->{Name} eq MY_CONFIG_OVERLOAD_MODULE_NAME;
             }
         }
     }
@@ -132,7 +131,7 @@ sub update {
     return 1 unless @mod;
 
     my $overload;
-    if(grep {$_ eq OVERLOAD_MODULE} @mod) {
+    if(grep {$_ eq MY_CONFIG_OVERLOAD_MODULE_NAME} @mod) {
         $overload = $self->_get_overload({map {$_ => 1} @mod});
     }
 
@@ -204,7 +203,7 @@ sub _get_overload {
     }
     $self->_say(4,"hostname = $hostname");
 
-    my $data = $self->{storage}->getAll(OVERLOAD_MODULE_ID,json2perl=>0);
+    my $data = $self->{storage}->getAll(MY_CONFIG_OVERLOAD_MODULE_ID,json2perl=>0);
     unless($data && keys %$data) {
         $self->_say(-1,"nothing for overload");
         return;
@@ -287,6 +286,11 @@ sub _update_periodically {
     }
     $self->_say(1,"check updates\n");
     $self->{storage}->open();
+
+    my $hostname = `hostname`;
+    chomp $hostname;
+    $self->{storage}->updateActivity($hostname);
+    
     my @d = $self->needUpdate();
     if (@d){
         $self->_say(1,"update modules [ @d ]\n");

@@ -11,6 +11,7 @@ use Carp qw/carp confess/;
 use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
+sub ERRORLOG()  {'/var/tmp/error.txt'}
 
 my $DEFAULT_CONFIG = {
     database=> {
@@ -60,8 +61,18 @@ sub _say {
     return 1;
 }
 
+sub _logerr {
+    my ($self,$level,@msg) = @_;
+    $self->_say($level,@msg);
+
+    open(F,'>>'.ERRORLOG());
+    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg));
+    close(F);
+}
+
 sub get {
     my ($self,$module,$key,$default) = @_;
+    $self->_test();
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
     $self->reload($module);
@@ -151,6 +162,24 @@ sub reloadAll {
         $self->_reload($_) for @$m;
     }else{
         $self->_reload_all();
+    }
+}
+
+sub _test {
+    my ($self) = @_;
+
+    $self->reload(MY_CONFIG_SELFTEST_MODULE_NAME);
+    $self->_logerr(1,"cant read selftest module\n") 
+        and return unless exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()} && exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
+
+    my $last_update = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
+    my $delay       = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_DELAY_KEY()} || 0;
+    my $diff        = time - $last_update;
+
+    if($diff > $delay) {
+        my $hostname = `hostname`;
+        chomp $hostname;
+        $self->_logerr(1,"$hostname: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
     }
 }
 

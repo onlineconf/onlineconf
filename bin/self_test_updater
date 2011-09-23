@@ -1,0 +1,48 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+use YAML;
+use MR::OnlineConf::Storage;
+
+
+sub usage {
+    print <<HLP;
+$0 - online config self test module updater
+
+    --config / -c  - updater config file
+    --debug / -d   - enable debug
+
+    --help         - this message 
+HLP
+    return 1;
+}
+
+my $CONFIG = {
+    config => '/usr/local/etc/onlineconf.yaml'
+};
+
+Getopt::Long::Configure(qw/no_ignore_case bundling/);
+
+GetOptions($CONFIG, qw/
+   config|c=s
+   debug|d 
+   help 
+/);
+
+(local $/=$_) =~ s/-/_/g and $CONFIG->{$/} = delete $CONFIG->{$_}
+    for keys %$CONFIG;
+
+usage() && exit 0 if delete $CONFIG->{help};
+
+my $config = eval { YAML::LoadFile($CONFIG->{config})};
+if ($@ || !$config){
+    warn "\ncant open config file at $CONFIG->{config}\n\n";
+    usage() and exit 0;
+}
+
+my $storage = MR::OnlineConf::Storage->new($config);
+$storage->updateSelfTest();
+

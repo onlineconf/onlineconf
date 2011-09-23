@@ -11,6 +11,7 @@ sub CURRENT_TABLE()     {'my_config'}
 sub LOG_TABLE()         {'my_config_log'}
 sub TRANSACTION_TABLE() {'my_config_transaction'}
 sub MODULE_TABLE()      {'my_config_module'}
+sub ACTIVITY_TABLE()    {'my_config_activity'}
 
 sub DEBUG()             { ref $_[0] ? $_[0]->{config}{debug} : 0 }
     
@@ -671,5 +672,40 @@ sub _revert {
     return 0;
 }
 
+sub updateActivity {
+    my ($self,$host) = @_;
+
+    return undef unless $host;
+
+    unless ($self->_db_update("INSERT INTO ".$self->ACTIVITY_TABLE."(`Host`,`Time`) VALUES(?,NOW()) ON DUPLICATE KEY UPDATE Time = NOW()", $host)) {
+        $self->_db_warn;
+        return undef;
+    }
+    return 1;
+}
+
+sub checkActivity {
+    my ($self,$delay) = @_;
+
+    return unless $delay;
+    my $r = $self->_db_query_array("SELECT `Host`, `Time` FROM ".$self->ACTIVITY_TABLE." WHERE TIMESTAMPDIFF(SECOND, `Time`, NOW()) > ?", $delay) || $self->_db_warn;
+    return $r;
+}
+
+sub updateSelfTest {
+    my ($self) = @_;
+    
+    return $self->update(
+        MY_CONFIG_SELFTEST_MODULE_ID,
+        {
+            MY_CONFIG_SELFTEST_TIME_KEY() => {
+                Key => MY_CONFIG_SELFTEST_TIME_KEY,
+                Value => time,
+            },
+        },
+        commiter => 'OnlineConfSelfTest',
+        log      => 'OnlineConfSelfTest',
+    );
+}
 
 1;

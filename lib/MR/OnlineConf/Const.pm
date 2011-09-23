@@ -21,9 +21,15 @@ sub constantiate($$;@) {
 
 BEGIN {
     %CONST = (
-        MY_CONFIG_JSON_FLAG      => 0x00000001,
-        MY_CONFIG_DELETED_FLAG   => 0x00000002,
-        MY_CONFIG_CURRENT_VER    => -1
+        MY_CONFIG_JSON_FLAG             => 0x00000001,
+        MY_CONFIG_DELETED_FLAG          => 0x00000002,
+        MY_CONFIG_CURRENT_VER           => -1,
+        MY_CONFIG_OVERLOAD_MODULE_NAME  => '\'@OVERLOAD\'',
+        MY_CONFIG_OVERLOAD_MODULE_ID    => 0x7FFFFFFF, 
+        MY_CONFIG_SELFTEST_MODULE_NAME  => '\'@SELFTEST\'',
+        MY_CONFIG_SELFTEST_MODULE_ID    => 0x7FFFFFFE,
+        MY_CONFIG_SELFTEST_TIME_KEY     => '\'update-time\'',
+        MY_CONFIG_SELFTEST_DELAY_KEY    => '\'delay\'',
     );
 
     constantiate \%CONST , \@CONST , \@EXPORT_OK;
