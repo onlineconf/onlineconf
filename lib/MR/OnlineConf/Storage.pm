@@ -7,11 +7,14 @@ use DBI;
 use Data::Dumper;
 use Carp qw/cluck/; 
 
-sub CURRENT_TABLE()     {'my_config'}
-sub LOG_TABLE()         {'my_config_log'}
-sub TRANSACTION_TABLE() {'my_config_transaction'}
-sub MODULE_TABLE()      {'my_config_module'}
-sub ACTIVITY_TABLE()    {'my_config_activity'}
+sub CURRENT_TABLE()         {'my_config'}
+sub LOG_TABLE()             {'my_config_log'}
+sub TRANSACTION_TABLE()     {'my_config_transaction'}
+sub MODULE_TABLE()          {'my_config_module'}
+sub ACTIVITY_TABLE()        {'my_config_activity'}
+sub GROUP_TABLE()           {'my_config_group'}
+sub USER_GROUP_TABLE()      {'my_config_user_group'}
+sub MODULE_GROUP_TABLE()    {'my_config_module_group'}
 
 sub DEBUG()             { ref $_[0] ? $_[0]->{config}{debug} : 0 }
     
@@ -187,7 +190,7 @@ sub get {
 
 sub getMulti {
     my ($self,$module,$keys,%opts) = @_;
-    %opts = (version => MY_CONFIG_CURRENT_VER,json2perl=>1,flags=>0,access=>MY_CONFIG_ACCESS_ANY,with_deleted=>0,%opts);
+    %opts = (version => MY_CONFIG_CURRENT_VER,json2perl=>1,flags=>0,with_deleted=>0,%opts);
     my $mid = $self->module($module);
     warn "$self: undefined module $module\n" and return undef unless $mid;
     return undef unless $keys && ref $keys eq 'ARRAY' && @$keys;
@@ -198,12 +201,6 @@ sub getMulti {
         $addon .= ' AND (log.`Flags` & ?) ';
         push @addon_f , $opts{flags};
     }
-    if ($opts{access}){
-        unless ($opts{access} == MY_CONFIG_ACCESS_ANY){
-            $addon .= ' AND (log.`Access` & ?) ';
-            push @addon_f , $opts{access};
-        }
-    }
     unless ($opts{with_deleted}){
         $addon .= ' AND NOT (log.`Flags` & ?) ';
         push @addon_f , MY_CONFIG_DELETED_FLAG;
@@ -211,12 +208,12 @@ sub getMulti {
     $opts{version} ||= MY_CONFIG_CURRENT_VER;
     if ($opts{version} == MY_CONFIG_CURRENT_VER){
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment` FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Comment` FROM ".$self->CURRENT_TABLE.
                 " as log WHERE log.`Module` = ? AND log.`Key` IN (".(join ',' , map {'?'} @$keys).") $addon",
                 $mid->{ID}, @$keys, @addon_f);
     }else{
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
                     (SELECT max(log1.`Version`) as ver , log1.`Key`, log1.`Module` from ".$self->LOG_TABLE." as log1 
                         WHERE log1.`Module` = ? AND log1.`Version` <= ? AND log1.`Key` IN (".(join ',' , map {'?'} @$keys).") GROUP BY log1.`Key`,log1.`Module`)
                      as max_ver
@@ -257,7 +254,7 @@ sub _strip_deleted {
 
 sub getAll {
     my ($self,$module,%opts) = @_;
-    %opts = (version => MY_CONFIG_CURRENT_VER , json2perl=>1 , flags => 0 , access=>MY_CONFIG_ACCESS_ANY , with_deleted=>0,%opts);
+    %opts = (version => MY_CONFIG_CURRENT_VER , json2perl=>1 , flags => 0 , with_deleted=>0,%opts);
     my $mid = $self->module($module);
     warn "$self: undefined module $module\n" and return undef unless $mid;
     my $r;
@@ -268,12 +265,6 @@ sub getAll {
         $addon .= ' AND (log.`Flags` & ?) ';
         push @addon_f , $opts{flags};
     }
-    if ($opts{access}){
-        unless ($opts{access} == MY_CONFIG_ACCESS_ANY){
-            $addon .= ' AND (log.`Access` & ?) ';
-            push @addon_f , $opts{access};
-        }
-    }
     unless ($opts{with_deleted}){
         $addon .= ' AND NOT (log.`Flags` & ?) ';
         push @addon_f , MY_CONFIG_DELETED_FLAG;
@@ -281,11 +272,11 @@ sub getAll {
     $opts{version} ||= MY_CONFIG_CURRENT_VER;
     if ($opts{version} == MY_CONFIG_CURRENT_VER){
         $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Comment`  FROM ".$self->CURRENT_TABLE.
                 " as log WHERE `Module` = ? $addon ",$mid->{ID},@addon_f);
     }else{
        $r = $self->_db_query_array(
-                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
+                "SELECT log.`Version`,log.`Key`,log.`Value`,log.`Flags`,log.`Comment`  FROM ".$self->LOG_TABLE." as log,
                     (SELECT max(log1.`Version`) as ver , log1.`Key`, log1.`Module` from ".$self->LOG_TABLE." as log1 
                         WHERE log1.`Module` = ? AND log1.`Version` <= ? GROUP BY log1.`Key`,log1.`Module`)
                      as max_ver
@@ -305,7 +296,7 @@ sub getAllFromModules {
     my ($self,$mod) = @_;
     return {} unless $mod && ref $mod eq 'ARRAY' && @$mod;
     my $r = $self->_db_query_array(
-                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Access`,log.`Module`,log.`Comment`, md.`Version` FROM ".$self->CURRENT_TABLE.
+                "SELECT log.`Key`,log.`Value`,log.`Flags`,log.`Module`,log.`Comment`, md.`Version` FROM ".$self->CURRENT_TABLE.
                 " as log LEFT JOIN ".$self->MODULE_TABLE." as md ON md.`ID` = log.`Module`
                 WHERE log.`Module` IN (".(join ',' , map {'?'} @$mod).")",
                 @$mod) || $self->_db_warn;
@@ -322,17 +313,16 @@ sub _add {
     my ($self,$mid,$version,$values) = @_;
     foreach my $k (keys %$values){
         $values->{$k}{Flags} ||=0;
-        $values->{$k}{Access} |= MY_CONFIG_ACCESS_ADMIN; 
-        unless ($self->_db_update("INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`) 
-                                       VALUES(?,?,?,?,?,?,?)",
-                                       $version,$mid,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment})){
+        unless ($self->_db_update("INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`) 
+                                       VALUES(?,?,?,?,?,?)",
+                                       $version,$mid,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Comment})){
             $self->_db_warn;
             return E_UNDEFINED;            
         }
     } 
     unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
-            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`)
+            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN (".(join "," , map {"?"} keys %$values).")",    
             $mid,keys %$values)){
         $self->_db_warn;
@@ -354,21 +344,20 @@ sub _update {
     }
     foreach my $k (keys %$values){
         $values->{$k}{Flags} ||=0;
-        $values->{$k}{Access} |= MY_CONFIG_ACCESS_ADMIN; 
         unless ($self->_db_update(
-               "INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`) 
-                VALUES(?,?,?,?,?,?,?) ON
-                DUPLICATE KEY UPDATE `Version` = ? ,`Value` = ?,`Flags` = ?,`Access`=?,`Comment`=?", 
-                $version,$module,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment},
-                $version,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Access},$values->{$k}{Comment})){
+               "INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`) 
+                VALUES(?,?,?,?,?,?) ON
+                DUPLICATE KEY UPDATE `Version` = ? ,`Value` = ?,`Flags` = ?,`Comment`=?", 
+                $version,$module,$k,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Comment},
+                $version,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Comment})){
             $self->_db_warn;
             return E_UNDEFINED      
         }
     }
     my $p = join "," , map {'?'} keys %$values;
     unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
-            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`)
+            SELECT `Version`,`Module`,`Key`,`Value`,`Flags`,`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN ($p)",    
             $module,keys %$values)){
         $self->_db_warn;
@@ -382,8 +371,8 @@ sub _delete {
    my $values = ref $val eq 'HASH' ? [keys %$val] : ref $val eq 'ARRAY' ? $val : [];
    my $p = join "," , map {'?'} @$values;
    unless ($self->_db_update(
-           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Access`,`Comment`)
-            SELECT $version,`Module`,`Key`,`Value`,`Flags`|".MY_CONFIG_DELETED_FLAG.",`Access`,`Comment` FROM ".$self->CURRENT_TABLE."
+           "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`)
+            SELECT $version,`Module`,`Key`,`Value`,`Flags`|".MY_CONFIG_DELETED_FLAG.",`Comment` FROM ".$self->CURRENT_TABLE."
                 WHERE `Module` = ? AND `Key` IN ($p)",    
             $module,@$values)){
         $self->_db_warn;
@@ -399,7 +388,6 @@ sub _delete {
 sub _eq {
     return $_[0]->{Value} eq $_[1]->{Value} && 
            $_[0]->{Flags} == $_[1]->{Flags} &&
-           $_[0]->{Access} == $_[1]->{Access} &&
            $_[0]->{Comment} eq $_[1]->{Comment};
            
 }
@@ -409,7 +397,6 @@ sub _replaceAll {
   
    foreach my $v (values %$values){
         $v->{Flags} = 0 unless defined $v->{Flags};
-        $v->{Access} = MY_CONFIG_ACCESS_ADMIN unless defined $v->{Access}; 
         $v->{Comment} = '' unless defined $v->{Comment};
    }
  
@@ -629,6 +616,16 @@ sub saveModule {
     return 1;
 }
 
+sub updateModule {
+    my ($self,$mid,$comment) = @_;
+    return unless $mid;
+    unless ($self->_db_update("UPDATE ".$self->MODULE_TABLE." SET `Comment`=? WHERE `ID`=?",$comment,$mid)) {
+        $self->_db_warn;
+        return;
+    }
+    return 1;
+}
+
 sub revert {
     my ($self,$module,$version,%opts) = @_;
     %opts = (force=>0,%opts);
@@ -670,6 +667,210 @@ sub _revert {
     $r = $self->_update($mid,$version,{map {$_=>$values->{$_}} keys %to_upd}) if %to_upd;
     return $r if $r;
     return 0;
+}
+
+sub saveGroup {
+    my ($self,$name) = @_;
+
+    return unless $name;
+    
+    unless ($self->_db_update("INSERT INTO ".$self->GROUP_TABLE."(`Name`) VALUES(?)", $name)) {
+        $self->_db_warn;
+        return undef;
+    }
+    return 1;
+}
+
+sub groups {
+    my ($self) = @_;
+    my $r = $self->_db_query_array("SELECT `ID`,`Name` FROM ".$self->GROUP_TABLE." ORDER BY `Name`");
+    unless ($r && ref $r eq 'ARRAY'){
+        $self->_db_warn;
+        return undef;
+    }
+    return $r;
+}
+
+sub group {
+    my ($self,$id) = @_;
+    if ($id=~/^\d+$/){
+        my $r = $self->_group_by(id=>$id);
+        return $r if $r;
+    }
+    return $self->_group_by(name=>$id);
+}
+
+sub _group_by {
+    my ($self,%opt) = @_;
+    my ($f,$v) = ($opt{id} ? ('ID',$opt{id}) : ('Name',$opt{name}));
+    return undef unless $f && $v;
+    my $r = $self->_db_query_array("SELECT `ID`,`Name` FROM ".$self->GROUP_TABLE." WHERE `$f` = ?",$v) 
+            || $self->_db_warn;
+    return ($r && @$r ? $r->[0] : undef);
+}
+
+sub saveUserGroup {
+    my ($self,$user,$gid) = @_;
+
+    return unless $user && $gid;
+
+    unless ($self->_db_update("INSERT INTO ".$self->USER_GROUP_TABLE."(`User`,`GroupID`) VALUES(?,?)", $user, $gid)) {
+        $self->_db_warn;
+        return undef;
+    }
+    return 1;
+}
+
+sub userGroups {
+    my ($self,$user) = @_;
+    
+    return unless $user;
+
+    my $r = $self->_db_query_array("SELECT g.`ID`, g.`Name`, ug.`User` FROM ".$self->GROUP_TABLE." AS g LEFT JOIN ".$self->USER_GROUP_TABLE." AS ug ON ug.`GroupID`=g.`ID` WHERE ug.`User` = ?",$user) || $self->_db_warn;
+    return $r;
+}
+
+sub usersByGroup {
+    my ($self,$gid) = @_;
+
+    return unless $gid;
+    
+    my $r = $self->_db_query_array("SELECT User FROM ".$self->USER_GROUP_TABLE." WHERE GroupID = ? ORDER BY User", $gid) || $self->_db_warn;
+    return $r;
+}
+
+sub delUserGroups {
+    my ($self,$user,$gids) = @_;
+
+    return unless $user && $gids && @$gids;
+
+    my $placeholders = join ',', map {'?'} @$gids;
+    unless ($self->_db_update("DELETE FROM ".$self->USER_GROUP_TABLE." WHERE `User`=? AND `GroupID` IN (".$placeholders.")",$user,@$gids)) {
+        $self->_db_warn;
+        return;
+    }
+    return 1;
+}
+
+sub saveModuleGroup {
+    my ($self,$mid,$gid) = @_;
+
+    return unless $mid && $gid;
+
+    unless ($self->_db_update("INSERT INTO ".$self->MODULE_GROUP_TABLE."(`ModuleID`,`GroupID`) VALUES(?,?)", $mid, $gid)) {
+        $self->_db_warn;
+        return undef;
+    }
+    return 1;
+}
+
+sub replaceModuleGroups {
+    my ($self,$mid,$gids) = @_;
+
+    return unless $mid;
+    unless($self->_db_update("DELETE FROM ".$self->MODULE_GROUP_TABLE." WHERE `ModuleID`=?", $mid)) {
+        $self->_db_warn;
+        return;
+    }
+
+    if($gids && @$gids) {
+        my $placeholders = join ',', map {'(?,?)'} @$gids;
+        my @values = map {$mid, $_} @$gids;
+        unless($self->_db_update("INSERT INTO ".$self->MODULE_GROUP_TABLE."(`ModuleID`,`GroupID`) VALUES ".$placeholders, @values)) {
+            $self->_db_warn;
+            return;
+        }
+    }
+}
+
+sub replaceUserGroups {
+    my ($self,$user,$gids) = @_;
+
+    return unless $user;
+    unless($self->_db_update("DELETE FROM ".$self->USER_GROUP_TABLE." WHERE `User`=?", $user)) {
+        $self->_db_warn;
+        return;
+    }
+
+    if($gids && @$gids) {
+        my $placeholders = join ',', map {'(?,?)'} @$gids;
+        my @values = map {$user, $_} @$gids;
+        unless($self->_db_update("INSERT INTO ".$self->USER_GROUP_TABLE."(`User`,`GroupID`) VALUES ".$placeholders, @values)) {
+            $self->_db_warn;
+            return;
+        }
+    }
+}
+
+sub moduleGroups {
+    my ($self,$mid) = @_;
+    
+    return unless $mid;
+
+    my $r = $self->_db_query_array("SELECT g.`ID`, g.`Name`, mg.`ModuleID` FROM ".$self->GROUP_TABLE." AS g LEFT JOIN ".$self->MODULE_GROUP_TABLE." AS mg ON mg.`GroupID`=g.`ID` WHERE mg.`ModuleID` = ?",$mid) || $self->_db_warn;
+    return $r;
+}
+
+sub modulesByGroup {
+    my ($self,$gid) = @_;
+
+    return unless $gid;
+    
+    my $r = $self->_db_query_array("SELECT ModuleID FROM ".$self->MODULE_GROUP_TABLE." WHERE GroupID = ?", $gid) || $self->_db_warn;
+    return $r;
+}
+
+sub delModuleGroups {
+    my ($self,$mid,$gids) = @_;
+
+    return unless $mid && $gids && @$gids;
+
+    my $placeholders = join ',', map {'?'} @$gids;
+    unless ($self->_db_update("DELETE FROM ".$self->MODULE_GROUP_TABLE." WHERE `ModuleID`=? AND `GroupID` IN (".$placeholders.")",$mid,@$gids)) {
+        $self->_db_warn;
+        return;
+    }
+    return 1;
+}
+
+sub canModifyModule {
+    my ($self,$user,$mid) = @_;
+
+    my $module_groups = $self->moduleGroups($mid);
+    my $user_groups = $self->userGroups($user);
+
+    return 1 unless $module_groups && @$module_groups;
+    return 0 unless $user_groups && @$user_groups;
+    
+    my %ug;
+    for my $perm (@$user_groups) {
+        return 1 if $perm->{ID} eq MY_CONFIG_GROUP_ROOT_ID;
+        $ug{$perm->{ID}} = 1;
+    }
+
+    for my $perm (@$module_groups) {
+        return 1 if $ug{$perm->{ID}};
+    }
+    return 0;
+}
+
+sub canModifyGroup {
+    my ($self,$user) = @_;
+
+    my $user_groups = $self->userGroups($user) or return 0;
+    for my $perm (@$user_groups) {
+        return 1 if $perm->{ID} eq MY_CONFIG_GROUP_ROOT_ID;
+    }
+    return 0;
+}
+
+sub userInGroup {
+    my ($self,$user,$gid) = @_;
+
+    return unless $user && $gid;
+
+    my $r = $self->_db_query_array("SELECT `User` FROM ".$self->USER_GROUP_TABLE." WHERE `User` = ? AND GroupID = ?", $user, $gid) || $self->_db_warn;
+    return $r && @$r ? 1 : 0;
 }
 
 sub updateActivity {

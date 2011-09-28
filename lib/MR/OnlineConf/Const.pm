@@ -2,13 +2,12 @@ package MR::OnlineConf::Const;
 
 use strict;
 use Exporter;
-use vars qw/@EXPORT_OK %EXPORT_TAGS @CONST %CONST %ERRORS @ERRORS %ACCESS @ACCESS/;
+use vars qw/@EXPORT_OK %EXPORT_TAGS @CONST %CONST %ERRORS @ERRORS/;
 use base qw/Exporter/;
 
 $EXPORT_TAGS{all}      = \@EXPORT_OK;
 $EXPORT_TAGS{const}    = \@CONST;
 $EXPORT_TAGS{errors}   = \@ERRORS;
-$EXPORT_TAGS{access}   = \@ACCESS;
 
 sub constantiate($$;@) {
     my ($const, @arrs) = @_;
@@ -24,12 +23,16 @@ BEGIN {
         MY_CONFIG_JSON_FLAG             => 0x00000001,
         MY_CONFIG_DELETED_FLAG          => 0x00000002,
         MY_CONFIG_CURRENT_VER           => -1,
+        
         MY_CONFIG_OVERLOAD_MODULE_NAME  => '\'@OVERLOAD\'',
         MY_CONFIG_OVERLOAD_MODULE_ID    => 0x7FFFFFFF, 
         MY_CONFIG_SELFTEST_MODULE_NAME  => '\'@SELFTEST\'',
         MY_CONFIG_SELFTEST_MODULE_ID    => 0x7FFFFFFE,
         MY_CONFIG_SELFTEST_TIME_KEY     => '\'update-time\'',
         MY_CONFIG_SELFTEST_DELAY_KEY    => '\'delay\'',
+        
+        MY_CONFIG_GROUP_ROOT_NAME       => '\'root\'',
+        MY_CONFIG_GROUP_ROOT_ID         => 0x7FFFFFFF,
     );
 
     constantiate \%CONST , \@CONST , \@EXPORT_OK;
@@ -43,14 +46,6 @@ BEGIN {
     );
 
     constantiate \%ERRORS , \@ERRORS , \@EXPORT_OK;
-
-    %ACCESS = (
-        MY_CONFIG_ACCESS_ANY     => 0xffffffff,
-        MY_CONFIG_ACCESS_ADMIN   => 0x00000001,
-        MY_CONFIG_ACCESS_MANAGER => 0x00000002,
-    );
-
-    constantiate \%ACCESS , \@ACCESS , \@EXPORT_OK;
 }
 
 1;
