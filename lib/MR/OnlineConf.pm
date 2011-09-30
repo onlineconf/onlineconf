@@ -11,7 +11,7 @@ use Carp qw/carp confess/;
 use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
-sub ERRORLOG()  {'/var/tmp/error.txt'}
+sub ERRORLOG()  {'/var/tmp/onlineconf_error.txt'}
 
 my $DEFAULT_CONFIG = {
     database=> {
@@ -57,7 +57,7 @@ sub _new_instance {
 sub _say {
     my ($self,$level,@msg) = @_;
     return 1 if $level > $self->{cfg}{debug};
-    warn join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
+    warn "[".strftime("%Y/%d/%m %H:%M:%S" , localtime)."] ".join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
     return 1;
 }
 
@@ -65,8 +65,8 @@ sub _logerr {
     my ($self,$level,@msg) = @_;
     $self->_say($level,@msg);
 
-    open(F,'>>'.ERRORLOG());
-    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg))."\n";
+    open(F,'>'.ERRORLOG());
+    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg))." [source: $0]\n";
     close(F);
 }
 
