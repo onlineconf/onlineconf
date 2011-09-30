@@ -8,6 +8,7 @@ use Exporter;
 use Data::Dumper;
 use YAML;
 use Carp qw/carp confess/;
+use POSIX qw/strftime/;
 use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
@@ -171,6 +172,8 @@ sub _test {
     $self->reload(MY_CONFIG_SELFTEST_MODULE_NAME);
     $self->_logerr(1,"cant read selftest module\n") 
         and return unless exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()} && exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
+
+    return unless $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_ENABLED_KEY()};
 
     my $last_update = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
     my $delay       = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_DELAY_KEY()} || 0;

@@ -30,6 +30,7 @@ BEGIN {
         MY_CONFIG_SELFTEST_MODULE_ID    => 0x7FFFFFFE,
         MY_CONFIG_SELFTEST_TIME_KEY     => '\'update-time\'',
         MY_CONFIG_SELFTEST_DELAY_KEY    => '\'delay\'',
+        MY_CONFIG_SELFTEST_ENABLED_KEY  => '\'enabled\'',
         
         MY_CONFIG_GROUP_ROOT_NAME       => '\'root\'',
         MY_CONFIG_GROUP_ROOT_ID         => 0x7FFFFFFF,

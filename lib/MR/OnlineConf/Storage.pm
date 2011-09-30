@@ -885,6 +885,13 @@ sub updateActivity {
     return 1;
 }
 
+sub getActivity {
+    my ($self) = @_;
+
+    my $r = $self->_db_query_array("SELECT `Host`, `Time` FROM ".$self->ACTIVITY_TABLE." ORDER BY `Host`") || $self->_db_warn;
+    return $r;
+}
+
 sub checkActivity {
     my ($self,$delay) = @_;
 
