@@ -29,7 +29,7 @@ sub new {
 sub _say {
     my ($self,$level,@msg) = @_;
     return 1 if $level > $self->{config}{debug};
-    warn "[".strftime("%Y/%d/%m %H:%M:%S" , localtime)."] ".join( ":" , (caller())[0,2])." ".(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
+    warn "[".strftime('%Y/%d/%m %H:%M:%S' , localtime)."] ".join( ":" , (caller())[0,2])." ".(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
     return 1;
 }
 

@@ -50,7 +50,8 @@ sub _new_instance {
         checks    => {},
         load      => {},
         updater   => MR::OnlineConf::Updater->new($config),
-        cfg       => \%opts
+        cfg       => \%opts,
+        logstatus => undef
     };
     return bless $self , $class;
 }
@@ -58,7 +59,7 @@ sub _new_instance {
 sub _say {
     my ($self,$level,@msg) = @_;
     return 1 if $level > $self->{cfg}{debug};
-    warn "[".strftime("%Y/%d/%m %H:%M:%S" , localtime)."] ".join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
+    warn "[".strftime('%Y/%d/%m %H:%M:%S' , localtime)."] ".join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
     return 1;
 }
 
@@ -69,6 +70,15 @@ sub _logerr {
     open(F,'>'.ERRORLOG());
     print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg))." [source: $0]\n";
     close(F);
+    $self->{logstatus} = 1;
+}
+
+sub _reseterr {
+    my ($self) = @_;
+    $self->_say(3,"no reason to clear errorlog") && return if defined $self->{logstatus} && !$self->{logstatus};
+    truncate(ERRORLOG(),0) or $self->_say(-1,"can't truncate file: $!");
+    $self->{logstatus} = 0;
+    return 1;
 }
 
 sub get {
@@ -173,7 +183,7 @@ sub _test {
     $self->_logerr(1,"cant read selftest module\n") 
         and return unless exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()} && exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
 
-    return unless $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_ENABLED_KEY()};
+    $self->_reseterr() and return unless $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_ENABLED_KEY()};
 
     my $last_update = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
     my $delay       = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_DELAY_KEY()} || 0;
@@ -183,6 +193,8 @@ sub _test {
         my $hostname = `hostname`;
         chomp $hostname;
         $self->_logerr(1,"$hostname: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
+    }else{
+        $self->_reseterr();
     }
 }
 
