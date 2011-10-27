@@ -37,11 +37,12 @@ sub _new_instance {
         check_interval=>5,
         %opts);
     my $config = {};
-    if (-f '/usr/local/etc/onlineconf.yaml'){
-        $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml') or 
-            confess "cant load config file at /usr/local/etc/onlineconf.yaml";
+    my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
+    if (-r $file){
+        $config = YAML::LoadFile($file) or 
+            confess "cant load config file at $file";
     }else{
-        warn "WARNING: onlineconf can't load config file from `/usr/local/etc/onlineconf.yaml`. default config will be used.\n";
+        warn "WARNING: onlineconf can't load config file from `$file`. default config will be used.\n";
         $config = $DEFAULT_CONFIG;
     }
     my $hostname = `hostname`;
