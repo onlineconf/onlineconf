@@ -44,6 +44,8 @@ sub _new_instance {
         warn "WARNING: onlineconf can't load config file from `/usr/local/etc/onlineconf.yaml`. default config will be used.\n";
         $config = $DEFAULT_CONFIG;
     }
+    my $hostname = `hostname`;
+    chomp $hostname;
     my $self = {
         cache=>{},
         check_all => 0,
@@ -51,7 +53,9 @@ sub _new_instance {
         load      => {},
         updater   => MR::OnlineConf::Updater->new($config),
         cfg       => \%opts,
-        logstatus => undef
+        logstatus => undef,
+        hostname  => $hostname,
+        local     => {}  
     };
     return bless $self , $class;
 }
@@ -86,6 +90,8 @@ sub get {
     $self->_test();
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
+    warn "found local overloaded value for $module:$key. i hope that we are not on production server\n" 
+        and return $self->{local}{$module}{$key} if exists $self->{local}{$module}{$key};
     $self->reload($module);
     $self->_say(2,"cant find key $key in module $module: use default value\n") 
         and return $default unless exists $self->{cache}{$module} && exists $self->{cache}{$module}{$key};
@@ -190,12 +196,20 @@ sub _test {
     my $diff        = time - $last_update;
 
     if($diff > $delay) {
-        my $hostname = `hostname`;
-        chomp $hostname;
-        $self->_logerr(1,"$hostname: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
+        $self->_logerr(1,"$self->{hostname}: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
     }else{
         $self->_reseterr();
     }
+}
+
+sub setLocal {
+    my ($self,$module,$key,$value) = @_;
+    $self->{local}{$module}{$key} = $value;
+}
+
+sub deleteLocal {
+    my ($self,$module,$key) = @_;
+    delete $self->{local}{$module}{$key};
 }
 
 1;
