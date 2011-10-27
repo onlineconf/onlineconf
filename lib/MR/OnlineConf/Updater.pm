@@ -17,10 +17,13 @@ sub LOCAL_CFG_PATH()        {$_[0]->{config}{data_dir} }
 
 sub new {
     my ($class,$opts) = @_;
+    my $hostname = `hostname`;
+    chomp $hostname;
     my $self = bless {
         local=>{},
         remote=>{},
-        config=>$opts
+        config=>$opts,
+        hostname => $hostname
     } , $class;
     $self->{storage} = new MR::OnlineConf::Storage($opts);
     return $self; 
@@ -194,14 +197,11 @@ sub update {
 sub _get_overload {
     my ($self,$known_modules) = @_;
 
-    my $hostname = `hostname`;
-    chomp $hostname;
-
-    unless($hostname) {
+    unless($self->{hostname}) {
         $self->_say(-1,"cant get hostname: $!");
         return;
     }
-    $self->_say(4,"hostname = $hostname");
+    $self->_say(4,"hostname = ".$self->{hostname});
 
     my $data = $self->{storage}->getAll(MY_CONFIG_OVERLOAD_MODULE_ID,json2perl=>0);
     unless($data && keys %$data) {
@@ -211,13 +211,13 @@ sub _get_overload {
 
     my $overload;
     for my $k (keys %$data) {
-        my ($host,$module,$key) = split /:/, $k, 3;
+        my ($host,$module,$key) = split /\|/, $k, 3;
         unless($host && $module && $key) {
             $self->_say(-1,"illegal overload key format $k");
             next;
         }
         $self->_say(4,"fetch for overload host = $host, module = $module, key = $key");
-        next unless $host eq $hostname;
+        next unless $host eq $self->{hostname};
 
         unless($known_modules->{$module}) {
             $self->_say(-1,"unknown module for overload $module");
@@ -287,9 +287,7 @@ sub _update_periodically {
     $self->_say(1,"check updates\n");
     $self->{storage}->open();
 
-    my $hostname = `hostname`;
-    chomp $hostname;
-    $self->{storage}->updateActivity($hostname);
+    $self->{storage}->updateActivity($self->{hostname});
     
     my @d = $self->needUpdate();
     if (@d){
