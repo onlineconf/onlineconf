@@ -22,6 +22,10 @@ sub new {
     my ($class,$opts) = @_;
     my $self = bless {} , $class;
     $self->{config} = $opts;
+
+    $self->{overload_module_id} = $self->getModuleIDByName(MY_CONFIG_OVERLOAD_MODULE_NAME);
+    $self->{selftest_module_id} = $self->getModuleIDByName(MY_CONFIG_SELFTEST_MODULE_NAME);
+    $self->{root_group_id} = $self->getGroupIDByName(MY_CONFIG_GROUP_ROOT_NAME);
     return $self;
 }
 
@@ -307,6 +311,28 @@ sub getAllFromModules {
     }    
     $self->_unpack($_) for values %r;
     return \%r;
+}
+
+sub getModuleIDByName {
+    my ($self,$name) = @_;
+    
+    my $r = $self->_db_query_array(
+        "SELECT `ID` FROM ".$self->MODULE_TABLE." WHERE `Name` = ?",
+        $name
+    );
+    return unless $r && @$r;
+    return $r->[0]->{ID};
+}
+
+sub getGroupIDByName {
+    my ($self,$name) = @_;
+
+    my $r = $self->_db_query_array(
+        "SELECT `ID` FROM ".$self->GROUP_TABLE." WHERE `Name` = ?",
+        $name
+    );
+    return unless $r && @$r;
+    return $r->[0]->{ID};
 }
 
 sub _add {
@@ -844,7 +870,7 @@ sub canModifyModule {
     
     my %ug;
     for my $perm (@$user_groups) {
-        return 1 if $perm->{ID} eq MY_CONFIG_GROUP_ROOT_ID;
+        return 1 if $perm->{ID} eq $self->{root_group_id};
         $ug{$perm->{ID}} = 1;
     }
 
@@ -859,7 +885,7 @@ sub canModifyGroup {
 
     my $user_groups = $self->userGroups($user) or return 0;
     for my $perm (@$user_groups) {
-        return 1 if $perm->{ID} eq MY_CONFIG_GROUP_ROOT_ID;
+        return 1 if $perm->{ID} eq $self->{root_group_id};
     }
     return 0;
 }
@@ -902,9 +928,9 @@ sub checkActivity {
 
 sub updateSelfTest {
     my ($self) = @_;
-    
+  
     return $self->update(
-        MY_CONFIG_SELFTEST_MODULE_ID,
+        $self->{selftest_module_id},
         {
             MY_CONFIG_SELFTEST_TIME_KEY() => {
                 Key => MY_CONFIG_SELFTEST_TIME_KEY,
