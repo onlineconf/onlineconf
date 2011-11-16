@@ -22,10 +22,6 @@ sub new {
     my ($class,$opts) = @_;
     my $self = bless {} , $class;
     $self->{config} = $opts;
-
-    $self->{overload_module_id} = $self->getModuleIDByName(MY_CONFIG_OVERLOAD_MODULE_NAME);
-    $self->{selftest_module_id} = $self->getModuleIDByName(MY_CONFIG_SELFTEST_MODULE_NAME);
-    $self->{root_group_id} = $self->getGroupIDByName(MY_CONFIG_GROUP_ROOT_NAME);
     return $self;
 }
 
@@ -315,24 +311,32 @@ sub getAllFromModules {
 
 sub getModuleIDByName {
     my ($self,$name) = @_;
+
+    return $self->{preload_module_id}->{$name} if exists $self->{preload_module_id}->{$name};
     
     my $r = $self->_db_query_array(
         "SELECT `ID` FROM ".$self->MODULE_TABLE." WHERE `Name` = ?",
         $name
     );
     return unless $r && @$r;
-    return $r->[0]->{ID};
+
+    $self->{preload_module_id}->{$name} = $r->[0]->{ID};
+    return $self->{preload_module_id}->{$name};
 }
 
 sub getGroupIDByName {
     my ($self,$name) = @_;
+
+    return $self->{preload_group_id}->{$name} if exists $self->{preload_group_id}->{$name};
 
     my $r = $self->_db_query_array(
         "SELECT `ID` FROM ".$self->GROUP_TABLE." WHERE `Name` = ?",
         $name
     );
     return unless $r && @$r;
-    return $r->[0]->{ID};
+
+    $self->{preload_group_id}->{$name} = $r->[0]->{ID};
+    return $self->{preload_group_id}->{$name};
 }
 
 sub _add {
@@ -870,7 +874,7 @@ sub canModifyModule {
     
     my %ug;
     for my $perm (@$user_groups) {
-        return 1 if $perm->{ID} eq $self->{root_group_id};
+        return 1 if $perm->{ID} eq $self->getGroupIDByName(MY_CONFIG_GROUP_ROOT_NAME);
         $ug{$perm->{ID}} = 1;
     }
 
@@ -885,7 +889,7 @@ sub canModifyGroup {
 
     my $user_groups = $self->userGroups($user) or return 0;
     for my $perm (@$user_groups) {
-        return 1 if $perm->{ID} eq $self->{root_group_id};
+        return 1 if $perm->{ID} eq $self->getGroupIDByName(MY_CONFIG_GROUP_ROOT_NAME);
     }
     return 0;
 }
@@ -930,7 +934,7 @@ sub updateSelfTest {
     my ($self) = @_;
   
     return $self->update(
-        $self->{selftest_module_id},
+        $self->getModuleIDByName(MY_CONFIG_SELFTEST_MODULE_NAME),
         {
             MY_CONFIG_SELFTEST_TIME_KEY() => {
                 Key => MY_CONFIG_SELFTEST_TIME_KEY,

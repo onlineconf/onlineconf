@@ -203,7 +203,7 @@ sub _get_overload {
     }
     $self->_say(4,"hostname = ".$self->{hostname});
 
-    my $data = $self->{storage}->getAll($self->{storage}->{overload_module_id},json2perl=>0);
+    my $data = $self->{storage}->getAll($self->{storage}->getModuleIDByName(MY_CONFIG_OVERLOAD_MODULE_NAME),json2perl=>0);
     unless($data && keys %$data) {
         $self->_say(-1,"nothing for overload");
         return;
