@@ -22,6 +22,7 @@ BEGIN {
     %CONST = (
         MY_CONFIG_JSON_FLAG             => 0x00000001,
         MY_CONFIG_DELETED_FLAG          => 0x00000002,
+        MY_CONFIG_SYMLINK_FLAG          => 0x00000004,
         MY_CONFIG_CURRENT_VER           => -1,
         
         MY_CONFIG_OVERLOAD_MODULE_NAME  => '\'@OVERLOAD\'',

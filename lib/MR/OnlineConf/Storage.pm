@@ -365,11 +365,22 @@ sub _add {
 sub _update {
     my ($self,$module,$version,$values)  = @_;
     foreach my $v (values %$values){
-        next unless $v->{Flags} && $v->{Flags} & MY_CONFIG_JSON_FLAG;
-        eval {from_json($v->{Value})};
-        if ($@){
-            warn "invalid json $v->{Value} for key $v->{Key}: $@\n";
-            return E_BAD_DATA;
+        if ($v->{Flags} && $v->{Flags} & MY_CONFIG_JSON_FLAG) {
+            eval {from_json($v->{Value})};
+            if ($@){
+                warn "invalid json $v->{Value} for key $v->{Key}: $@\n";
+                return E_BAD_DATA;
+            }
+        } elsif ($v->{Flags} && $v->{Flags} & MY_CONFIG_SYMLINK_FLAG) {
+            if ($v->{Value} =~ /^(\S+?):(\S+)$/) {
+                unless (exists $values->{$2} || exists $self->getMulti($1, [$2])->{$2}) {
+                    warn "invalid symlink $v->{Value} for key $v->{Key}: no such path\n";
+                    return E_BAD_DATA;
+                }
+            } else {
+                warn "invalid symlink $v->{Value} for key $v->{Key}\n";
+                return E_BAD_DATA;
+            }
         }
     }
     foreach my $k (keys %$values){
@@ -448,7 +459,8 @@ sub _replaceAll {
    $self->_debug(3,"To remove " , \@to_rm);
    $self->_debug(3,"To update " , [keys %$merged]);
    return E_NO_CHANGES unless @to_rm || %$merged;
-   my $r = $self->_delete($module,$version,\@to_rm) if @to_rm;
+   my $r;
+   $r = $self->_delete($module,$version,\@to_rm) if @to_rm;
    return $r if $r;
    $r = $self->_update($module,$version,{map {$_=>$values->{$_}} keys %$merged}) if %$merged;
    return $r if $r;

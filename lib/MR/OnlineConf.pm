@@ -99,6 +99,13 @@ sub get {
     return $self->{cache}{$module}{$key};
 }
 
+sub getModule {
+    my ($self, $module) = @_;
+    $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
+    $self->reload($module);
+    return { map { $_ => $self->get($module, $_) } keys %{$self->{cache}{$module}} };
+}
+
 sub preload {
     my ($self) = @_;
     my $preload = $self->PRELOAD();
