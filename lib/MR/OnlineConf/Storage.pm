@@ -23,7 +23,7 @@ sub new {
     my ($class,$opts) = @_;
     my $self = bless {} , $class;
     $self->{config} = $opts;
-    MR::OnlineConf::Notification->init(%{$self->{config}->{database}});
+    MR::OnlineConf::Notification->init(%{$self->{config}->{notification_database}||{}});
     return $self;
 }
 

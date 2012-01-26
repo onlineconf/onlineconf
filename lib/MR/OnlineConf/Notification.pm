@@ -29,7 +29,7 @@ sub rollback {
 
 sub on_add {
     my ($class, $module, $key, $value, $comment) = @_;
-    my $message = sprintf 'Добавлен параметр %s:%s со значением "%s".', _d $module, _d $key, _d $value;
+    my $message = sprintf 'Добавлен параметр %s:%s.', _d $module, _d $key;
     $message .= ' ' . _d $comment if $comment;
     MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
     return;
@@ -37,7 +37,7 @@ sub on_add {
 
 sub on_update {
     my ($class, $module, $key, $value, $comment) = @_;
-    my $message = sprintf 'Изменен параметр %s:%s, новое значение "%s".', _d $module, _d $key, _d $value;
+    my $message = sprintf 'Изменен параметр %s:%s.', _d $module, _d $key;
     $message .= ' ' . _d $comment if $comment;
     MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
     return;
