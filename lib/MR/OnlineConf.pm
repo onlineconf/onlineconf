@@ -89,6 +89,11 @@ sub _reseterr {
 sub get {
     my ($self,$module,$key,$default) = @_;
     $self->_test();
+    if ($module && $module =~ /^\//) {
+        $default = $key;
+        $key = $module;
+        $module = 'TREE';
+    }
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
     warn "found local overloaded value for $module:$key. i hope that we are not on production server\n" 

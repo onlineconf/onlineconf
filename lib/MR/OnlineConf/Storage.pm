@@ -3,6 +3,7 @@ package MR::OnlineConf::Storage;
 use strict;
 use MR::OnlineConf::Const qw/:all/;
 use MR::OnlineConf::Util qw/from_json to_json/;
+use MR::OnlineConf::Notification;
 use DBI; 
 use Data::Dumper;
 use Carp qw/cluck/; 
@@ -22,6 +23,7 @@ sub new {
     my ($class,$opts) = @_;
     my $self = bless {} , $class;
     $self->{config} = $opts;
+    MR::OnlineConf::Notification->init(%{$self->{config}->{database}});
     return $self;
 }
 
@@ -62,6 +64,7 @@ sub _db_warn {
 
 sub _db_rollback {
     my ($self) = @_;
+    MR::OnlineConf::Notification->rollback();
     $self->_debug(-1,"cant rollback without connection") and return 1 
         unless $self->{dbh};
     return $self->_db_wrap('rollback');
@@ -69,6 +72,7 @@ sub _db_rollback {
 
 sub _db_commit {
     my ($self) = @_;
+    MR::OnlineConf::Notification->commit();
     $self->_debug(-1,"cant rollback without connection") and return 1 
         unless $self->{dbh};
     return $self->_db_wrap('commit');
@@ -116,6 +120,7 @@ sub _db_begin {
         $self->_db_disconnect();
         return undef;
     }    
+    MR::OnlineConf::Notification->begin();
     return $self->_db_wrap('begin_work');
 }
 
@@ -349,6 +354,13 @@ sub _add {
             $self->_db_warn;
             return E_UNDEFINED;            
         }
+        my $module_name = $self->module($mid)->{Name};
+        if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
+            unless (eval { MR::OnlineConf::Notification->on_add($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}); 1 }) {
+                cluck "Failed to send notification: $@";
+                return E_UNDEFINED;
+            }
+        }
     } 
     unless ($self->_db_update(
            "INSERT INTO ".$self->LOG_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`)
@@ -383,6 +395,7 @@ sub _update {
             }
         }
     }
+    my $module_name = $self->module($module)->{Name};
     foreach my $k (keys %$values){
         $values->{$k}{Flags} ||=0;
         unless ($self->_db_update(
@@ -393,6 +406,12 @@ sub _update {
                 $version,$values->{$k}{Value},$values->{$k}{Flags},$values->{$k}{Comment})){
             $self->_db_warn;
             return E_UNDEFINED      
+        }
+        if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
+            unless (eval { MR::OnlineConf::Notification->on_update($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}); 1 }) {
+                cluck "Failed to send notification: $@";
+                return E_UNDEFINED;
+            }
         }
     }
     my $p = join "," , map {'?'} keys %$values;
@@ -422,6 +441,15 @@ sub _delete {
    unless ($self->_db_update("DELETE FROM ".$self->CURRENT_TABLE." WHERE `Module` = ? AND `Key` IN ($p)",$module,@$values)){
        $self->_db_warn;
        return E_UNDEFINED;
+   }
+   my $module_name = $self->module($module)->{Name};
+   if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
+       foreach my $k (@$values) {
+            unless (eval { MR::OnlineConf::Notification->on_delete($module_name, $k); 1 }) {
+                cluck "Failed to send notification: $@";
+                return E_UNDEFINED;
+            }
+       }
    }
    return undef;
 }
