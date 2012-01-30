@@ -25,8 +25,13 @@ sub new {
         config=>$opts,
         hostname => $hostname
     } , $class;
-    $self->{storage} = new MR::OnlineConf::Storage($opts);
     return $self; 
+}
+
+sub storage {
+    my ($self) = @_;
+    $self->{storage} ||= new MR::OnlineConf::Storage($self->{config});
+    return $self->{storage};
 }
 
 sub _say {
@@ -102,7 +107,7 @@ sub localList {
 
 sub needUpdate {
     my ($self) = @_;
-    my $modules = $self->{storage}->modules();
+    my $modules = $self->storage()->modules();
     unless ($modules){
         $self->_say(-1,"cant load modules list from storage.\n");
         return ();
@@ -150,7 +155,7 @@ sub update {
     }
 
     my %cache;
-    my $data = $self->{storage}->getAllFromModules([ map {$self->{remote}{$_}{ID}} @mod ]);
+    my $data = $self->storage()->getAllFromModules([ map {$self->{remote}{$_}{ID}} @mod ]);
     my %names = map {$_->{ID}=>$_} values %{$self->{remote}};
     my %ids   = map {$_->{Name}=>$_} values  %{$self->{remote}};
     unless ($data && ref $data eq 'HASH'){
@@ -189,7 +194,7 @@ sub update {
                         $target = $cache{$ids{$1}->{ID}}->{$2};
                     } else {
                         my ($tm, $tk) = ($1, $2);
-                        my $d = $self->{storage}->getAllFromModules([ $ids{$tm}{ID} ]);
+                        my $d = $self->storage()->getAllFromModules([ $ids{$tm}{ID} ]);
                         $cache{$ids{$tm}->{ID}} = $d->{$ids{$tm}->{ID}} || {};
                         $target = $cache{$ids{$tm}->{ID}}->{$tk};
                     }
@@ -267,7 +272,7 @@ sub _get_overload {
     }
     $self->_say(4,"hostname = ".$self->{hostname});
 
-    my $data = $self->{storage}->getAll($self->{storage}->getModuleIDByName(MY_CONFIG_OVERLOAD_MODULE_NAME),json2perl=>1);
+    my $data = $self->storage()->getAll($self->storage()->getModuleIDByName(MY_CONFIG_OVERLOAD_MODULE_NAME),json2perl=>1);
     unless($data && keys %$data) {
         $self->_say(-1,"nothing for overload");
         return;
@@ -349,9 +354,9 @@ sub _update_periodically {
             $self->{first} = 0;
     }
     $self->_say(1,"check updates\n");
-    $self->{storage}->open();
+    $self->storage()->open();
 
-    $self->{storage}->updateActivity($self->{hostname});
+    $self->storage()->updateActivity($self->{hostname});
     
     my @d = $self->needUpdate();
     if (@d){
@@ -365,7 +370,7 @@ sub _update_periodically {
         after=>$self->{config}{update_interval},
         cb => sub {$self->_update_periodically()}
     );
-    $self->{storage}->close(); # dont leave connect to db
+    $self->storage()->close(); # dont leave connect to db
 }
 
 sub updatePeriodically {
