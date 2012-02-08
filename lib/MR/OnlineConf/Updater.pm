@@ -11,6 +11,7 @@ use EV;
 use AnyEvent;
 use POSIX qw/strftime/;
 use Scalar::Util qw/weaken/;
+use Text::Glob qw/match_glob/;
 use IO::Handle;
 
 sub LOCAL_CFG_PATH()        {$_[0]->{config}{data_dir} }
@@ -286,7 +287,7 @@ sub _get_overload {
             next;
         }
         $self->_say(4,"fetch for overload host = $host, module = $module, key = $key");
-        next unless $host eq $self->{hostname};
+        next unless match_glob($host, $self->{hostname});
 
         unless($known_modules->{$module}) {
             $self->_say(-1,"unknown module for overload $module");
