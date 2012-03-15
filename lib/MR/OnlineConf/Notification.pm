@@ -24,7 +24,7 @@ sub begin {
 }
 
 sub commit {
-    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => join("\n", @message))->create();
+    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => join("\n", @message))->create() if @message;
     @message = ();
     MR::ChangeBot::Database->commit();
     return;
