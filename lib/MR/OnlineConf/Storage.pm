@@ -345,7 +345,7 @@ sub getGroupIDByName {
 }
 
 sub _add {
-    my ($self,$mid,$version,$values) = @_;
+    my ($self,$mid,$version,$values,$commiter) = @_;
     foreach my $k (keys %$values){
         $values->{$k}{Flags} ||=0;
         unless ($self->_db_update("INSERT INTO ".$self->CURRENT_TABLE."(`Version`,`Module`,`Key`,`Value`,`Flags`,`Comment`) 
@@ -356,7 +356,7 @@ sub _add {
         }
         my $module_name = $self->module($mid)->{Name};
         if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
-            unless (eval { MR::OnlineConf::Notification->on_add($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}); 1 }) {
+            unless (eval { MR::OnlineConf::Notification->on_add($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}, $commiter); 1 }) {
                 cluck "Failed to send notification: $@";
                 return E_UNDEFINED;
             }
@@ -375,7 +375,7 @@ sub _add {
 
 # update or insert
 sub _update {
-    my ($self,$module,$version,$values)  = @_;
+    my ($self,$module,$version,$values,$commiter)  = @_;
     foreach my $v (values %$values){
         if ($v->{Flags} && $v->{Flags} & MY_CONFIG_JSON_FLAG) {
             eval {from_json($v->{Value})};
@@ -408,7 +408,7 @@ sub _update {
             return E_UNDEFINED      
         }
         if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
-            unless (eval { MR::OnlineConf::Notification->on_update($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}); 1 }) {
+            unless (eval { MR::OnlineConf::Notification->on_update($module_name, $k, $values->{$k}{Value}, $values->{$k}{Comment}, $commiter); 1 }) {
                 cluck "Failed to send notification: $@";
                 return E_UNDEFINED;
             }
@@ -427,7 +427,7 @@ sub _update {
 }
 
 sub _delete {
-   my ($self,$module,$version,$val)  = @_;
+   my ($self,$module,$version,$val,$commiter)  = @_;
    my $values = ref $val eq 'HASH' ? [keys %$val] : ref $val eq 'ARRAY' ? $val : [];
    my $p = join "," , map {'?'} @$values;
    unless ($self->_db_update(
@@ -445,7 +445,7 @@ sub _delete {
    my $module_name = $self->module($module)->{Name};
    if ($module_name ne MY_CONFIG_SELFTEST_MODULE_NAME) {
        foreach my $k (@$values) {
-            unless (eval { MR::OnlineConf::Notification->on_delete($module_name, $k); 1 }) {
+            unless (eval { MR::OnlineConf::Notification->on_delete($module_name, $k, $commiter); 1 }) {
                 cluck "Failed to send notification: $@";
                 return E_UNDEFINED;
             }
@@ -462,7 +462,7 @@ sub _eq {
 }
 
 sub _replaceAll {
-   my ($self,$module,$version,$values)  = @_;
+   my ($self,$module,$version,$values,$commiter)  = @_;
   
    foreach my $v (values %$values){
         $v->{Flags} = 0 unless defined $v->{Flags};
@@ -488,9 +488,9 @@ sub _replaceAll {
    $self->_debug(3,"To update " , [keys %$merged]);
    return E_NO_CHANGES unless @to_rm || %$merged;
    my $r;
-   $r = $self->_delete($module,$version,\@to_rm) if @to_rm;
+   $r = $self->_delete($module,$version,\@to_rm,$commiter) if @to_rm;
    return $r if $r;
-   $r = $self->_update($module,$version,{map {$_=>$values->{$_}} keys %$merged}) if %$merged;
+   $r = $self->_update($module,$version,{map {$_=>$values->{$_}} keys %$merged},$commiter) if %$merged;
    return $r if $r;
    return undef;
 }
@@ -504,7 +504,7 @@ sub _transaction {
     my $version = $self->version($mid->{ID});
     $version ||=0;
     return $self->_unlock(E_PREV_VERSION_MISMATCH) if $opts{prev_version} && !($version == $opts{prev_version});
-    my $r = $self->$func($mid->{ID},$version+1,$values);
+    my $r = $self->$func($mid->{ID},$version+1,$values,$commiter);
     return $self->_unlock($r) if $r;
     unless ($self->_db_update(
                 "INSERT INTO ".$self->TRANSACTION_TABLE.'(`Module`,`Version`,`Comment`,`ChangedBy`) VALUES(?,?,?,?)',

@@ -6,6 +6,8 @@ use utf8;
 use Encode;
 use MR::ChangeBot::Notification;
 
+my @message;
+
 sub _d ($) { Encode::decode('CP1251', $_[0]) }
 
 sub init {
@@ -16,37 +18,44 @@ sub init {
 }
 
 sub begin {
+    @message = ();
     MR::ChangeBot::Database->begin();
+    return;
 }
 
 sub commit {
+    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => join("\n", @message))->create();
+    @message = ();
     MR::ChangeBot::Database->commit();
+    return;
 }
 
 sub rollback {
+    @message = ();
     MR::ChangeBot::Database->rollback();
+    return;
 }
 
 sub on_add {
-    my ($class, $module, $key, $value, $comment) = @_;
-    my $message = sprintf 'Добавлен параметр %s:%s.', _d $module, _d $key;
+    my ($class, $module, $key, $value, $comment, $commiter) = @_;
+    my $message = sprintf '%s добавил параметр %s:%s.', _d $commiter, _d $module, _d $key;
     $message .= ' ' . _d $comment if $comment;
-    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
+    push @message, $message;
     return;
 }
 
 sub on_update {
-    my ($class, $module, $key, $value, $comment) = @_;
-    my $message = sprintf 'Изменен параметр %s:%s.', _d $module, _d $key;
+    my ($class, $module, $key, $value, $comment, $commiter) = @_;
+    my $message = sprintf '%s изменил параметр %s:%s.', _d $commiter, _d $module, _d $key;
     $message .= ' ' . _d $comment if $comment;
-    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
+    push @message, $message;
     return;
 }
 
 sub on_delete {
-    my ($class, $module, $key) = @_;
-    my $message = sprintf 'Удален параметр %s:%s.', _d $module, _d $key;
-    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
+    my ($class, $module, $key, $commiter) = @_;
+    my $message = sprintf '%s удалил параметр %s:%s.', _d $commiter, _d $module, _d $key;
+    push @message, $message;
     return;
 }
 
