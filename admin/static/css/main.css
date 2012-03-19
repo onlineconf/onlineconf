@@ -1,0 +1,102 @@
+html { background-color: #F7F7F7; margin: 0; padding: 0 }
+
+body {
+    background-color: #FFFFFF;
+    color: #000000;
+    font: 12px/1.4 arial,FreeSans,Helvetica,sans-serif;
+    width: 80em;
+    margin: 0 auto;
+    padding: 1em;
+    border: 1px solid #CCCCCC;
+    border-radius: 8px;
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -khtml-border-radius: 8px;
+}
+
+h2.onlineconf { margin-top: 0 }
+span.edition { font-size: 40%; vertical-align: sub; text-transform: uppercase }
+#access-group, #global-log, #monitoring { float: right; display: block; margin: 0.5em; }
+#search-block { float: right; margin: 1px; padding: 0 }
+#search-text { border: none; margin: 0 2px; padding: 0; width: 10em; vertical-align: middle }
+#search-text:focus { outline: none }
+#search-button { font-size: 70%; margin: 1px }
+
+#tree { min-width: 80em; background: transparent; position: relative }
+#tree li { border-top: 1px dotted #CCCCCC; }
+#tree { overflow: hidden }
+#tree > ul { margin-left: -18px }
+
+span.node-title { max-width: 28.5em; display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; }
+span.node-summary { color: gray }
+span.node-table { position: absolute; left: 35em; background: white }
+span.node-data, span.node-version, span.node-mtime { display: inline-block; vertical-align: bottom; overflow: hidden; padding: 0 2px; height: 16px; border-left: 1px solid #CCCCCC }
+span.node-data { width: 32em; text-overflow: ellipsis }
+span.node-version { text-align: right; width: 2em }
+span.node-mtime { width: 9.5em }
+span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
+
+.nice-form { position: relative }
+.nice-form div > label, .nice-form span.label { position: absolute; width: 7em }
+.nice-form span.value { display: block; margin-left: 7em; line-height: 18px; min-height: 18px }
+span.value input, span.value select, span.value textarea { width: 100% }
+
+#move-dialog.nice-form label { width: 9em }
+#move-dialog.nice-form span.value { margin-left: 9em; }
+
+div.value-case { border: 1px solid #AAAAAA; margin: 1px; padding: 2px 2px 2px 4px }
+
+#description, #data { white-space: pre-wrap }
+#create-dialog textarea, #edit-dialog textarea, #rename-dialog textarea { height: 8em }
+
+.CodeMirror { margin: 1px }
+.CodeMirror-scroll { height: auto; max-height: 20em }
+.CodeMirror-lines { padding: 2px; font-family: monospace; font-size: 1em }
+#node-dialog .CodeMirror-lines { padding-left: 0; padding-right: 0 }
+
+span.null { color: gray }
+
+.input-width-fill-wrapper { margin: 1px; padding: 0 2px }
+.input-width-fill { border: none; margin: 0; padding: 0; width: 100% }
+.input-width-fill:focus { outline: none }
+.input-focus, .CodeMirror-focused { border-color: #FF6600 }
+
+.log-dialog { max-height: 800px }
+.log-dialog table { border-collapse: collapse }
+.log-dialog table th, .log-dialog table td { border: 1px solid #CCCCCC; padding: 0 0.2em }
+th.log-version { min-width: 4em }
+th.log-data { min-width: 18em }
+th.log-mtime { min-width: 9.5em }
+th.log-author { min-width: 8em }
+th.log-comment { min-width: 16em }
+td.log-data { white-space: pre-wrap }
+td.log-deleted { text-align: center; color: gray; letter-spacing: 1em; font-variant: small-caps }
+td.log-version { text-align: right }
+
+#global-log-dialog th.log-path { min-width: 14em }
+#global-log-dialog th.log-data { min-width: 14em }
+#global-log-dialog th.log-comment { min-width: 10em }
+
+#global-log-header { padding: 0.5em; border-width: 0 0 1px 0 }
+#global-log-author, #global-log-branch { width: 12em }
+#global-log-from, #global-log-till { width: 8em }
+#global-log-go { font-size: 70% }
+
+#error-dialog { white-space: pre }
+
+#group-dialog { background: transparent }
+
+#access-dialog span.value { line-height: 18px; min-height: 0; position: relative }
+#access-dialog input.access-overridden { position: absolute; width: 2em }
+#access-dialog span.access-slider { display: block; margin-left: 2em; padding: 4px; line-height: 18px; min-height: 0 }
+#access-dialog a.ui-slider-handle { text-align: center; text-decoration: none }
+#access-dialog a.ui-slider-handle > span { text-transform: uppercase; font-size: 50%; vertical-align: top }
+#access-dialog a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-weight: bold; color: #FF6666 }
+
+.ui-autocomplete { max-height: 200px; overflow-y: auto; padding-right: 20px; }
+* html .ui-autocomplete { height: 200px } /* IE6 */
+
+#tree a.jstree-search { color: blue }
+#tree a.jstree-search span { color: inherit }
+
+.monitoring-alert { background-color: #FFCCCC }

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/plackup -s Starman -E deployment --preload-app -M MR::OnlineConf::Admin::Web -e 'MR::OnlineConf::Admin::Web->start()' $*

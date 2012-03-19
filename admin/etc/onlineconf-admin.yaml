@@ -1,0 +1,10 @@
+auth:
+  host: xxx
+  user: xxx
+  password: xxx
+  database: mPOP
+  table: mod_auth
+  name_field: user_name
+  password_field: user_passwd
+  condition: "`user_group` = 'my'"
+  realm: MY-admin

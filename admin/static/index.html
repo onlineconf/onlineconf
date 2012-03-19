@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ru" lang="ru">
+    <head>
+        <title>OnlineConf Tree Edition</title>
+        <link href="/lib/jquery-ui/css/smoothness/jquery-ui-1.8.18.custom.css" rel="stylesheet" type="text/css"/>
+        <link href="/lib/validation-engine/jquery.validationEngine.css" rel="stylesheet" type="text/css"/>
+        <link href="/lib/codemirror/codemirror.css" rel="stylesheet" type="text/css"/>
+        <link href="/css/main.css" rel="stylesheet" type="text/css"/>
+        <script src="/lib/jquery-ui/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+        <script src="/lib/jquery-ui/js/jquery-ui-1.8.18.custom.min.js" type="text/javascript"></script>
+        <script src="/lib/jquery.json-2.3.min.js" type="text/javascript"></script>
+        <script src="/lib/jstree/jquery.jstree.js" type="text/javascript"></script>
+        <script src="/lib/validation-engine/jquery.validationEngine.js" type="text/javascript"></script>
+        <script src="/lib/validation-engine/jquery.validationEngine-ru.js" type="text/javascript"></script>
+        <script src="/lib/codemirror/codemirror.js" type="text/javascript"></script>
+        <script src="/lib/codemirror/mode/javascript.js" type="text/javascript"></script>
+        <script src="/lib/codemirror/mode/yaml.js" type="text/javascript"></script>
+        <script src="/js/main.js" type="text/javascript"></script>
+        <script src="/js/mime-type.js" type="text/javascript"></script>
+        <script src="/js/config.js" type="text/javascript"></script>
+        <script src="/js/search.js" type="text/javascript"></script>
+        <script src="/js/log.js" type="text/javascript"></script>
+        <script src="/js/group.js" type="text/javascript"></script>
+        <script src="/js/access.js" type="text/javascript"></script>
+    </head>
+    <body>
+        <div id="search-block" class="ui-widget-content ui-corner-all">
+        <form id="search-form">
+            <input id="search-text"/>
+            <button id="search-button" type="button">Найти</button>
+        </form>
+        </div>
+        <a href="#" id="access-group" style="display:none">Группы пользователей</a>
+        <a href="#" id="global-log">Журнал</a>
+        <a href="#" id="monitoring">Мониторинг</a>
+        <h2 class="onlineconf">OnlineConf<span class="edition">Tree</span></h2>
+        <div id="tree"/>
+
+        <div id="node-dialog" style="display:none" class="nice-form">
+            <div><span class="label">Имя:</span><span id="name" class="value"/></div>
+            <div><span class="label">Название:</span><span id="summary" class="value"/></div>
+            <div><span class="label">Описание:</span><span id="description" class="value"/></div>
+            <div><span class="label">Изменен:</span><span id="mtime" class="value"/></div>
+            <div><span class="label">Версия:</span><span id="version" class="value"/></div>
+            <div><span class="label">Значение:</span><span id="data" class="value"/></div>
+        </div>
+
+        <div id="create-dialog" style="display:none" class="nice-form">
+            <form id="create-form">
+            <div><label for="create-name">Имя:</label><span class="value"><input id="create-name" name="name" class="validate[required] validate[custom[nodeName]]"/></span></div>
+            <div id="create-name-novalidate-div" style="display:none"><span class="value"><input type="checkbox" id="create-name-novalidate"/><label for="create-name-novalidate">Не проверять имя</label></span></div>
+            <div><label for="create-summary">Название:</label><span class="value"><input id="create-summary" name="summary"/></span></div>
+            <div><label for="create-description">Описание:</label><span class="value"><textarea id="create-description" name="description"/></span></div>
+            <div><label for="create-mime">Тип данных:</label><span class="value"><select id="create-mime" name="mime"/></span></div>
+            <div><label for="create-data">Значение:</label><span class="value" id="create-data"/></div>
+            <div><label for="create-comment">Комментарий:</label><span class="value"><input id="create-comment" name="comment"/></span></div>
+            </form>
+        </div>
+
+        <div id="edit-dialog" style="display:none" class="nice-form">
+            <form id="edit-form">
+            <div><label for="edit-mime">Тип данных:</label><span class="value"><select id="edit-mime" name="mime"/></span></div>
+            <div><label for="edit-data">Значение:</label><span class="value" id="edit-data"/></div>
+            <div><label for="edit-comment">Комментарий:</label><span class="value"><input id="edit-comment" name="comment"/></span></div>
+            </form>
+        </div>
+
+        <div id="delete-dialog" style="display:none" class="nice-form">
+            Вы уверены, что хотите удалить <span id="delete-path" class="node-name"/>?
+            <form id="delete-form">
+            <div><label for="delete-comment">Комментарий:</label><span class="value"><input id="delete-comment" name="comment"/></span></div>
+            </form>
+        </div>
+
+        <div id="rename-dialog" style="display:none" class="nice-form">
+            <form id="rename-form">
+            <div><label for="rename-summary">Название:</label><span class="value"><input id="rename-summary" name="summary"/></span></div>
+            <div><label for="rename-description">Описание:</label><span class="value"><textarea id="rename-description" name="description"/></span></div>
+            </form>
+        </div>
+
+        <div id="move-dialog" style="display:none" class="nice-form">
+            <form id="move-form">
+            <div><label for="move-path">Путь:</label><span class="value"><input id="move-path" name="path"/></span></div>
+            <div><label for="move-symlink">Оставить symlink:</label><span class="value"><input id="move-symlink" name="symlink" type="checkbox" checked="checked"/></span></div>
+            </form>
+        </div>
+
+        <div id="log-dialog" style="display:none" class="log-dialog">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="log-version">Версия</th>
+                        <th class="log-data">Значение</th>
+                        <th class="log-mtime">Время</th>
+                        <th class="log-author">Автор</th>
+                        <th class="log-comment">Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody id="log"/>
+            </table>
+        </div>
+
+        <div id="global-log-dialog" style="display:none" class="log-dialog">
+            <div id="global-log-header">
+                <form id="global-log-form">
+                <label for="global-log-author">Автор:</label>
+                <input type="text" id="global-log-author" name="author"/>
+                <label for="global-log-branch">Ветка:</label>
+                <input type="text" id="global-log-branch" name="branch"/>
+                <label for="global-log-from">Время:</label>
+                <input type="text" id="global-log-from" name="from"/>
+                <label for="global-log-till">-</label>
+                <input type="text" id="global-log-till" name="till"/>
+                <button id="global-log-go">Показать</button>
+                </form>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="log-mtime">Время</th>
+                        <th class="log-path">Параметр</th>
+                        <th class="log-data">Значение</th>
+                        <th class="log-author">Автор</th>
+                        <th class="log-comment">Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody id="global-log-table"/>
+            </table>
+        </div>
+
+        <div id="error-dialog" style="display:none" class="ui-state-error"/>
+
+        <div id="group-dialog" style="display:none" title="Группы пользователей"/>
+
+        <div id="create-group-dialog" style="display:none" title="Создать группу" class="nice-form">
+            <form id="create-group">
+            <div><label for="create-group-name">Группа:</label><span class="value"><input id="create-group-name" name="group"/></span></div>
+            </form>
+        </div>
+
+        <div id="delete-group-dialog" style="display:none">
+            Вы уверены, что хотите удалить группу <span id="delete-group-name"/>?
+        </div>
+
+        <div id="add-user-dialog" style="display:none" class="nice-form" title="Добавить пользователя">
+            <form id="add-user">
+            <div><label for="add-user-name">Пользователь:</label><span class="value"><input id="add-user-name" name="user"/></span></div>
+            </form>
+        </div>
+
+        <div id="delete-user-dialog" style="display:none">
+            Вы уверены, что хотите удалить пользователя <span id="delete-user-name"/> из группы <span id="delete-user-group"/>?
+        </div>
+
+        <div id="access-dialog" style="display:none" class="nice-form"/>
+
+        <div id="monitoring-dialog" style="display:none" class="log-dialog" title="Мониторинг активности">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="monitoring-host">Сервер</th>
+                        <th class="monitoring-mtime">Модификация</th>
+                        <th class="monitoring-online">Онлайн</th>
+                        <th class="monitoring-package">Пакет</th>
+                    </tr>
+                </thead>
+                <tbody id="monitoring-list"/>
+            </table>
+        </div>
+    </body>
+</html>
