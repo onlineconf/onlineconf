@@ -15,10 +15,11 @@ sub list {
 sub global {
     my ($self) = @_;
     my $versions = MR::OnlineConf::Admin::Version->select(
-        author => scalar $self->param('author'),
-        branch => scalar $self->param('branch'),
-        from   => scalar $self->param('from'),
-        till   => scalar $self->param('till'),
+        username => $self->username,
+        author   => scalar $self->param('author'),
+        branch   => scalar $self->param('branch'),
+        from     => scalar $self->param('from'),
+        till     => scalar $self->param('till'),
     );
     $self->render(json => [ map $self->_version($_), @$versions ]);
     return;
@@ -40,6 +41,7 @@ sub _version {
         mtime   => $version->mtime,
         deleted => $version->deleted ? Mojo::JSON->true : Mojo::JSON->false,
         comment => $version->comment,
+        rw      => !defined($version->rw) ? undef : $version->rw ? Mojo::JSON->true : Mojo::JSON->false,
     };
 }
 

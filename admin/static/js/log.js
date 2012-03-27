@@ -1,3 +1,4 @@
+// Node log
 $(function() {
     $('#log-dialog').node_dialog({
         title: 'Журнал',
@@ -13,6 +14,7 @@ $(function() {
             var node = $(this).node_dialog('option', 'node').data('node');
             $.get('/log' + node.path, function(data) {
                 var cm = [];
+                $log.empty();
                 $.each(data, function(id, log) {
                     var $data = $('<td class="log-data"/>');
                     $('<tr/>')
@@ -23,7 +25,9 @@ $(function() {
                         .append('<td class="log-comment">' + (log.comment != null ? log.comment : '') + '</td>')
                         .appendTo($log);
                     if (log.deleted) {
-                        $data.addClass('log-deleted').text('Удален');
+                        $data.addClass('log-deleted').text('удален');
+                    } else if (log.rw == null) {
+                        $data.addClass('log-no-access').text('нет доступа');
                     } else if (log.data != null && log.data != '') {
                         cm.push({ element: $data[0], mime: log.mime, data: log.data });
                         $data.text(log.data);
@@ -36,7 +40,10 @@ $(function() {
             })
         }
     });
+});
 
+// Global log
+$(function() {
     $('#global-log-dialog').dialog({
         title: 'Журнал',
         minWidth: 800,
@@ -67,6 +74,7 @@ $(function() {
         var $log = $('#global-log-table').empty();
         $.get('/global-log', $(this).serialize(), function(data) {
             var cm = [];
+            $log.empty();
             $.each(data, function(id, log) {
                 var $data = $('<td class="log-data"/>');
                 $('<tr/>')
@@ -77,7 +85,9 @@ $(function() {
                     .append('<td class="log-comment">' + (log.comment != null ? log.comment : '') + '</td>')
                     .appendTo($log);
                 if (log.deleted) {
-                    $data.addClass('log-deleted').text('Удален');
+                    $data.addClass('log-deleted').text('удален');
+                } else if (log.rw == null) {
+                    $data.addClass('log-no-access').text('нет доступа');
                 } else if (log.data != null && log.data != '') {
                     cm.push({ element: $data[0], mime: log.mime, data: log.data });
                     $data.text(log.data);
@@ -87,6 +97,10 @@ $(function() {
             $.each(cm, function (id, cm) {
                 mimeType[cm.mime].view($(cm.element), cm.mime, cm.data);
             });
+            $dialog
+                .dialog('option', 'width', window.innerWidth - 100 > $log.width() + 40 ? $log.width() + 40 : window.innerWidth - 100)
+                .dialog('option', 'height', window.innerHeight - 100 > $log.height() + 110 ? $log.height() + 110 : window.innerHeight - 100)
+                .dialog('option', 'position', 'center');
         });
         return false;
     });

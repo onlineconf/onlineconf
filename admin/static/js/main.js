@@ -7,6 +7,7 @@ $(function() {
             async: false,
             dialog: {}
         },
+        _refreshing: false,
         _create: function () {
             this.element.dialog($.extend({ autoOpen: false }, this.options.dialog));
         },
@@ -15,18 +16,22 @@ $(function() {
             this.refresh();
         },
         _refresh: function () {
+            this._refreshing = true;
             if (this.options.async && this.element.dialog('isOpen')) {
                 this.element.dialog('close');
             }
             var node = this.options.node.data('node');
             this.element.dialog('option', 'title', (this.options.title == null ? '' : this.options.title + ' ') + node.path);
             var self = this;
-            this._trigger('refresh', null, { success: function () { self.element.dialog('open') } });
+            this._trigger('refresh', null, { success: function () { self._refreshing = false; self.element.dialog('open') } });
+            if (!this.options.async) this._refreshing = false;
         },
         open: function () {
-            this._refresh();
-            if (!this.options.async) {
-                this.element.dialog('open');
+            if (!this.element.dialog('isOpen') && !this._refreshing) {
+                this._refresh();
+                if (!this.options.async) {
+                    this.element.dialog('open');
+                }
             }
         },
         close: function () {

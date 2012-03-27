@@ -24,6 +24,7 @@ $(function() {
     });
     $.expr[':'].jstree_node_contains = function (a, i, m) {
         var node = $(a).parent('li').data('node');
+        if (node == null) return false;
         return node.name.toLowerCase().indexOf(m[3].toLowerCase()) >= 0
             || node.data != null && node.data.toLowerCase().indexOf(m[3].toLowerCase()) >= 0
             || node.summary != null && node.summary.toLowerCase().indexOf(m[3].toLowerCase()) >= 0

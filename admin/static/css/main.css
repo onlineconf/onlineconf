@@ -16,7 +16,7 @@ body {
 
 h2.onlineconf { margin-top: 0 }
 span.edition { font-size: 40%; vertical-align: sub; text-transform: uppercase }
-#access-group, #global-log, #monitoring { float: right; display: block; margin: 0.5em; }
+#access-group, #global-log, #monitoring { float: right; display: block; margin: 0.5em; color: #333333 }
 #search-block { float: right; margin: 1px; padding: 0 }
 #search-text { border: none; margin: 0 2px; padding: 0; width: 10em; vertical-align: middle }
 #search-text:focus { outline: none }
@@ -29,9 +29,11 @@ span.edition { font-size: 40%; vertical-align: sub; text-transform: uppercase }
 
 span.node-title { max-width: 28.5em; display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; }
 span.node-summary { color: gray }
-span.node-table { position: absolute; left: 35em; background: white }
-span.node-data, span.node-version, span.node-mtime { display: inline-block; vertical-align: bottom; overflow: hidden; padding: 0 2px; height: 16px; border-left: 1px solid #CCCCCC }
-span.node-data { width: 32em; text-overflow: ellipsis }
+span.node-table { position: absolute; left: 35em; background: white; height: 16px; overflow: hidden }
+span.node-data, span.node-version, span.node-mtime { display: inline-block; overflow: hidden; padding: 0 2px; height: 16px; border-left: 1px solid #CCCCCC }
+span.node-data { width: 30.5em; text-overflow: ellipsis }
+span.node-access { display: inline-block; height: 16px; width: 16px; margin: 0 2px }
+span.node-access-modified { background-image: url("/css/type/access.png") }
 span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
@@ -69,13 +71,14 @@ th.log-data { min-width: 18em }
 th.log-mtime { min-width: 9.5em }
 th.log-author { min-width: 8em }
 th.log-comment { min-width: 16em }
-td.log-data { white-space: pre-wrap }
-td.log-deleted { text-align: center; color: gray; letter-spacing: 1em; font-variant: small-caps }
+td.log-data { white-space: pre-wrap; max-width: 18em }
+td.log-deleted, td.log-no-access { text-align: center; color: gray; letter-spacing: 1em; font-variant: small-caps }
 td.log-version { text-align: right }
 
 #global-log-dialog th.log-path { min-width: 14em }
 #global-log-dialog th.log-data { min-width: 14em }
 #global-log-dialog th.log-comment { min-width: 10em }
+#global-log-dialog td.log-data { max-width: 30em }
 
 #global-log-header { padding: 0.5em; border-width: 0 0 1px 0 }
 #global-log-author, #global-log-branch { width: 12em }

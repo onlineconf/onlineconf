@@ -6,6 +6,7 @@ $(function() {
             var $access = $(this).empty();
             var node = $access.node_dialog('option', 'node').data('node');
             $.get('/access' + node.path, function (data) {
+                $access.empty();
                 $.each(data, function (id, group) {
                     $('<div/>')
                         .append($('<span class="label"/>').text(group.group))

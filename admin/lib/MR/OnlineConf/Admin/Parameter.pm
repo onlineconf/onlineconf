@@ -104,6 +104,14 @@ has rw => (
     clearer => 'clear_rw',
 );
 
+has access_modified => (
+    is  => 'ro',
+    isa => 'Bool',
+    lazy    => 1,
+    default => sub { $_[0]->_row ? $_[0]->_row->{AccessModified} : undef },
+    clearer => 'clear_access_modified',
+);
+
 has num_children => (
     is  => 'ro',
     isa => 'Int',
@@ -150,6 +158,7 @@ has _row => (
         return MR::OnlineConf::Admin::Storage->select("
             SELECT *,
                 (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
+                (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
                 `my_config_tree_access`(t.`ID`, ?) AS `RW`
             FROM `my_config_tree` t
             WHERE `Path` = ? $deleted
@@ -179,6 +188,7 @@ sub search {
                 SELECT * FROM (
                     SELECT *,
                         (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
+                        (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
                         `my_config_tree_access`(t.`ID`, ?) AS `RW`
                     FROM `my_config_tree` t
                     WHERE NOT `Deleted`
@@ -362,6 +372,7 @@ sub _build_children {
             @{MR::OnlineConf::Admin::Storage->select('
                 SELECT *,
                     (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
+                    (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
                     `my_config_tree_access`(t.`ID`, ?) AS `RW`
                 FROM `my_config_tree` t WHERE `ParentID` = ? AND NOT `Deleted`
                 ORDER BY `Name`
@@ -377,15 +388,16 @@ sub _build_access {
 sub _log {
     my ($self, %in) = @_;
     my $version = MR::OnlineConf::Admin::Version->new(
-        node_id => $self->id,
-        path    => $self->path,
-        mime    => $self->mime,
-        data    => $self->data,
-        version => $self->version,
-        mtime   => $self->mtime,
-        deleted => $self->deleted,
-        author  => $self->username,
-        comment => $in{comment},
+        node_id  => $self->id,
+        path     => $self->path,
+        mime     => $self->mime,
+        data     => $self->data,
+        version  => $self->version,
+        mtime    => $self->mtime,
+        deleted  => $self->deleted,
+        username => $self->username,
+        author   => $self->username,
+        comment  => $in{comment},
     );
     $version->log();
     return;

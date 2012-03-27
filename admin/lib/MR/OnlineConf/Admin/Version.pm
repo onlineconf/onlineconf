@@ -27,7 +27,7 @@ has data => (
     is  => 'ro',
     isa => 'Maybe[Str]',
     lazy   => 1,
-    default => sub { die sprintf "Version %s of %s not exists\n", $_[0]->version, $_[0]->node_id unless $_[0]->_row; $_[0]->_row->{Value} },
+    default => sub { die sprintf "Version %s of %s not exists\n", $_[0]->version, $_[0]->node_id unless $_[0]->_row; defined($_[0]->rw) ? $_[0]->_row->{Value} : undef },
 );
 
 has version => (
@@ -64,18 +64,37 @@ has comment => (
     default => sub { die sprintf "Version %s of %s not exists\n", $_[0]->version, $_[0]->node_id unless $_[0]->_row; $_[0]->_row->{Comment} },
 );
 
+has username => (
+    is  => 'ro',
+    isa => 'Str',
+    required => 1,
+);
+
+has rw => (
+    is  => 'ro',
+    isa => 'Bool',
+    lazy    => 1,
+    default => sub { die sprintf "Version %s of %s not exists\n", $_[0]->version, $_[0]->node_id unless $_[0]->_row; $_[0]->_row->{RW} },
+);
+
 has _row => (
     is  => 'ro',
     isa => 'Maybe[HashRef]',
     lazy    => 1,
-    default => sub { MR::OnlineConf::Admin::Storage->select('SELECT * FROM `my_config_tree_log` WHERE `NodeID` = ? AND `Version` = ?', $_[0]->node_id, $_[0]->version)->[0] },
+    default => sub {
+        my ($self) = @_;
+        return MR::OnlineConf::Admin::Storage->select(
+            'SELECT *, `my_config_tree_access`(`NodeID`, ?) AS `RW` FROM `my_config_tree_log` WHERE `NodeID` = ? AND `Version` = ?',
+            $self->username, $self->node_id, $self->version
+        )->[0];
+    },
     clearer => '_clear_row',
 );
 
 sub select_by_node {
     my ($class, $node) = @_;
-    return [ map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $node->path, version => $_->{Version}, _row => $_),
-        @{MR::OnlineConf::Admin::Storage->select('SELECT * FROM `my_config_tree_log` WHERE `NodeID` = ? ORDER BY `Version` DESC', $node->id)} ];
+    return [ map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $node->path, version => $_->{Version}, username => $node->username, rw => $_->{RW}, _row => $_),
+        @{MR::OnlineConf::Admin::Storage->select('SELECT *, `my_config_tree_access`(`NodeID`, ?) AS `RW` FROM `my_config_tree_log` WHERE `NodeID` = ? ORDER BY `Version` DESC', $node->username, $node->id)} ];
 }
 
 sub select {
@@ -100,8 +119,16 @@ sub select {
     }
     push @condition, "t.`Path` <> '/onlineconf/selftest/update-time'";
     my $where = @condition ? ('WHERE ' . join(' AND ', @condition)): '';
-    return [ map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $_->{Path}, version => $_->{Version}, _row => $_),
-        @{MR::OnlineConf::Admin::Storage->select("SELECT l.*, t.`Path` FROM `my_config_tree_log` l JOIN `my_config_tree` t ON t.`ID` = l.`NodeID` $where ORDER BY l.`MTime` DESC LIMIT 50", @bind)} ];
+    return [
+        map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $_->{Path}, version => $_->{Version}, username => $in{username}, rw => $_->{RW}, _row => $_),
+            @{MR::OnlineConf::Admin::Storage->select("
+                SELECT l.*, t.`Path`, `my_config_tree_access`(t.`ID`, ?) AS `RW`
+                FROM `my_config_tree_log` l JOIN `my_config_tree` t ON t.`ID` = l.`NodeID`
+                $where
+                ORDER BY l.`MTime` DESC
+                LIMIT 50
+            ", $in{username}, @bind)}
+    ];
 }
 
 sub log {

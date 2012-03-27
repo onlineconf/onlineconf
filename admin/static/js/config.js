@@ -5,6 +5,7 @@ $(function() {
             + (node.summary.length > 0 ? (' <span class="node-summary">(' + node.summary + ')</span>') : '')
             + '</span><span class="node-table">'
             + '<span class="node-data">' + (node.rw != null ? mimeType[node.mime].preview(node.data) : '<span class="no-access">нет доступа</span>') + '</span>'
+            + (node.access_modified ? '<span class="node-access node-access-modified"/>' : '<span class="node-access"/>')
             + '<span class="node-version">' + node.version + '</span>'
             + '<span class="node-mtime">' + node.mtime + '</span>'
             + '</span>';
@@ -236,6 +237,31 @@ $(function() {
     }).bind('loaded.jstree', onHashChange);
     $(window).bind('hashchange', onHashChange);
 
+    $('#tree')
+        .delegate('li > a', 'dblclick', function (event) {
+            var node = $(this).parents('li:first');
+            if (node) {
+                if (node.data('node').rw) {
+                    $('#edit-dialog').data('node', node).dialog('open');
+                } else {
+                    $('#node-dialog').node_dialog('option', 'node', node).node_dialog('open');
+                }
+                event.stopPropagation();
+            }
+        })
+        .delegate('.node-access-modified', 'click', function (event) {
+            var node = $(this).parents('li:first');
+            if (node.data('node').rw || can_edit_groups) {
+                $('#access-dialog').node_dialog('option', 'node', node).node_dialog('open');
+                event.stopPropagation();
+            }
+        })
+        .delegate('.node-version, .node-mtime', 'click', function (event) {
+            var node = $(this).parents('li:first');
+            $('#log-dialog').node_dialog('option', 'node', node).node_dialog('open');
+            event.stopPropagation();
+        });
+
     $('#create-mime').change(function () {
         $('#create-data')
             .data('getter', mimeType[$(this).val()].edit($('#create-data'), $(this).val(), $('#create-data').data('getter')(true)))
@@ -268,6 +294,7 @@ $(function() {
             $('#version').text(node.version);
             ui.success();
             mimeType[node.mime].view($('#data'), node.mime, node.data);
+            $(this).siblings('.ui-dialog-buttonpane').find('.ui-button').button('option', 'disabled', !node.rw)
         }
     });
 

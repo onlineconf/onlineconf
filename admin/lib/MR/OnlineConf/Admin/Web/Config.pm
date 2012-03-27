@@ -74,16 +74,17 @@ sub _path {
 sub _node {
     my ($self, $node) = @_;
     return {
-        name         => $node->name,
-        path         => $node->path,
-        data         => $node->data,
-        version      => $node->version + 0,
-        mtime        => $node->mtime,
-        summary      => $node->summary,
-        description  => $node->description,
-        mime         => $node->mime,
-        num_children => $node->num_children + 0,
-        rw           => !defined($node->rw) ? undef : $node->rw ? Mojo::JSON->true : Mojo::JSON->false,
+        name            => $node->name,
+        path            => $node->path,
+        data            => $node->data,
+        version         => $node->version + 0,
+        mtime           => $node->mtime,
+        summary         => $node->summary,
+        description     => $node->description,
+        mime            => $node->mime,
+        num_children    => $node->num_children + 0,
+        access_modified => $node->access_modified ? Mojo::JSON->true : Mojo::JSON->false,
+        rw              => !defined($node->rw) ? undef : $node->rw ? Mojo::JSON->true : Mojo::JSON->false,
     };
 }
 
