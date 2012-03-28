@@ -75,7 +75,13 @@ sub init {
                 summary  => defined $row->{Comment} ? $row->{Comment} : '',
                 username => $USERNAME,
             );
-            $node->create(comment => 'Migration from onlineconf v1') unless $node->exists();
+            unless ($node->exists()) {
+                $node->create(comment => 'Migration from onlineconf v1');
+                MR::OnlineConf::Admin::Storage->do('
+                    INSERT INTO `my_config_tree_group` (`NodeID`, `GroupID`, `RW`)
+                    SELECT ?, `GroupID`, true FROM `my_config_module_group` WHERE `ModuleID` = ?
+                ', $node->id, $row->{ID});
+            }
         }
         my $node = MR::OnlineConf::Admin::Parameter->new(
             path     => "/onlineconf/selftest",
