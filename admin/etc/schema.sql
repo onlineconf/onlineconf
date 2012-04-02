@@ -1,9 +1,9 @@
 CREATE TABLE `my_config_tree` (
     `ID` bigint(20) unsigned NOT NULL auto_increment,
-    `Name` varchar(256) character set ascii NOT NULL,
+    `Name` varchar(256) character set ascii collate ascii_bin NOT NULL,
     `ParentID` bigint(20) unsigned default NULL,
-    `Path` varchar(512) character set ascii NOT NULL,
-    `Value` text,
+    `Path` varchar(512) character set ascii collate ascii_bin NOT NULL,
+    `Value` text collate utf8_bin,
     `ContentType` varchar(256) NOT NULL default 'application/x-null',
     `Summary` varchar(256) NOT NULL default '',
     `Description` varchar(8192) NOT NULL default '',
@@ -21,7 +21,7 @@ CREATE TABLE `my_config_tree_log` (
     `ID` bigint(20) unsigned NOT NULL auto_increment,
     `NodeID` bigint(20) unsigned NOT NULL,
     `Version` int(11) NOT NULL,
-    `Value` text,
+    `Value` text collate utf8_bin,
     `ContentType` varchar(256) NOT NULL default 'application/x-null',
     `Author` varchar(128) character set ascii NOT NULL,
     `MTime` timestamp NOT NULL default CURRENT_TIMESTAMP,
@@ -83,6 +83,7 @@ BEGIN
 END;$$
  
 CREATE FUNCTION `my_config_tree_access` (`node_id` bigint(20) unsigned, `username` varchar(256)) RETURNS boolean
+READS SQL DATA
 BEGIN
     DECLARE `result` boolean;
     DECLARE `overridden` boolean;
@@ -106,6 +107,7 @@ BEGIN
 END;$$
 
 CREATE FUNCTION `my_config_tree_group_access` (`node_id` bigint(20) unsigned, `group_id` int(11)) RETURNS boolean
+READS SQL DATA
 BEGIN
     DECLARE `result` boolean;
     DECLARE `overridden` boolean;

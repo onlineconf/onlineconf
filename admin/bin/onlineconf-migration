@@ -124,6 +124,7 @@ sub update {
         ", $last_mtime);
         foreach my $row (@$list) {
             my $path = $row->{Key};
+            next unless $path =~ /^[\x{0000}-\x{007f}]+$/;
             if ($row->{Module} eq 'TREE') {
                 next unless $path =~ /^\//;
             } else {

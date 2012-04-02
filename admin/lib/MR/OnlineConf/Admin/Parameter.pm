@@ -192,11 +192,11 @@ sub search {
                         `my_config_tree_access`(t.`ID`, ?) AS `RW`
                     FROM `my_config_tree` t
                     WHERE NOT `Deleted`
-                    AND (`Name` LIKE ? OR `Value` LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
+                    AND (`Name` COLLATE ascii_general_ci LIKE ? OR `Value` COLLATE utf8_general_ci LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
                     ORDER BY `Path`
                 ) x
                 WHERE `RW` IS NOT NULL
-                OR (`Name` LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
+                OR (`Name` COLLATE ascii_general_ci LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
             ', $username, map $term, (1 .. 7))}
     ];
 }
