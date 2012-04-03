@@ -98,6 +98,12 @@ has _mtime => (
     trigger => sub { $_[0]->_update_activity() },
 );
 
+has _update_time => (
+    is  => 'rw',
+    isa => 'Int',
+    default => 0,
+);
+
 sub BUILD {
     my ($self) = @_;
     MR::OnlineConf::Updater::Storage->new(%{$_[0]->config->{database}}, log => $self->log);
@@ -144,7 +150,8 @@ sub initialize {
 
 sub update {
     my ($self) = @_;
-    if (my $mtime = $self->_mtime) {
+    my $update_time = time();
+    if ((my $mtime = $self->_mtime) && $self->_update_time > time() - 60) {
         my $tree = $self->_tree;
         my $list = MR::OnlineConf::Updater::Storage->select("
             SELECT t.`ID`, t.`Name`, t.`Path`, l.`Version`, l.`Value`, l.`ContentType`, l.`MTime`, l.`Deleted`
@@ -187,6 +194,7 @@ sub update {
     } else {
         $self->initialize();
     }
+    $self->_update_time($update_time);
     return;
 }
 
