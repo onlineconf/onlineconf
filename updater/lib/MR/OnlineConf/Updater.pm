@@ -90,6 +90,7 @@ has _tree => (
     isa => 'MR::OnlineConf::Updater::PerlMemory',
     lazy    => 1,
     default => sub { MR::OnlineConf::Updater::PerlMemory->new(log => $_[0]->log) },
+    clearer => '_clear_tree',
 );
 
 has _mtime => (
@@ -126,6 +127,7 @@ sub initialize {
     return unless $mtime;
     my $list = MR::OnlineConf::Updater::Storage->select("SELECT `ID`, `Name`, `Path`, `Version`, `Value`, `ContentType` FROM `my_config_tree` WHERE NOT `Deleted` ORDER BY `Path`");
     my $count = @$list;
+    $self->_clear_tree();
     my $tree = $self->_tree;
     foreach my $row (@$list) {
         my $param = MR::OnlineConf::Updater::Parameter->new(
