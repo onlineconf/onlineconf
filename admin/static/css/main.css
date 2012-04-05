@@ -37,6 +37,7 @@ span.node-access-modified { background-image: url("/css/type/access.png") }
 span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
+span.node-data a.symlink { color: inherit }
 
 .nice-form { position: relative }
 .nice-form div > label, .nice-form span.label { position: absolute; width: 7em }

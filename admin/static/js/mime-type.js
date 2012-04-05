@@ -19,7 +19,7 @@ $(function() {
     }
 
     function previewSymlink (data) {
-        return '<a href="#' + data + '" onclick="event.stopPropagation()">' + data + '</a>';
+        return $('<a class="symlink" onclick="event.stopPropagation()"/>').attr('href', '#' + data).text(data);
     }
 
     function previewCase (data) {

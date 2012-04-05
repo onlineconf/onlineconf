@@ -1,14 +1,25 @@
 $(function() {
     function nodeTitle(node) {
-        return '<span class="node-title">'
-            + (node.name.length > 0 ? ('<span class="node-name">' + node.name + '</span>') : '')
-            + (node.summary.length > 0 ? (' <span class="node-summary">(' + node.summary + ')</span>') : '')
-            + '</span><span class="node-table">'
-            + '<span class="node-data">' + (node.rw != null ? mimeType[node.mime].preview(node.data) : '<span class="no-access">нет доступа</span>') + '</span>'
-            + (node.access_modified ? '<span class="node-access node-access-modified"/>' : '<span class="node-access"/>')
-            + '<span class="node-version">' + node.version + '</span>'
-            + '<span class="node-mtime">' + node.mtime + '</span>'
-            + '</span>';
+        var title = $('<span class="node-title"/>')
+            .append(node.name.length > 0 ? $('<span class="node-name"/>').text(node.name) : '')
+            .append(node.summary.length > 0 ? $(' <span class="node-summary"/>').text('(' + node.summary + ')') : '');
+        var data = $('<span class="node-data"/>');
+        if (node.rw != null) {
+            var d = mimeType[node.mime].preview(node.data);
+            if (typeof d === "string") {
+                data.text(d);
+            } else {
+                data.append(d);
+            }
+        } else {
+            data.append('<span class="no-access">нет доступа</span>');
+        }
+        var table = $('<span class="node-table"/>')
+            .append(data)
+            .append(node.access_modified ? '<span class="node-access node-access-modified"/>' : '<span class="node-access"/>')
+            .append($('<span class="node-version"/>').text(node.version))
+            .append($('<span class="node-mtime"/>').text(node.mtime))
+        return $('<span/>').append(title).append(table).html();
     }
 
     function onHashChange () {
