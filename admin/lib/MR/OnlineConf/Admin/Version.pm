@@ -4,6 +4,8 @@ use utf8;
 use Mouse;
 use MR::ChangeBot::Notification;
 
+my $UPDATE_TIME_PATH = '/onlineconf/selftest/update-time';
+
 has node_id => (
     is  => 'ro',
     isa => 'Int',
@@ -117,7 +119,8 @@ sub select {
         push @condition, $till =~ /^\d{4}-\d{2}-\d{2}$/ ? 'l.`MTime` < ? + interval 1 day' : 'l.`MTime` < ?';
         push @bind, $till;
     }
-    push @condition, "t.`Path` <> '/onlineconf/selftest/update-time'";
+    push @condition, "t.`Path` <> ?";
+    push @bind, $UPDATE_TIME_PATH;
     my $where = @condition ? ('WHERE ' . join(' AND ', @condition)): '';
     return [
         map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $_->{Path}, version => $_->{Version}, username => $in{username}, rw => $_->{RW}, _row => $_),
@@ -135,8 +138,10 @@ sub log {
     my ($self) = @_;
     MR::OnlineConf::Admin::Storage->do('INSERT INTO `my_config_tree_log` (`NodeID`, `Version`, `ContentType`, `Value`, `Author`, `MTime`, `Comment`, `Deleted`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         $self->node_id, $self->version, $self->mime, $self->data, $self->author, $self->mtime, $self->comment, $self->deleted ? 1 : 0);
-    my $message = sprintf "%s %s параметр %s.", $self->author, $self->deleted ? "удалил" : "изменил", $self->path;
-    MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
+    if ($self->path ne $UPDATE_TIME_PATH) {
+        my $message = sprintf "%s %s параметр %s.", $self->author, $self->deleted ? "удалил" : "изменил", $self->path;
+        MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
+    }
     return;
 }
 
