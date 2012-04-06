@@ -104,6 +104,27 @@ sub put {
     }
 }
 
+sub delete {
+    my ($self, $param) = @_;
+    delete $self->_index->{$param->id};
+    my @path = split /\//, $param->path;
+    shift @path;
+    my $node = $self->_root;
+    while (defined(my $name = shift @path)) {
+        if (my $child = $node->child($name)) {
+            if (@path == 0) {
+                $node->delete_child($child);
+                return 1;
+            } else {
+                $node = $child;
+            }
+        } else {
+            return 0;
+        }
+    }
+    return 0;
+}
+
 sub get {
     my ($self, $path, $no_follow) = @_;
     my @path = split /\//, $path;

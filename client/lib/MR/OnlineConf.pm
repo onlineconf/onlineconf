@@ -27,6 +27,7 @@ my $DEFAULT_CONFIG = {
     pidfile  => '/var/run/onlineconf_updater.pid',
     reload_local => 10,
     update_interval => 60,
+    test_interval   => 60,
     debug => 0,
 };
 
@@ -57,6 +58,7 @@ sub _new_instance {
         hostname  => $hostname,
         local     => {},
         config    => $config,
+        test_expires => 0,
     };
     return bless $self , $class;
 }
@@ -197,6 +199,9 @@ sub reloadAll {
 
 sub _test {
     my ($self) = @_;
+
+    return if time() < $self->{test_expires};
+    $self->{test_expires} = time() + ($self->{config}->{test_interval} || 60);
 
     $self->reload(MY_CONFIG_SELFTEST_MODULE_NAME);
     $self->_logerr(1,"cant read selftest module\n") 

@@ -143,7 +143,7 @@ sub initialize {
     $tree->finalize();
     if (eval { $self->conf_files->update($tree); 1 }) {
         $self->_mtime($mtime);
-        $self->log->debug("Config tree was initialized with $count parameters, last modification was at $mtime");
+        $self->log->info("Config tree was initialized with $count parameters, last modification was at $mtime");
     } else {
         $self->log->error("Failed to initialize config: $@");
     }
@@ -153,14 +153,15 @@ sub initialize {
 sub update {
     my ($self) = @_;
     my $update_time = time();
-    if ((my $mtime = $self->_mtime) && $self->_update_time > time() - 60) {
+    my $reselect = $self->config->{reselect_interval} || $self->config->{update_interval} * 2;
+    if ((my $mtime = $self->_mtime) && $self->_update_time > time() - $reselect) {
         my $tree = $self->_tree;
         my $list = MR::OnlineConf::Updater::Storage->select("
             SELECT t.`ID`, t.`Name`, t.`Path`, l.`Version`, l.`Value`, l.`ContentType`, l.`MTime`, l.`Deleted`
             FROM `my_config_tree_log` l JOIN `my_config_tree` t ON l.`NodeID` = t.`ID`
-            WHERE l.`MTime` > LEAST(?, DATE_SUB(NOW(), INTERVAL 1 MINUTE))
+            WHERE l.`MTime` > LEAST(?, DATE_SUB(NOW(), INTERVAL ? SECOND))
             ORDER BY l.`ID`
-        ", $mtime);
+        ", $mtime, $reselect);
         if (@$list) {
             my $count = 0;
             foreach my $row (@$list) {
@@ -183,7 +184,7 @@ sub update {
                 if (eval { $self->conf_files->update($tree); 1 }) {
                     my $mtime = $list->[-1]->{MTime};
                     $self->_mtime($mtime);
-                    $self->log->debug("Updated $count versions, last modification was at $mtime");
+                    $self->log->info("Updated $count versions, last modification was at $mtime");
                 } else {
                     $self->log->error("Failed to update config: $@");
                 }

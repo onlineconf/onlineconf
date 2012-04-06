@@ -84,6 +84,7 @@ has is_symlink => (
 has symlink_target => (
     is  => 'rw',
     isa => 'Maybe[MR::OnlineConf::Updater::Parameter]',
+    weak_ref => 1,
 );
 
 sub BUILD {
@@ -100,6 +101,12 @@ sub child {
 sub add_child {
     my ($self, $child) = @_;
     $self->children->{$child->name} = $child;
+    return;
+}
+
+sub delete_child {
+    my ($self, $child) = @_;
+    delete $self->children->{$child->name};
     return;
 }
 
