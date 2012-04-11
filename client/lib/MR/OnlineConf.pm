@@ -36,6 +36,7 @@ sub _new_instance {
     %opts = (
         debug=>0,
         check_interval=>5,
+        reload => 1,
         %opts);
     my $config = {};
     my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
@@ -100,8 +101,8 @@ sub get {
         and return $default unless $module && $key;
     warn "found local overloaded value for $module:$key. i hope that we are not on production server\n" 
         and return $self->{local}{$module}{$key} if exists $self->{local}{$module}{$key};
-    $self->reload($module);
-    $self->_say(2,"cant find key $key in module $module: use default value\n") 
+    $self->reload($module) if $self->{cfg}{reload};
+    $self->{cfg}{debug} < 2 || $self->_say(2,"cant find key $key in module $module: use default value\n") 
         and return $default unless exists $self->{cache}{$module} && exists $self->{cache}{$module}{$key};
     return $self->{cache}{$module}{$key};
 }
@@ -109,8 +110,10 @@ sub get {
 sub getModule {
     my ($self, $module) = @_;
     $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
-    $self->reload($module);
-    return { map { $_ => $self->get($module, $_) } keys %{$self->{cache}{$module}} };
+    $self->reload($module) if $self->{cfg}{reload};
+    my $local = exists $self->{local}{$module} ? $self->{local}{$module} : undef;
+    my $cache = $self->{cache}{$module};
+    return { map { $_ => $local && exists $local->{$_} ? $local->{$_} : $cache->{$_} } keys %$cache };
 }
 
 sub preload {
@@ -131,7 +134,7 @@ sub _check {
     $self->_say(2,"module $module never checked and need to load\n") 
         and return 1 unless exists $self->{checks}{$module};
 
-    $self->_say(2,"skip check for module $module due timelimit\n") 
+    $self->{cfg}{debug} < 2 || $self->_say(2,"skip check for module $module due timelimit\n") 
         and return 0 if $self->{checks}{$module} + $self->{cfg}{check_interval} > time;
 
     $self->{checks}{$module} = time;
