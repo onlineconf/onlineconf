@@ -281,23 +281,17 @@ $(function() {
             var node = $(this).parents('li:first');
             if (node.data('node').rw || can_edit_groups) {
                 $('#access-dialog').node_dialog('option', 'node', node).node_dialog('open');
-                event.stopPropagation();
-                return false;
             }
         })
         .delegate('.node-notification-modified', 'click', function (event) {
             var node = $(this).parents('li:first');
             if (node.data('node').rw || can_edit_groups) {
                 $('#notification-dialog').node_dialog('option', 'node', node).node_dialog('open');
-                event.stopPropagation();
-                return false;
             }
         })
         .delegate('.node-version, .node-mtime', 'click', function (event) {
             var node = $(this).parents('li:first');
             $('#log-dialog').node_dialog('option', 'node', node).node_dialog('open');
-            event.stopPropagation();
-            return false;
         });
 
     $('#create-mime').change(function () {
@@ -358,6 +352,7 @@ $(function() {
                 values: ['none', 'no-value', 'with-value'],
                 labels: ['no', 'nv', 'yes'],
                 titles: ['Не уведомлять', 'Уведомлять без значения', 'Уведомлять'],
+                disabledValues: [!can_edit_groups, false, false],
                 value: parent_node.notification
             });
         },
@@ -550,6 +545,7 @@ $(function() {
                     values: ['none', 'no-value', 'with-value'],
                     labels: ['no', 'nv', 'yes'],
                     titles: ['Не уведомлять', 'Уведомлять без значения', 'Уведомлять'],
+                    disabledValues: [!can_edit_groups, false, false],
                     value: node.notification,
                     overridden: node.notification_modified,
                     change: function (event, ui) {

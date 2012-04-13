@@ -21,11 +21,11 @@ sub startup {
     $r->route('/log/(*path)')->via('GET')->to('log#list', path => '');
     my $group = $r->bridge('/group')->to('group#can_edit');
     $group->route('/')->via('GET')->to('group#list');
-    $group->route('/:group')->via('GET')->to('group#get');
-    $group->route('/:group')->via('POST')->to('group#create');
-    $group->route('/:group')->via('DELETE')->to('group#delete');
-    $group->route('/:group/:user')->via('POST')->to('group#add_user');
-    $group->route('/:group/:user')->via('DELETE')->to('group#delete_user');
+    $group->route('/(.group)')->via('GET')->to('group#get');
+    $group->route('/(.group)')->via('POST')->to('group#create');
+    $group->route('/(.group)')->via('DELETE')->to('group#delete');
+    $group->route('/(.group)/(.user)')->via('POST')->to('group#add_user');
+    $group->route('/(.group)/(.user)')->via('DELETE')->to('group#delete_user');
     $r->route('/user')->via('GET')->to('group#user_list');
     $r->route('/whoami')->via('GET')->to('group#whoami');
     $r->route('/access/(*path)')->via('GET')->to('access#list', path => '');

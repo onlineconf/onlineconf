@@ -316,7 +316,6 @@ sub delete {
 
 sub move {
     my ($self, %in) = @_;
-    $self->validate();
     MR::OnlineConf::Admin::Storage->transaction(sub {
         my $comment = sprintf "Moved from %s.", $self->path;
         $comment .= ' ' . $in{comment} if defined $in{comment};
@@ -393,6 +392,9 @@ sub clear {
 sub validate {
     my ($self) = @_;
     $self->_validate($self->mime, $self->data);
+    die "Only root user can disable notifications\n"
+        if $self->_notification_changed && defined $self->notification && $self->notification eq 'none'
+        && !MR::OnlineConf::Admin::Group->can_edit($self->username);
     return;
 }
 

@@ -18,20 +18,21 @@ $(function() {
         _refresh: function () {
             this._refreshing = true;
             if (this.options.async && this.element.dialog('isOpen')) {
-                this.element.dialog('close');
+                this.element.css('visibility', 'hidden');
             }
             var node = this.options.node.data('node');
             this.element.dialog('option', 'title', (this.options.title == null ? '' : this.options.title + ' ') + node.path);
             var self = this;
-            this._trigger('refresh', null, { success: function () { self._refreshing = false; self.element.dialog('open') } });
-            if (!this.options.async) this._refreshing = false;
+            var afterRefresh = function () {
+                self._refreshing = false;
+                self.element.css('visibility', 'inherit').dialog('open');
+            };
+            this._trigger('refresh', null, { success: afterRefresh });
+            if (!this.options.async) afterRefresh();
         },
         open: function () {
             if (!this.element.dialog('isOpen') && !this._refreshing) {
                 this._refresh();
-                if (!this.options.async) {
-                    this.element.dialog('open');
-                }
             }
         },
         close: function () {
@@ -51,6 +52,7 @@ $(function() {
             values: [],
             labels: [],
             titles: [],
+            disabledValues: [],
             overridden: false,
             value: null,
             change: function (event, ui) { ui.success(ui) },
@@ -87,6 +89,7 @@ $(function() {
                             range: 'min',
                             value: index,
                             slide: function (event, ui) {
+                                if (self.options.disabledValues[ui.value]) return false;
                                 $(this).find('a.ui-slider-handle')
                                     .attr('title', self.options.titles[ui.value])
                                     .find('> span').removeClass('wait-for-set').text(self.options.labels[ui.value]);

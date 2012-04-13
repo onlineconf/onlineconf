@@ -3,7 +3,7 @@ $(function() {
         title: 'Доступ к',
         async: true,
         refresh: function (event, ui) {
-            var $access = $(this).empty();
+            var $access = $(this);
             var node = $access.node_dialog('option', 'node').data('node');
             $.get('/access' + node.path, function (data) {
                 $access.empty();

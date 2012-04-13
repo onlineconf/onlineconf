@@ -10,7 +10,7 @@ $(function() {
         },
         refresh: function (event, ui) {
             var $dialog = $(this);
-            var $log = $('#log').empty();
+            var $log = $('#log');
             var node = $(this).node_dialog('option', 'node').data('node');
             $.get('/log' + node.path, function(data) {
                 var cm = [];
