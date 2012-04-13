@@ -17,7 +17,9 @@ sub set {
     my $rw = $self->param('rw');
     $rw = $rw eq 'true' ? 1 : $rw eq 'false' ? 0 : undef;
     $node->set_access($self->param('group'), $rw);
-    $self->render(json => { result => 'Changed' });
+    my @access = grep { $_->name eq $self->param('group') } @{$node->access};
+    my $access = @access ? $self->_access($access[0]) : {};
+    $self->render(json => { result => 'Changed', %$access });
     return;
 }
 

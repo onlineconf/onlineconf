@@ -1,8 +1,8 @@
 $(function() {
     function nodeTitle(node) {
-        var title = $('<span class="node-title"/>')
-            .append(node.name.length > 0 ? $('<span class="node-name"/>').text(node.name) : '')
-            .append(node.summary.length > 0 ? $(' <span class="node-summary"/>').text('(' + node.summary + ')') : '');
+        var title = $('<span class="node-title"/>');
+        if (node.name.length > 0) $('<span class="node-name"/>').text(node.name).appendTo(title);
+        if (node.summary.length > 0) title.append(' ').append($('<span class="node-summary"/>').text('(' + node.summary + ')'));
         var data = $('<span class="node-data"/>');
         if (node.rw != null) {
             var d = mimeType[node.mime].preview(node.data);
@@ -14,12 +14,21 @@ $(function() {
         } else {
             data.append('<span class="no-access">нет доступа</span>');
         }
+        var data_and_icon = $('<span class="node-data-and-icon"/>');
+        if (node.access_modified) data_and_icon.append('<span class="node-access-modified" title="Права модифицированы"/>');
+        if (node.notification_modified) data_and_icon.append('<span class="node-notification-modified" title="Уведомления модифицированы"/>');
         var table = $('<span class="node-table"/>')
-            .append(data)
-            .append(node.access_modified ? '<span class="node-access node-access-modified"/>' : '<span class="node-access"/>')
+            .append(data_and_icon.append(data.addClass('node-icon-' + data_and_icon.children().length)))
             .append($('<span class="node-version"/>').text(node.version))
             .append($('<span class="node-mtime"/>').text(node.mtime))
         return $('<span/>').append(title).append(table).html();
+    }
+
+    function updateNodeData ($node, data) {
+        delete data.result;
+        $('#tree').jstree('rename_node', $node, nodeTitle(data))
+            .jstree('set_type', data.mime, $node);
+        $node.data('node', data);
     }
 
     function onHashChange () {
@@ -202,9 +211,17 @@ $(function() {
                     },
                     access: {
                         label: 'Доступ',
+                        separator_before: true,
                         _disabled: !($(node).data('node').rw || can_edit_groups),
                         action: function(node) {
                             $('#access-dialog').node_dialog('option', 'node', node).node_dialog('open');
+                        }
+                    },
+                    notification: {
+                        label: 'Уведомления',
+                        _disabled: !($(node).data('node').rw || can_edit_groups),
+                        action: function(node) {
+                            $('#notification-dialog').node_dialog('option', 'node', node).node_dialog('open');
                         }
                     },
                     create: {
@@ -244,7 +261,7 @@ $(function() {
         themes: { theme: 'default' }
     }).bind('select_node.jstree', function(e, data) {
         window.location.hash = data.rslt.obj.data('node').path;
-        $('#node-dialog, #log-dialog, #access-dialog').node_dialog('option', 'node', data.rslt.obj);
+        $('#node-dialog, #log-dialog, #access-dialog, #notification-dialog').node_dialog('option', 'node', data.rslt.obj);
     }).bind('loaded.jstree', onHashChange);
     $(window).bind('hashchange', onHashChange);
 
@@ -265,12 +282,22 @@ $(function() {
             if (node.data('node').rw || can_edit_groups) {
                 $('#access-dialog').node_dialog('option', 'node', node).node_dialog('open');
                 event.stopPropagation();
+                return false;
+            }
+        })
+        .delegate('.node-notification-modified', 'click', function (event) {
+            var node = $(this).parents('li:first');
+            if (node.data('node').rw || can_edit_groups) {
+                $('#notification-dialog').node_dialog('option', 'node', node).node_dialog('open');
+                event.stopPropagation();
+                return false;
             }
         })
         .delegate('.node-version, .node-mtime', 'click', function (event) {
             var node = $(this).parents('li:first');
             $('#log-dialog').node_dialog('option', 'node', node).node_dialog('open');
             event.stopPropagation();
+            return false;
         });
 
     $('#create-mime').change(function () {
@@ -316,8 +343,8 @@ $(function() {
         open: function() {
             var $parent = $(this).data('parent');
             $('#tree').jstree('open_node', $parent);
-            var parent_path = $parent.data('node').path;
-            var path = (parent_path == '/' ? '' : parent_path) + '/...';
+            var parent_node = $parent.data('node');
+            var path = (parent_node.path == '/' ? '' : parent_node.path) + '/...';
             $(this)
                 .dialog('option', 'title', 'Создать ' + path)
                 .find('input, textarea, select').val('').end();
@@ -326,10 +353,18 @@ $(function() {
             $('#create-name-novalidate-div').hide();
             $('#create-name-novalidate').prop('checked', null);
             $('#create-name').addClass('validate[custom[nodeName]]');
+
+            $('#create-notification').overridable_slider({
+                values: ['none', 'no-value', 'with-value'],
+                labels: ['no', 'nv', 'yes'],
+                titles: ['Не уведомлять', 'Уведомлять без значения', 'Уведомлять'],
+                value: parent_node.notification
+            });
         },
         close: function() {
             $('#create-form').validationEngine('hideAll');
             $('#create-data').validationEngine('hidePrompt');
+            $('#create-notification').overridable_slider('destroy');
         },
         buttons: {
             Создать: function() {
@@ -352,6 +387,8 @@ $(function() {
                     comment: $('#create-comment').val()
                 };
                 if (data != null) params.data = data;
+                if ($('#create-notification').overridable_slider('option', 'overridden'))
+                    params.notification = $('#create-notification').overridable_slider('option', 'value');
                 $.post(path, params, function(data) {
                     $('#tree')
                         .jstree('create_node', $parent, 'inside', {
@@ -403,10 +440,7 @@ $(function() {
                 var params = { mime: mime, comment: $('#edit-comment').val(), version: $node.data('node').version };
                 if (data != null) params.data = data;
                 $.post(path, params, function(data) {
-                    delete data.result;
-                    $('#tree').jstree('rename_node', $node, nodeTitle(data))
-                        .jstree('set_type', data.mime, $node);
-                    $node.data('node', data);
+                    updateNodeData($node, data);
                     $('#node-dialog, #log-dialog').node_dialog('refresh');
                 });
                 $(this).dialog('close');
@@ -465,10 +499,7 @@ $(function() {
                 var $node = $(this).data('node');
                 var path = '/config' + $node.data('node').path;
                 $.post(path, { summary: $('#rename-summary').val(), description: $('#rename-description').val() }, function(data) {
-                    delete data.result;
-                    $('#tree').jstree('rename_node', $node, nodeTitle(data))
-                        .jstree('set_type', data.mime, $node);
-                    $node.data('node', data);
+                    updateNodeData($node, data);
                     $('#node-dialog, #log-dialog').node_dialog('refresh');
                 });
                 $(this).dialog('close');
@@ -507,6 +538,35 @@ $(function() {
         }
     });
     $('#move-path').autocompletePath();
+
+    $('#notification-dialog').node_dialog({
+        title: 'Уведомления',
+        dialog: { minHeight: 70 },
+        refresh: function () {
+            var $node = $(this).node_dialog('option', 'node');
+            var node = $node.data('node');
+            $(this).empty().append(
+                $('<span/>').overridable_slider({
+                    values: ['none', 'no-value', 'with-value'],
+                    labels: ['no', 'nv', 'yes'],
+                    titles: ['Не уведомлять', 'Уведомлять без значения', 'Уведомлять'],
+                    value: node.notification,
+                    overridden: node.notification_modified,
+                    change: function (event, ui) {
+                        $.post(
+                            '/config' + node.path,
+                            { notification: ui.overridden ? ui.value : '' },
+                            function (data) {
+                                ui.success({ overridden: data.notification_modified, value: data.notification })
+                                updateNodeData($node, data);
+                                $('#tree').jstree('refresh', $node);
+                            }
+                        );
+                    }
+                })
+            );
+        }
+    });
 
     $.each(mimeType, function (k, v) {
         $('<option/>').prop('value', k).text(v.title).appendTo('#create-mime');

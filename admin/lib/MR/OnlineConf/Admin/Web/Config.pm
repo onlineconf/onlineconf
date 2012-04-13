@@ -15,7 +15,12 @@ sub get {
 sub set {
     my ($self) = @_;
     my @params = sort $self->param();
-    if (@params == 2 && $params[0] eq 'description' && $params[1] eq 'summary') {
+    if (@params == 1 && $params[0] eq 'notification') {
+        my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
+        $node->notification(scalar $self->param('notification') || undef);
+        $node->update();
+        $self->render(json => { result => 'NotificationChanged', %{$self->_node($node)} });
+    } elsif (@params == 2 && $params[0] eq 'description' && $params[1] eq 'summary') {
         my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
         $node->summary(scalar $self->param('summary'));
         $node->description(scalar $self->param('description'));
@@ -38,12 +43,13 @@ sub set {
         $self->render(json => { result => 'Changed', %{$self->_node($node)} });
     } else {
         my $node = MR::OnlineConf::Admin::Parameter->new(
-            path        => $self->_path,
-            mime        => scalar $self->param('mime'),
-            data        => scalar $self->param('data'),
-            summary     => scalar $self->param('summary'),
-            description => scalar $self->param('description'),
-            username    => $self->username,
+            path         => $self->_path,
+            mime         => scalar $self->param('mime'),
+            data         => scalar $self->param('data'),
+            summary      => scalar $self->param('summary'),
+            description  => scalar $self->param('description'),
+            notification => scalar $self->param('notification'),
+            username     => $self->username,
         );
         $node->create(comment => scalar $self->param('comment'));
         $self->render(json => { result => 'Created', %{$self->_node($node)} });
@@ -74,17 +80,19 @@ sub _path {
 sub _node {
     my ($self, $node) = @_;
     return {
-        name            => $node->name,
-        path            => $node->path,
-        data            => $node->data,
-        version         => $node->version + 0,
-        mtime           => $node->mtime,
-        summary         => $node->summary,
-        description     => $node->description,
-        mime            => $node->mime,
-        num_children    => $node->num_children + 0,
-        access_modified => $node->access_modified ? Mojo::JSON->true : Mojo::JSON->false,
-        rw              => !defined($node->rw) ? undef : $node->rw ? Mojo::JSON->true : Mojo::JSON->false,
+        name                  => $node->name,
+        path                  => $node->path,
+        data                  => $node->data,
+        version               => $node->version + 0,
+        mtime                 => $node->mtime,
+        summary               => $node->summary,
+        description           => $node->description,
+        mime                  => $node->mime,
+        num_children          => $node->num_children + 0,
+        access_modified       => $node->access_modified ? Mojo::JSON->true : Mojo::JSON->false,
+        rw                    => !defined($node->rw) ? undef : $node->rw ? Mojo::JSON->true : Mojo::JSON->false,
+        notification          => $node->notification,
+        notification_modified => $node->notification_modified ? Mojo::JSON->true : Mojo::JSON->false,
     };
 }
 

@@ -53,6 +53,7 @@
             <div><label for="create-description">Описание:</label><span class="value"><textarea id="create-description" name="description"/></span></div>
             <div><label for="create-mime">Тип данных:</label><span class="value"><select id="create-mime" name="mime"/></span></div>
             <div><label for="create-data">Значение:</label><span class="value" id="create-data"/></div>
+            <div><label for="create-notification">Уведомления:</label><span class="value" id="create-notification"/></div>
             <div><label for="create-comment">Комментарий:</label><span class="value"><input id="create-comment" name="comment"/></span></div>
             </form>
         </div>
@@ -112,6 +113,8 @@
                 <input type="text" id="global-log-from" name="from"/>
                 <label for="global-log-till">-</label>
                 <input type="text" id="global-log-till" name="till"/>
+                <label for="global-log-all">Все:</label>
+                <input type="checkbox" id="global-log-all" name="all" value="1"/>
                 <button id="global-log-go">Показать</button>
                 </form>
             </div>
@@ -155,14 +158,16 @@
 
         <div id="access-dialog" style="display:none" class="nice-form"/>
 
+        <div id="notification-dialog" style="display:none"/>
+
         <div id="monitoring-dialog" style="display:none" class="log-dialog" title="Мониторинг активности">
             <table>
                 <thead>
                     <tr>
-                        <th class="monitoring-host">Сервер</th>
-                        <th class="monitoring-mtime">Модификация</th>
-                        <th class="monitoring-online">Онлайн</th>
-                        <th class="monitoring-package">Пакет</th>
+                        <th class="monitoring-host"><a id="monitoring-host" href="#">Сервер</a></th>
+                        <th class="monitoring-mtime"><a id="monitoring-mtime" href="#">Модификация</a></th>
+                        <th class="monitoring-online"><a id="monitoring-online" href="#">Онлайн</a></th>
+                        <th class="monitoring-package"><a id="monitoring-package" href="#">Пакет</a></th>
                     </tr>
                 </thead>
                 <tbody id="monitoring-list"/>
@@ -170,3 +175,4 @@
         </div>
     </body>
 </html>
+

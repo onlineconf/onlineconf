@@ -7,6 +7,8 @@ use YAML;
 use MR::OnlineConf::Admin::Version;
 use MR::OnlineConf::Admin::Access;
 
+my $ASTERISK = join ', ', map "t.`$_`", qw/ID Name ParentID Path Value ContentType Summary Description Version MTime Deleted/;
+
 has path => (
     is  => 'ro',
     isa => 'Str',
@@ -112,6 +114,23 @@ has access_modified => (
     clearer => 'clear_access_modified',
 );
 
+has notification => (
+    is  => 'rw',
+    isa => 'Maybe[Str]',
+    lazy    => 1,
+    default => sub { $_[0]->_row ? $_[0]->_row->{Notification} : undef },
+    trigger => sub { $_[0]->_notification_changed(1) },
+    clearer => 'clear_notification',
+);
+
+has notification_modified => (
+    is  => 'ro',
+    isa => 'Bool',
+    lazy    => 1,
+    default => sub { $_[0]->_row ? $_[0]->_row->{NotificationModified} : undef },
+    clearer => 'clear_notification_modified',
+);
+
 has num_children => (
     is  => 'ro',
     isa => 'Int',
@@ -156,16 +175,25 @@ has _row => (
         my $deleted = $self->_local_options->{load_deleted} ? '' : 'AND NOT `Deleted`';
         my $for_update = $self->_local_options->{for_update} ? 'FOR UPDATE' : '';
         return MR::OnlineConf::Admin::Storage->select("
-            SELECT *,
+            SELECT $ASTERISK,
                 (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
                 (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
-                `my_config_tree_access`(t.`ID`, ?) AS `RW`
+                `my_config_tree_access`(t.`ID`, ?) AS `RW`,
+                `my_config_tree_notification`(t.`ID`) AS `Notification`,
+                t.`Notification` IS NOT NULL AS `NotificationModified`
             FROM `my_config_tree` t
             WHERE `Path` = ? $deleted
             $for_update
         ", $self->username, $self->path)->[0];
     },
     clearer => '_clear_row',
+);
+
+has _notification_changed => (
+    is  => 'rw',
+    isa => 'Bool',
+    default => 0,
+    clearer => '_clear_notification_changed',
 );
 
 around BUILDARGS => sub {
@@ -184,12 +212,14 @@ sub search {
     $term = "%$term%";
     return [
         map MR::OnlineConf::Admin::Parameter->new(path => $_->{Path}, username => $username, _row => $_),
-            @{MR::OnlineConf::Admin::Storage->select('
+            @{MR::OnlineConf::Admin::Storage->select("
                 SELECT * FROM (
-                    SELECT *,
+                    SELECT $ASTERISK,
                         (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
                         (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
-                        `my_config_tree_access`(t.`ID`, ?) AS `RW`
+                        `my_config_tree_access`(t.`ID`, ?) AS `RW`,
+                        `my_config_tree_notification`(t.`ID`) AS `Notification`,
+                        t.`Notification` IS NOT NULL AS `NotificationModified`
                     FROM `my_config_tree` t
                     WHERE NOT `Deleted`
                     AND (`Name` COLLATE ascii_general_ci LIKE ? OR `Value` COLLATE utf8_general_ci LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
@@ -197,7 +227,7 @@ sub search {
                 ) x
                 WHERE `RW` IS NOT NULL
                 OR (`Name` COLLATE ascii_general_ci LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
-            ', $username, map $term, (1 .. 7))}
+            ", $username, map $term, (1 .. 7))}
     ];
 }
 
@@ -224,12 +254,12 @@ sub create {
         }
         if ($current->exists()) {
             die sprintf "Node %s already exists\n", $current->path unless $current->deleted;
-            MR::OnlineConf::Admin::Storage->do('UPDATE `my_config_tree` SET `Value` = ?, `Summary` = ?, `Description` = ?, `ContentType` = ?, `Version` = `Version` + 1, MTime = now(), `Deleted` = false WHERE `Path` = ?',
-                $self->data, $self->summary, $self->description, $self->mime, $self->path);
+            MR::OnlineConf::Admin::Storage->do('UPDATE `my_config_tree` SET `Value` = ?, `Summary` = ?, `Description` = ?, `ContentType` = ?, `Notification` = ?, `Version` = `Version` + 1, MTime = now(), `Deleted` = false WHERE `Path` = ?',
+                $self->data, $self->summary, $self->description, $self->mime, $self->notification, $self->path);
         } else {
             $self->_row(undef);
-            MR::OnlineConf::Admin::Storage->do('INSERT INTO `my_config_tree` (`ParentID`, `Name`, `Value`, `Summary`, `Description`, `ContentType`) VALUES (?, ?, ?, ?, ?, ?)',
-                $parent->id, $self->name, $self->data, $self->summary, $self->description, $self->mime);
+            MR::OnlineConf::Admin::Storage->do('INSERT INTO `my_config_tree` (`ParentID`, `Name`, `Value`, `Summary`, `Description`, `ContentType`, `Notification`) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                $parent->id, $self->name, $self->data, $self->summary, $self->description, $self->mime, $self->notification);
         }
         $self->clear();
         $self->_log(comment => $in{comment});
@@ -252,6 +282,7 @@ sub update {
             $changed{ContentType} = $self->mime if $self->has_mime() && $self->mime ne $current->mime;
             $changed{Summary} = $self->summary if $self->has_summary() && ((defined $self->summary xor defined $current->summary) || $self->summary ne $current->summary);
             $changed{Description} = $self->description if $self->has_description() && ((defined $self->description xor defined $current->description) || $self->description ne $current->description);
+            $changed{Notification} = $self->notification if $self->_notification_changed;
         }
         return unless keys %changed;
         my $inc_version = exists $changed{Value} || exists $changed{ContentType};
@@ -369,14 +400,16 @@ sub _build_children {
     my ($self) = @_;
     return [
         map MR::OnlineConf::Admin::Parameter->new(path => $_->{Path}, username => $self->username, _row => $_),
-            @{MR::OnlineConf::Admin::Storage->select('
-                SELECT *,
+            @{MR::OnlineConf::Admin::Storage->select("
+                SELECT $ASTERISK,
                     (SELECT count(*) FROM `my_config_tree` c WHERE c.`ParentID` = t.`ID` AND NOT c.`Deleted`) AS `NumChildren`,
                     (SELECT count(*) <> 0 FROM `my_config_tree_group` g WHERE g.`NodeID` = t.`ID`) AS `AccessModified`,
-                    `my_config_tree_access`(t.`ID`, ?) AS `RW`
+                    `my_config_tree_access`(t.`ID`, ?) AS `RW`,
+                    `my_config_tree_notification`(t.`ID`) AS `Notification`,
+                    t.`Notification` IS NOT NULL AS `NotificationModified`
                 FROM `my_config_tree` t WHERE `ParentID` = ? AND NOT `Deleted`
                 ORDER BY `Name`
-            ', $self->username, $self->id)}
+            ", $self->username, $self->id)}
     ];
 }
 
@@ -399,7 +432,7 @@ sub _log {
         author   => $self->username,
         comment  => $in{comment},
     );
-    $version->log();
+    $version->log(notification => $self->notification);
     return;
 }
 

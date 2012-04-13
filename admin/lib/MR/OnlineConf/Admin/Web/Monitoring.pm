@@ -4,7 +4,7 @@ use MR::OnlineConf::Admin::Monitoring;
 
 sub list {
     my ($self) = @_;
-    my $list = MR::OnlineConf::Admin::Monitoring->list();
+    my $list = MR::OnlineConf::Admin::Monitoring->list(sort => scalar $self->param('sort'));
     $self->render(json => [ map $self->_host($_), @$list ]);
     return;
 }

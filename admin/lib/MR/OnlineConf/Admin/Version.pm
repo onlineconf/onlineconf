@@ -4,8 +4,6 @@ use utf8;
 use Mouse;
 use MR::ChangeBot::Notification;
 
-my $UPDATE_TIME_PATH = '/onlineconf/selftest/update-time';
-
 has node_id => (
     is  => 'ro',
     isa => 'Int',
@@ -119,13 +117,12 @@ sub select {
         push @condition, $till =~ /^\d{4}-\d{2}-\d{2}$/ ? 'l.`MTime` < ? + interval 1 day' : 'l.`MTime` < ?';
         push @bind, $till;
     }
-    push @condition, "t.`Path` <> ?";
-    push @bind, $UPDATE_TIME_PATH;
+    push @condition, "`my_config_tree_notification`(t.`ID`) <> 'none'" unless $in{all};
     my $where = @condition ? ('WHERE ' . join(' AND ', @condition)): '';
     return [
         map MR::OnlineConf::Admin::Version->new(node_id => $_->{NodeID}, path => $_->{Path}, version => $_->{Version}, username => $in{username}, rw => $_->{RW}, _row => $_),
             @{MR::OnlineConf::Admin::Storage->select("
-                SELECT l.*, t.`Path`, `my_config_tree_access`(t.`ID`, ?) AS `RW`
+                SELECT STRAIGHT_JOIN l.*, t.`Path`, `my_config_tree_access`(t.`ID`, ?) AS `RW`
                 FROM `my_config_tree_log` l JOIN `my_config_tree` t ON t.`ID` = l.`NodeID`
                 $where
                 ORDER BY l.`MTime` DESC
@@ -135,11 +132,14 @@ sub select {
 }
 
 sub log {
-    my ($self) = @_;
+    my ($self, %in) = @_;
     MR::OnlineConf::Admin::Storage->do('INSERT INTO `my_config_tree_log` (`NodeID`, `Version`, `ContentType`, `Value`, `Author`, `MTime`, `Comment`, `Deleted`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         $self->node_id, $self->version, $self->mime, $self->data, $self->author, $self->mtime, $self->comment, $self->deleted ? 1 : 0);
-    if ($self->path ne $UPDATE_TIME_PATH) {
-        my $message = sprintf "%s %s параметр %s.", $self->author, $self->deleted ? "удалил" : "изменил", $self->path;
+    my $notification = $in{notification} || 'no-value';
+    if ($notification ne 'none') {
+        my $value = $notification eq 'with-value' && !$self->deleted ? ', значение: ' . (defined $self->data ? '"' . $self->data . '"' : 'NULL') : '';
+        my $message = sprintf "%s %s параметр %s%s.", $self->author, $self->deleted ? "удалил" : "изменил", $self->path, $value;
+        $message .= ' ' . $self->comment if $self->comment;
         MR::ChangeBot::Notification->new(origin => 'onlineconf', message => $message)->create();
     }
     return;

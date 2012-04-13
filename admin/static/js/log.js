@@ -51,7 +51,8 @@ $(function() {
         maxHeight: 800,
         autoOpen: false,
         create: function () {
-            $('#global-log-form').find('input').val('');
+            $('#global-log-form').find('input:not(:checkbox)').val('');
+            $('#global-log-form').find('input:checkbox').prop('checked', false);
             $('#global-log-header').addClass('ui-widget-content').insertBefore($(this));
         },
         open: function () { $('#global-log-form').submit() }

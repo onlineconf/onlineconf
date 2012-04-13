@@ -45,6 +45,113 @@ $(function() {
     });
 });
 
+$(function() {
+    $.widget('onlineconf.overridable_slider', {
+        options: {
+            values: [],
+            labels: [],
+            titles: [],
+            overridden: false,
+            value: null,
+            change: function (event, ui) { ui.success(ui) },
+            _wait_for_set: false,
+        },
+        _create: function () {
+            var self = this;
+            var index = this._index(this.options.value);
+            this.element
+                .append(
+                    $('<input type="checkbox" class="inherit-overridden" title="Переопределить"/>')
+                        .prop('checked', this.options.overridden)
+                        .click(function () {
+                            var $slider = self.element.find('.ui-slider');
+                            if ($(this).prop('checked')) {
+                                self._setOption('overridden', true);
+                                self._setOption('_wait_for_set', true);
+                            } else if (self.options._wait_for_set) {
+                                self._setOption('overridden', false);
+                                self._setOption('_wait_for_set', false);
+                            } else {
+                                self._trigger('change', null, {
+                                    overridden: false,
+                                    success: function (data) { self._setOptions(data) }
+                                });
+                            }
+                        })
+                )
+                .append($('<span class="enum-slider"/>').append(
+                    $('<div/>')
+                        .slider({
+                            min: 0,
+                            max: this.options.values.length - 1,
+                            range: 'min',
+                            value: index,
+                            slide: function (event, ui) {
+                                $(this).find('a.ui-slider-handle')
+                                    .attr('title', self.options.titles[ui.value])
+                                    .find('> span').removeClass('wait-for-set').text(self.options.labels[ui.value]);
+                            },
+                            change: function (event, ui) {
+                                $(this).find('a.ui-slider-handle')
+                                    .attr('title', self.options.titles[ui.value])
+                                    .find('> span').removeClass('wait-for-set').text(self.options.labels[ui.value]);
+                                var value = self.options.values[ui.value];
+                                if (!$(this).slider('option', 'disabled')) {
+                                    self._trigger('change', null, {
+                                        overridden: true,
+                                        value: value,
+                                        success: function (data) { self._setOptions(data) }
+                                    });
+                                }
+                            }
+                        })
+                        .slider('option', 'disabled', !this.options.overridden)
+                        .find('a.ui-slider-handle')
+                            .attr('title', this.options.titles[index])
+                            .append($('<span/>').text(this.options.labels[index]))
+                            .prop('tabIndex', this.options.overridden ? null : -1)
+                            .end()
+                    )
+                );
+        },
+        destroy: function () {
+            this.element.empty();
+            $.Widget.prototype.destroy.apply(this, arguments);
+        },
+        _setOption: function (key, value) {
+            $.Widget.prototype._setOption.apply(this, arguments);
+            if (key === "overridden") {
+                this.element
+                    .find('input.inherit-overridden').prop('checked', value).end()
+                    .find('.ui-slider').slider('option', 'disabled', !value)
+                        .find('a.ui-slider-handle').prop('tabIndex', value ? null : -1).end();
+            } else if (key === "value") {
+                var index = this._index(value);
+                var $slider = this.element.find('.ui-slider')
+                if ($slider.slider('option', 'value') != index) {
+                    $slider.slider('option', 'value', index);
+                }
+                this._setOption('_wait_for_set', false);
+            } else if (key === "_wait_for_set") {
+                if (value) {
+                    this.element.find('a.ui-slider-handle > span').addClass('wait-for-set').text('?');
+                } else if (this.element.find('a.ui-slider-handle > span').hasClass('wait-for-set')) {
+                    this.element.find('.ui-slider').slider('option', 'value', this._index(this.options.value));
+                }
+            }
+            return this;
+        },
+        _index: function (value) {
+            for (var i = 0; i < this.options.values.length; i++) {
+                if (this.options.values[i] == value) {
+                    return i;
+                }
+            }
+            return 0;
+        }
+    });
+});
+
 var can_edit_groups = false;
 
 $(function() {
@@ -106,9 +213,12 @@ $(function() {
 
 // Monitoring
 $(function() {
-    $('#monitoring').click(function () {
+    function showMonitoring (event) {
         $('#monitoring-list').empty();
-        $.get('/monitoring', function (data) {
+        var params = {};
+        var matches = $(this).attr('id').match(/^monitoring-(\w+)$/);
+        if (matches) params.sort = matches[1];
+        $.get('/monitoring', params, function (data) {
             $.each(data, function (id, host) {
                 $('<tr/>')
                     .append($('<td/>').text(host.host))
@@ -119,7 +229,10 @@ $(function() {
             });
             $('#monitoring-dialog').dialog('open');
         });
-    });
+        return false;
+    }
+
+    $('#monitoring, #monitoring-dialog th a').click(showMonitoring);
     $('#monitoring-dialog').dialog({
         autoOpen: false,
         width: 600

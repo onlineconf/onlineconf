@@ -30,19 +30,27 @@ span.edition { font-size: 40%; vertical-align: sub; text-transform: uppercase }
 span.node-title { max-width: 28.5em; display: inline-block; vertical-align: bottom; overflow: hidden; text-overflow: ellipsis; }
 span.node-summary { color: gray }
 span.node-table { position: absolute; left: 35em; background: white; height: 16px; overflow: hidden }
-span.node-data, span.node-version, span.node-mtime { display: inline-block; overflow: hidden; padding: 0 2px; height: 16px; border-left: 1px solid #CCCCCC }
-span.node-data { width: 30.5em; text-overflow: ellipsis }
-span.node-access { display: inline-block; height: 16px; width: 16px; margin: 0 2px }
+span.node-data-and-icon, span.node-version, span.node-mtime { display: inline-block; overflow: hidden; padding: 0 2px; height: 16px; border-left: 1px solid #CCCCCC }
+span.node-data-and-icon { width: 32em }
+span.node-data { text-overflow: ellipsis; display: inline-block; overflow: hidden; width: 32em }
+span.node-data.node-icon-1 { width: 30.75em }
+span.node-data.node-icon-2 { width: 29.5em }
+span.node-access-modified, span.node-notification-modified { display: inline-block; float: right; height: 16px; width: 16px; background-image: url("/css/type/access.png") }
 span.node-access-modified { background-image: url("/css/type/access.png") }
+span.node-notification-modified { background-image: url("/css/type/notification.png") }
 span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
 span.node-data a.symlink { color: inherit }
 
+span.case-preview { color: gray }
+span.case-server { color: #004400 }
+span.case-value { color: black }
+
 .nice-form { position: relative }
 .nice-form div > label, .nice-form span.label { position: absolute; width: 7em }
 .nice-form span.value { display: block; margin-left: 7em; line-height: 18px; min-height: 18px }
-span.value input, span.value select, span.value textarea { width: 100% }
+span.value input[type=text], span.value select, span.value textarea { width: 100% }
 
 #move-dialog.nice-form label { width: 9em }
 #move-dialog.nice-form span.value { margin-left: 9em; }
@@ -84,6 +92,7 @@ td.log-version { text-align: right }
 #global-log-header { padding: 0.5em; border-width: 0 0 1px 0 }
 #global-log-author, #global-log-branch { width: 12em }
 #global-log-from, #global-log-till { width: 8em }
+#global-log-all { margin: 0 }
 #global-log-go { font-size: 70% }
 
 #error-dialog { white-space: pre }
@@ -91,11 +100,12 @@ td.log-version { text-align: right }
 #group-dialog { background: transparent }
 
 #access-dialog span.value { line-height: 18px; min-height: 0; position: relative }
-#access-dialog input.access-overridden { position: absolute; width: 2em }
-#access-dialog span.access-slider { display: block; margin-left: 2em; padding: 4px; line-height: 18px; min-height: 0 }
-#access-dialog a.ui-slider-handle { text-align: center; text-decoration: none }
-#access-dialog a.ui-slider-handle > span { text-transform: uppercase; font-size: 50%; vertical-align: top }
-#access-dialog a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-weight: bold; color: #FF6666 }
+
+input.inherit-overridden { position: absolute }
+span.enum-slider { display: block; margin-left: 2em; padding: 4px; line-height: 18px; min-height: 0 }
+span.enum-slider a.ui-slider-handle { text-align: center; text-decoration: none }
+span.enum-slider a.ui-slider-handle > span { text-transform: uppercase; font-size: 50%; vertical-align: top }
+span.enum-slider a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-weight: bold; color: #FF6666 }
 
 .ui-autocomplete { max-height: 200px; overflow-y: auto; padding-right: 20px; }
 * html .ui-autocomplete { height: 200px } /* IE6 */

@@ -23,13 +23,20 @@ $(function() {
     }
 
     function previewCase (data) {
-        var result = [];
+        var result = $('<span class="case-preview"/>');
         try {
             var cases = $.parseJSON(data);
-            $.each(cases, function (id, value) { result.push(value.server + ': ' + value.value) });
+            $.each(cases, function (id, value) {
+                $('<span/>')
+                    .append($('<span class="case-server"/>').text(value.server))
+                    .append(': ')
+                    .append($('<span class="case-value"/>').text(value.value))
+                    .appendTo(result);
+                if (id < cases.length - 1) result.append('; ');
+            });
         } catch (e) {
         }
-        return result.join('; ');
+        return result;
     }
 
     function viewNull (span, mime, data) {
@@ -51,9 +58,9 @@ $(function() {
         try {
             var cases = $.parseJSON(data);
             $.each(cases, function (id, value) {
-                var vspan = $('<span class="value"/>');
+                var vspan = $('<span class="value case-value"/>');
                 $('<div class="nice-form"/>')
-                    .append($('<span class="label"/>').text(value.server))
+                    .append($('<span class="label case-server"/>').text(value.server))
                     .append(vspan)
                     .appendTo(span);
                 mimeType[value.mime].view(vspan, value.mime, value.value);

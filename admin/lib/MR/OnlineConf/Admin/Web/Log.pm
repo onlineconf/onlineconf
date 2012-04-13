@@ -20,6 +20,7 @@ sub global {
         branch   => scalar $self->param('branch'),
         from     => scalar $self->param('from'),
         till     => scalar $self->param('till'),
+        all      => scalar $self->param('all'),
     );
     $self->render(json => [ map $self->_version($_), @$versions ]);
     return;

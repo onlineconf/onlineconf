@@ -59,14 +59,17 @@ around BUILDARGS => sub {
     }
 };
 
+my %SORT = (host => 'Host', mtime => 'Time', online => 'Online', package => 'Package');
+
 sub list {
-    my ($class) = @_;
+    my ($class, %in) = @_;
+    my $sort = $SORT{$in{sort} || 'host'} || 'Host';
     my $mtime = MR::OnlineConf::Admin::Storage->select('SELECT MAX(`MTime`) AS `MTime` FROM `my_config_tree_log`')->[0]->{MTime};
     return [ map MR::OnlineConf::Admin::Monitoring->new(host => $_->{Host}, _row => $_),
-        @{MR::OnlineConf::Admin::Storage->select('
+        @{MR::OnlineConf::Admin::Storage->select("
             SELECT *, `Time` <> ? AND ? < now() - INTERVAL 30 MINUTE AS `TimeAlert`, `Online` < now() - INTERVAL 30 MINUTE AS `OnlineAlert`
-            FROM `my_config_activity` ORDER BY `Host`
-        ', $mtime, $mtime)} ];
+            FROM `my_config_activity` ORDER BY `$sort`
+        ", $mtime, $mtime)} ];
 }
 
 no Mouse;
