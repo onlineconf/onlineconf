@@ -336,9 +336,9 @@ sub move {
         die "Parent node $parent_path not exists\n" unless $parent->exists();
         die "Access denied\n" unless $parent->rw;
         MR::OnlineConf::Admin::Storage->do('UPDATE `my_config_tree` SET `ParentID` = ?, `Name` = ?, `Version` = `Version` + 1, `MTime` = now() WHERE `Path` = ?', $parent->id, $name, $self->path);
+        $self->_path($in{path});
         $self->_update_children_path();
         $self->clear();
-        $self->_path($in{path});
         $self->_log(comment => $comment);
         if ($in{symlink}) {
             my $symlink = MR::OnlineConf::Admin::Parameter->new(
