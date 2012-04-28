@@ -27,19 +27,35 @@ CREATE FUNCTION `my_config_tree_access` (`node_id` bigint(20) unsigned, `usernam
 READS SQL DATA
 BEGIN
     DECLARE `result` boolean;
+    DECLARE `group_id` int(11);
+    DECLARE `rw` boolean;
+    DECLARE `done` boolean;
+    DECLARE cur CURSOR FOR
+        SELECT tg.`GroupID`, tg.`RW`
+        FROM `my_config_tree_group` tg
+        JOIN `my_config_user_group` ug ON ug.`GroupID` = tg.`GroupID`
+        WHERE tg.`NodeID` = `node_id` AND ug.`User` = `username`;
 
     CREATE TEMPORARY TABLE `my_config_tree_access_tmp` (`GroupID` int(11) NOT NULL UNIQUE, `RW` boolean) ENGINE=MEMORY;
 
     WHILE `node_id` IS NOT NULL DO
-        BEGIN
-            DECLARE CONTINUE HANDLER FOR SQLSTATE '23000' BEGIN END;
-
-            INSERT INTO `my_config_tree_access_tmp`
-            SELECT tg.`GroupID`, tg.`RW`
-            FROM `my_config_tree_group` tg
-            JOIN `my_config_user_group` ug ON ug.`GroupID` = tg.`GroupID`
-            WHERE tg.`NodeID` = `node_id` AND ug.`User` = `username`;
-        END;
+        SET done = false;
+        OPEN cur;
+        cur_loop: LOOP
+            BEGIN
+                DECLARE EXIT HANDLER FOR NOT FOUND BEGIN SET done = true; END;
+                FETCH cur INTO `group_id`, `rw`;
+            END;
+            IF done THEN
+                LEAVE cur_loop;
+            END IF;
+            BEGIN
+                DECLARE EXIT HANDLER FOR SQLSTATE '23000' BEGIN END;
+                INSERT INTO `my_config_tree_access_tmp`
+                VALUES (`group_id`, `rw`);
+            END;
+        END LOOP;
+        CLOSE cur;
 
         SELECT `ParentID` INTO `node_id` FROM `my_config_tree` WHERE `ID` = `node_id`;
     END WHILE;
@@ -47,9 +63,9 @@ BEGIN
     BEGIN
         DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' BEGIN END;
 
-        SELECT `RW` INTO `result`
-        FROM `my_config_tree_access_tmp`
-        ORDER BY `RW` DESC
+        SELECT tmp.`RW` INTO `result`
+        FROM `my_config_tree_access_tmp` tmp
+        ORDER BY tmp.`RW` DESC
         LIMIT 1;
     END;
 

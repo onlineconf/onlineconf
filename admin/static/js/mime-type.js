@@ -106,7 +106,10 @@ $(function() {
                 value.data('mime', $(this).val());
             });
             $.each(mimeType, function (k, v) { $('<option/>').prop('value', k).text(v.title).appendTo(type) });
-            type.find('option[value="application/x-symlink"]').toggle(span.parents('.ui-dialog-content').data('node').data('node').num_children == 0);
+            var node = span.parents('.ui-dialog-content').data('node');
+            if (node && node.data('node').num_children != 0) {
+                type.find('option[value="application/x-symlink"]').hide();
+            }
             type.val(m);
             $('<div/>')
                 .append('<span class="label">Тип:</span>')
