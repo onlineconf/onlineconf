@@ -1,0 +1,185 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Getopt::Long;
+use File::Spec::Unix;
+use JSON::XS;
+use List::MoreUtils qw/uniq/;
+use Log::Dispatch;
+use POSIX qw/strftime/;
+use Pod::Usage;
+use YAML;
+use MR::OnlineConf::Admin::Storage;
+use MR::OnlineConf::Admin::Parameter;
+use MR::ChangeBot::Database;
+
+my %options = (
+    config   => '/usr/local/etc/onlineconf.yaml',
+    user     => 'onlineconf',
+    comment  => 'Imported from file via onlineconf-import',
+);
+
+GetOptions(\%options, qw/
+    config|c=s
+    loglevel|l=s
+    file|f=s
+    path|p=s
+    case|x=s%
+    user|u=s
+    comment|m=s
+    test|dry-run|n!
+    overwrite|o!
+    help|?!
+/) or pod2usage(2);
+pod2usage(1) if $options{help};
+pod2usage("Option f (file) or x (case) is required") unless $options{file} || $options{case};
+
+my $config = YAML::LoadFile($options{config});
+
+my $log = Log::Dispatch->new(
+    outputs => [[ 'Screen', min_level => $options{loglevel} || $config->{loglevel} || 'info', newline => 1 ]],
+    callbacks => sub {
+        my %in = @_;
+        my $prefix = sprintf "%s [%d] %s: ", strftime("%F %T", localtime()), $$, $in{level};
+        my $message = $in{message};
+        $message =~ s/^/$prefix/gm;
+        $message =~ s/\n$//;
+        return $message;
+    },
+);
+
+$log->info("onlineconf-import started\n");
+
+my $data = read_data();
+
+MR::OnlineConf::Admin::Storage->new(%{$config->{database}}, log => $log);
+MR::ChangeBot::Database->new(%{$config->{notification_database}}, log => $log);
+
+MR::OnlineConf::Admin::Storage->transaction(sub { import_data($data) });
+
+$log->info("onlineconf-import finished\n");
+
+sub read_data {
+    my %result;
+    read_file(\%result, '*', $options{file}) if $options{file};
+    foreach my $server (keys %{$options{case}}) {
+        read_file(\%result, $server, $options{case}{$server});
+    }
+    my $count = keys(%{$options{case}}) + ($options{file} ? 1 : 0);
+    foreach my $param (values %result) {
+        if (keys %$param == $count) {
+            my @uniq = uniq values %$param;
+            $param = { '*' => $uniq[0] } if @uniq == 1;
+        }
+    }
+    return \%result;
+}
+
+sub read_file {
+    my ($result, $server, $file) = @_;
+    open my $f, '<', $file or die "Can't open file $file: $!";
+    while (<$f>) {
+        chomp;
+        next if /^\s*#/ || /^\s*$/;
+        my ($name, $value) = split /\s+/, $_, 2;
+        $result->{$name}->{$server} = $value;
+    }
+    close $f;
+    return;
+}
+
+sub import_data {
+    my ($data) = @_;
+    foreach my $name (keys %$data) {
+        my ($mime, $value);
+        my $case = $data->{$name};
+        if (keys %$case == 1 && exists $case->{'*'}) {
+            $mime = 'text/plain';
+            $value = $case->{'*'};
+        } else {
+            $mime = 'application/x-case';
+            $value = JSON::XS::encode_json([ map {{ server => $_, mime => 'text/plain', value => $case->{$_} }} sort keys %$case ]);
+        }
+        my $path = File::Spec::Unix->catdir($options{path}, $name);
+        my $param = MR::OnlineConf::Admin::Parameter->new($path, $options{user});
+        if ($param->exists()) {
+            if ($param->mime ne $mime || $param->data ne $value) {
+                if ($options{overwrite}) {
+                    $param->mime($mime);
+                    $param->data($value);
+                    $param->update(comment => $options{comment}) unless $options{test};
+                    $log->info(sprintf "Parameter %s updated (%s): %s", $param->path, $param->mime, $param->data);
+                } else {
+                    $log->warning(sprintf "Parameter %s already exists (%s => %s): %s => %s", $param->path, $param->mime, $mime, $param->data, $value);
+                }
+            }
+        } else {
+            $param->mime($mime);
+            $param->data($value);
+            $param->create(comment => $options{comment}) unless $options{test};
+            $log->info(sprintf "Parameter %s created (%s): %s", $param->path, $param->mime, $param->data);
+        }
+    }
+    return;
+}
+
+__END__
+
+=head1 NAME
+
+onlineconf-import - import parameters from file
+
+=head1 SYNOPSIS
+
+    onlineconf-import [-n] [-o] [-p PATH] [-u USER] [-m COMMENT]
+                      { -f FILE | -x SERVER=FILE [-x SERVER=FILE ...] }
+                      [-c CONFIG] [-l LOGLEVEL]
+
+=head1 OPTIONS
+
+=over
+
+=item B<-n, --test, --dry-run>
+
+do not perform any modifications, only show what would have been modified
+
+=item B<-o, --overwrite>
+
+overwrite paramerter if already exists
+
+=item B<-p, --path=PATH>
+
+path which will be prefixed to any imported parameter
+
+=item B<-f, --file=FILE>
+
+file from which parameters are loaded, same as B<-x *=FILE>
+
+=item B<-x, --case SERVER=FILE>
+
+load parameters from FILE for case SERVER
+
+=item B<-u, --user=USER>
+
+modify onlineconf as USER
+
+=item B<-m, --comment=COMMENT>
+
+use COMMENT as commentary
+
+=item B<-c, --config=CONFIG>
+
+load onlineconf configuration from CONFIG
+
+=item B<-l, --loglevel=LOGLEVEL>
+
+log level
+
+=back
+
+=head1 DESCRIPTON
+
+onlineconf-import used to import parameters into onlineconf from text files.
+
+=cut
