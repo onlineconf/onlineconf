@@ -31,30 +31,40 @@ $(function() {
         $node.data('node', data);
     }
 
+    function selectNode (path) {
+        var chunks = path.split(/\//);
+        var parent_path = '#node-\\/';
+        var current_path = '';
+        var previous_path;
+        var success = function () {
+            previous_path = current_path;
+            current_path += (current_path == '/' ? '' : '/') + chunks.shift();
+            var selector = '#node-' + current_path.replace(/([\/:\.])/g, '\\$1');
+            if (chunks.length > 0) {
+                var node = $(selector).data('node');
+                if (node.mime == 'application/x-symlink') {
+                    chunks = node.data.split(/\//).concat(chunks);
+                    current_path = '';
+                    selector = '#node-\\/';
+                }
+                $('#tree').jstree('open_node', selector, success);
+            } else if ($('#tree').jstree('is_open', '#node-' + previous_path.replace(/([\/:\.])/g, '\\$1'))) {
+                $('#tree').jstree('select_node', selector, true);
+                $('html, body').animate({ scrollTop: $(selector).offset().top });
+            } else {
+                $('#tree').one('after_open.jstree', function () {
+                    $('#tree').jstree('select_node', selector, true);
+                    $('html, body').animate({ scrollTop: $(selector).offset().top });
+                });
+            }
+        }
+        success();
+    }
+
     function onHashChange () {
         if (window.location.hash.length > 0) {
             var path = window.location.hash.replace(/^#/, '');
-            var paths = [];
-            var chunks = path.split(/\//);
-            while (chunks.length > 1) {
-                paths.unshift('#node-' + chunks.join('/').replace(/([\/:\.])/g,'\\$1'));
-                chunks.pop();
-            }
-            var node_path = paths.pop();
-            var parent_path = '#node-\\/';
-            var success = function () {
-                if (paths.length > 0) {
-                    parent_path = paths.shift();
-                    $('#tree').jstree('open_node', parent_path, success);
-                } else if ($('#tree').jstree('is_open', parent_path)) {
-                    $('#tree').jstree('select_node', node_path, true);
-                } else {
-                    $('#tree').one('after_open.jstree', function () {
-                        $('#tree').jstree('select_node', node_path, true);
-                    });
-                }
-            }
-            success();
+            selectNode(path);
         }
     }
 

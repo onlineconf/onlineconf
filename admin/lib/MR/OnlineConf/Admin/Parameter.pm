@@ -236,6 +236,40 @@ sub exists {
     return defined $self->_row;
 }
 
+sub follow_symlink {
+    my ($self) = @_;
+    unless ($self->exists()) {
+        my @path = grep length($_), split /\//, $self->path;
+        my $path;
+        while (@path) {
+            $path .= '/' . shift(@path);
+            my $ancestor = MR::OnlineConf::Admin::Parameter->new($path, $self->username);
+            if ($ancestor->exists()) {
+                $ancestor->resolve_symlink() if @path;
+                $path = $ancestor->path;
+            } else {
+                die sprintf "Node %s not exists\n", $self->path;
+            }
+        }
+        $self->_path($path);
+        $self->clear();
+    }
+    return;
+}
+
+sub resolve_symlink {
+    my ($self) = @_;
+    local $self->{_symlink_deepness} = ($self->{_symlink_deepness} || 0) + 1;
+    die "Deep recursion in symlink\n" if $self->{_symlink_deepness} > 20;
+    $self->follow_symlink();
+    if ($self->mime eq 'application/x-symlink') {
+        $self->_path($self->data);
+        $self->clear();
+        $self->resolve_symlink();
+    }
+    return;
+}
+
 sub create {
     my ($self, %in) = @_;
     $self->validate();
@@ -447,8 +481,9 @@ sub _validate {
     } elsif ($mime eq 'application/x-yaml') {
         eval { YAML::Load($data); 1 } or die "Invalid YAML: $@";
     } elsif ($mime eq 'application/x-symlink') {
-        die "Invalid symlink: path not found\n"
-            unless MR::OnlineConf::Admin::Parameter->new($data, $self->username)->exists();
+        my $target = MR::OnlineConf::Admin::Parameter->new($data, $self->username);
+        $target->follow_symlink();
+        die "Invalid symlink: path not found\n" unless $target->exists();
     } elsif ($mime eq 'application/x-case') {
         my $cases;
         eval { $cases = JSON::from_json($data); 1 } or die "Invalid JSON: $@";

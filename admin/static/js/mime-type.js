@@ -86,7 +86,7 @@ $(function() {
         span.empty().parent('div').show();
         var text = $('<input/>').addClass('input-width-fill').val(data).appendTo(span)
             .wrap($('<div class="ui-widget-content ui-corner-all input-width-fill-wrapper"/>'))
-            .autocompletePath();
+            .autocompletePath(true);
         return function () { return text.val() };
     }
 

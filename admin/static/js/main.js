@@ -190,23 +190,22 @@ $(function() {
 });
 
 $(function() {
-    $.fn.autocompletePath = function () {
-        var lastBranchAc;
+    $.fn.autocompletePath = function (resolveSymlink) {
+        var last;
         this.autocomplete({
             source: function(request, response) {
-                if (/\/$/.test(request.term)) {
-                    $.get('/config' + request.term, function(data) {
-                        var resp = [];
-                        $.each(data.children || [], function(id, child) {
-                            resp.push({ label: child.name, value: child.path });
-                        });
-                        response(resp);
-                        lastBranchAc = { term: request.term, resp: resp };
-                    });
-                } else if (lastBranchAc != null && request.term.indexOf(lastBranchAc.term) == 0) {
-                    response($.grep(lastBranchAc.resp, function (v, i) { return v.value.indexOf(request.term) == 0 }));
+                var path = request.term.replace(/[^\/]+$/, '');
+                if (last != null && path == last.path) {
+                    response($.grep(last.resp, function (v, i) { return v.value.indexOf(request.term) == 0 }));
                 } else {
-                    response([]);
+                    $.get('/config' + path + (resolveSymlink ? '?symlink=resolve' : ''), function (data) {
+                        var resp = [];
+                        $.each(data.children || [], function (id, child) {
+                            resp.push({ label: child.name, value: child.path.replace(/^.*\//, path) });
+                        });
+                        response($.grep(resp, function (v, i) { return v.value.indexOf(request.term) == 0 }));
+                        last = { path: path, resp: resp };
+                    });
                 }
             }
         });

@@ -6,6 +6,9 @@ use File::Spec::Unix;
 sub get {
     my ($self) = @_;
     my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
+    if (defined $self->param('symlink')) {
+        $self->param('symlink') eq 'follow' ? $node->follow_symlink() : $node->resolve_symlink();
+    }
     my $result = $self->_node($node);
     $result->{children} = [ map $self->_node($_), @{$node->children} ];
     $self->render(json => $result);

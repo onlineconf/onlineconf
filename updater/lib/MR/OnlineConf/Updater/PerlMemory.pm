@@ -1,6 +1,8 @@
 package MR::OnlineConf::Updater::PerlMemory;
 
 use Mouse;
+use List::MoreUtils qw/uniq/;
+use Scalar::Util qw/weaken/;
 use Sys::Hostname ();
 use Text::Glob;
 
@@ -21,43 +23,44 @@ has _index => (
     default => sub { {} },
 );
 
-has _symlinks => (
+has _dirty_symlinks => (
     is  => 'ro',
     isa => 'ArrayRef[MR::OnlineConf::Updater::Parameter]',
     default => sub { [] },
+);
+
+has _symlink_target => (
+    is  => 'ro',
+    isa => 'HashRef[ArrayRef[MR::OnlineConf::Updater::Parameter]]',
+    default => sub { {} },
 );
 
 sub put {
     my ($self, $param) = @_;
     if (my $node = $self->_index->{$param->id}) {
         if ($node->version < $param->version) {
+            $self->_unmake_symlink($node) if $node->is_symlink;
             if ($node->path eq $param->path) {
                 my $old_version = $node->version;
                 $node->update($param);
                 $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                push @{$self->_symlinks}, $node if $node->is_symlink;
-                return 1;
+                $self->_make_symlink($node) if $node->is_symlink;
             } else {
-                my $old_pp = $node->parent_path;
-                my $new_pp = $param->parent_path;
-                if ($old_pp ne $new_pp) {
-                    if (my $old_p = $self->get($old_pp)) {
-                        delete $old_p->children->{$node->name};
-                    }
-                    if (my $new_p = $self->get($new_pp)) {
-                        my $old_version = $node->version;
-                        my $old_path = $node->path;
-                        $node->update($param);
-                        $new_p->add_child($node);
-                        $self->log->debug(sprintf "Parameter %s was updated from version %s to %s and moved from %s", $node->path, $old_version, $node->version, $old_path);
-                        push @{$self->_symlinks}, $node if $node->is_symlink;
-                        return 1;
-                    }
+                if (my $old_p = $self->get($node->parent_path)) {
+                    delete $old_p->children->{$node->name};
+                }
+                if (my $new_p = $self->get($param->parent_path)) {
+                    my $old_version = $node->version;
+                    my $old_path = $node->path;
+                    $node->update($param);
+                    $new_p->add_child($node);
+                    $self->log->debug(sprintf "Parameter %s was updated from version %s to %s and moved from %s", $node->path, $old_version, $node->version, $old_path);
+                    $self->_make_symlink($node) if $node->is_symlink;
                 }
             }
         }
-    }
-    if (my $node = $self->_root) {
+        return 1;
+    } elsif ($node = $self->_root) {
         my @path = split /\//, $param->path;
         shift @path;
         my $parent;
@@ -68,7 +71,7 @@ sub put {
             } elsif (@path == 0) {
                 $node->add_child($param);
                 $self->_index->{$param->id} = $param;
-                push @{$self->_symlinks}, $param if $param->is_symlink;
+                $self->_make_symlink($param) if $param->is_symlink;
                 return 1;
             } else {
                 die sprintf "Failed to put parameter %s: no parent node found", $param->path;
@@ -76,10 +79,11 @@ sub put {
         }
         if ($node->path eq $param->path) {
             if ($node->version < $param->version) {
+                $self->_unmake_symlink($node) if $node->is_symlink;
                 my $old_version = $node->version;
                 $node->update($param);
                 $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                push @{$self->_symlinks}, $node if $node->is_symlink;
+                $self->_make_symlink($node) if $node->is_symlink;
                 return 1;
             }
         } elsif ($param->path eq $parent->path . '/' . $param->name) {
@@ -88,7 +92,7 @@ sub put {
             } else {
                 $parent->add_child($param);
                 $self->_index->{$param->id} = $param;
-                push @{$self->_symlinks}, $param if $param->is_symlink;
+                $self->_make_symlink($param) if $param->is_symlink;
                 return 1;
             }
         } else {
@@ -106,6 +110,7 @@ sub put {
 
 sub delete {
     my ($self, $param) = @_;
+    $self->_unmake_symlink($param) if $param->is_symlink;
     delete $self->_index->{$param->id};
     my @path = split /\//, $param->path;
     shift @path;
@@ -126,14 +131,17 @@ sub delete {
 }
 
 sub get {
-    my ($self, $path, $no_follow) = @_;
+    my ($self, $path, $no_resolve) = @_;
     my @path = split /\//, $path;
     shift @path;
     my $node = $self->_root;
     while (defined(my $name = shift @path)) {
         if ($node = $node->child($name)) {
-            return $node if $no_follow && @path == 0;
+            return $node if $no_resolve && @path == 0;
+            my %seen;
             while ($node->is_symlink) {
+                die "Recursion in symlink" if $seen{$node->id};
+                $seen{$node->id} = 1;
                 if (!$node->symlink_target && exists $self->{seen}) {
                     $self->_resolve_symlink($node);
                 }
@@ -155,8 +163,8 @@ sub finalize {
 
 sub _resolve_symlinks {
     my ($self) = @_;
-    my $symlinks = $self->_symlinks;
-    foreach my $symlink (sort { length($a->path) <=> length($b->path) } @$symlinks) {
+    my $symlinks = $self->_dirty_symlinks;
+    foreach my $symlink (sort { length($a->path) <=> length($b->path) } uniq @$symlinks) {
         local $self->{seen} = {};
         $self->_resolve_symlink($symlink);
     }
@@ -172,12 +180,41 @@ sub _resolve_symlink {
     }
     $self->{seen}->{$symlink->id} = 1;
     if (my $node = $self->get($symlink->value, 1)) {
-        $self->{seen}->{$node->id} = 1;
-        $self->log->debug(sprintf "Symlink resolved: %s -> %s", $symlink->path, $symlink->value);
+        $self->log->debug(sprintf "Symlink resolved: %s -> %s", $symlink->path, $node->path);
         $symlink->symlink_target($node);
         return;
     }
     $self->log->warning(sprintf "Symlink not resolved: %s -> %s", $symlink->path, $symlink->value);
+    return;
+}
+
+sub _make_symlink {
+    my ($self, $node) = @_;
+    my $symlinks = $self->_symlink_target->{$node->value} ||= [];
+    @$symlinks = grep $_, uniq @$symlinks, $node;
+    weaken($_) foreach @$symlinks;
+    push @{$self->_dirty_symlinks}, $node;
+    $self->_resolve_symlink_depends($node);
+    return;
+}
+
+sub _unmake_symlink {
+    my ($self, $node) = @_;
+    my $symlinks = $self->_symlink_target->{$node->value} ||= [];
+    @$symlinks = grep { $_ && $_->id != $node->id } uniq @$symlinks;
+    weaken($_) foreach @$symlinks;
+    $self->_resolve_symlink_depends($node);
+    return;
+}
+
+sub _resolve_symlink_depends {
+    my ($self, $node) = @_;
+    my $path = $node->path;
+    my $target = $self->_symlink_target;
+    foreach my $symlink (map @{$target->{$_}}, grep { index($_, "$path/") == 0 } keys %$target) {
+        $symlink->clear_symlink_target();
+        push @{$self->_dirty_symlinks}, $symlink;
+    }
     return;
 }
 

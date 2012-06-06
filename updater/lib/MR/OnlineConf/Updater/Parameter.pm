@@ -46,7 +46,7 @@ has data => (
     isa => 'Maybe[Str]',
     required => 1,
     writer   => '_data',
-    trigger  => sub { $_[0]->clear_value(); $_[0]->clear_is_symlink(); $_[0]->symlink_target(undef) },
+    trigger  => sub { $_[0]->clear_value(); $_[0]->clear_is_symlink(); $_[0]->clear_symlink_target() },
 );
 
 has value => (
@@ -83,8 +83,9 @@ has is_symlink => (
 
 has symlink_target => (
     is  => 'rw',
-    isa => 'Maybe[MR::OnlineConf::Updater::Parameter]',
+    isa => 'MR::OnlineConf::Updater::Parameter',
     weak_ref => 1,
+    clearer  => 'clear_symlink_target',
 );
 
 sub BUILD {
