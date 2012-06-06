@@ -431,6 +431,7 @@ $(function() {
             $('#edit-data').data('getter', function () { return node.data });
             $('#edit-mime').val(node.mime).change();
             $('#edit-mime option[value="application/x-symlink"]').toggle(node.num_children == 0);
+            $('#edit-description').text(node.description);
         },
         close: function() {
             $('#edit-data').validationEngine('hidePrompt');
@@ -528,8 +529,8 @@ $(function() {
         buttons: {
             Переместить: function () {
                 var $node = $(this).data('node');
-                var path = '/config' + $node.data('node').path;
-                $.post(path, { path: $('#move-path').val(), symlink: $('#move-symlink').prop('checked') ? 1 : 0 }, function(data) {
+                var node = $node.data('node');
+                $.post('/config' + node.path, { path: $('#move-path').val().replace(/\/$/, '/' + node.name), symlink: $('#move-symlink').prop('checked') ? 1 : 0 }, function(data) {
                     delete data.result;
                     $('#tree').jstree('refresh', -1);
                     $node.data('node', data);
