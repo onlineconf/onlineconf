@@ -18,6 +18,7 @@ WriteMakefile(
         'POSIX'                               => 0,
         'Pod::Usage'                          => 0,
         'Starman'                             => 0,
+        'Text::Glob'                          => 0,
         'YAML'                                => 0,
     },
     EXE_FILES => [

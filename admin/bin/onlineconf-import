@@ -9,6 +9,7 @@ use List::MoreUtils qw/uniq/;
 use Log::Dispatch;
 use POSIX qw/strftime/;
 use Pod::Usage;
+use Text::Glob;
 use YAML;
 use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::Parameter;
@@ -30,10 +31,12 @@ GetOptions(\%options, qw/
     comment|m=s
     test|dry-run|n!
     overwrite|o!
+    finalize|z!
     help|?!
 /) or pod2usage(2);
 pod2usage(1) if $options{help};
 pod2usage("Option f (file) or x (case) is required") unless $options{file} || $options{case};
+pod2usage("Option p (path) is required") unless $options{path};
 
 my $config = YAML::LoadFile($options{config});
 
@@ -66,13 +69,6 @@ sub read_data {
     foreach my $server (keys %{$options{case}}) {
         read_file(\%result, $server, $options{case}{$server});
     }
-    my $count = keys(%{$options{case}}) + ($options{file} ? 1 : 0);
-    foreach my $param (values %result) {
-        if (keys %$param == $count) {
-            my @uniq = uniq values %$param;
-            $param = { '*' => $uniq[0] } if @uniq == 1;
-        }
-    }
     return \%result;
 }
 
@@ -83,7 +79,7 @@ sub read_file {
         chomp;
         next if /^\s*#/ || /^\s*$/;
         my ($name, $value) = split /\s+/, $_, 2;
-        $result->{$name}->{$server} = $value;
+        $result->{$name}->{$server} = { mime => 'text/plain', value => $value };
     }
     close $f;
     return;
@@ -94,18 +90,51 @@ sub import_data {
     foreach my $name (keys %$data) {
         my ($mime, $value);
         my $case = $data->{$name};
-        if (keys %$case == 1 && exists $case->{'*'}) {
-            $mime = 'text/plain';
-            $value = $case->{'*'};
-        } else {
-            $mime = 'application/x-case';
-            $value = JSON::XS::encode_json([ map {{ server => $_, mime => 'text/plain', value => $case->{$_} }} sort keys %$case ]);
-        }
         my $path = File::Spec::Unix->catdir($options{path}, $name);
         my $param = MR::OnlineConf::Admin::Parameter->new($path, $options{user});
+        if ($param->exists() && $param->mime eq 'application/x-case') {
+            my $current = JSON::XS::decode_json($param->data);
+            foreach my $c (@$current) {
+                if (my $new = $case->{$c->{server}}) {
+                    unless ($new->{mime} eq $c->{mime} && $new->{value} eq $c->{value}) {
+                        if ($options{overwrite}) {
+                            $log->info(sprintf "Case %s of parameter %s overwritten (%s): %s", $c->{server}, $param->path, $new->{mime}, $new->{value});
+                        } else {
+                            $log->warning(sprintf "Case %s of parameter %s already exists (%s => %s): %s => %s", $c->{server}, $param->path, $c->{mime}, $new->{mime}, $c->{value}, $new->{value});
+                            $case->{$c->{server}} = { mime => $c->{mime}, value => $c->{value} };
+                        }
+                    }
+                } else {
+                    my $merged;
+                    foreach my $server (sort { length($b) <=> length($a) } grep { $_ ne '*' } keys %$case) {
+                        if (Text::Glob::match_glob($server, $c->{server}) && $c->{mime} eq $case->{$server}->{mime} && $c->{value} eq $case->{$server}->{value}) {
+                            $merged = 1;
+                            last;
+                        }
+                    }
+                    $case->{$c->{server}} = { mime => $c->{mime}, value => $c->{value} } unless $merged;
+                }
+            }
+        }
+        if ($options{finalize}) {
+            if (join(',', keys %{$options{case}}) eq join(',', grep { $_ ne '*' } keys %$case)) {
+                my @mime = uniq map $_->{mime}, values %$case;
+                my @value = uniq map $_->{value}, values %$case;
+                if (@mime == 1 && @value == 1) {
+                    $case = { '*' => { mime => $mime[0], value => $value[0] } };
+                }
+            }
+        }
+        if (keys %$case == 1 && exists $case->{'*'}) {
+            $mime = $case->{'*'}->{mime};
+            $value = $case->{'*'}->{value};
+        } else {
+            $mime = 'application/x-case';
+            $value = JSON::XS::encode_json([ map {{ server => $_, mime => $case->{$_}->{mime}, value => $case->{$_}->{value} }} sort keys %$case ]);
+        }
         if ($param->exists()) {
             if ($param->mime ne $mime || $param->data ne $value) {
-                if ($options{overwrite}) {
+                if ($options{overwrite} || $param->mime eq 'application/x-case') {
                     $param->mime($mime);
                     $param->data($value);
                     $param->update(comment => $options{comment}) unless $options{test};
@@ -132,7 +161,7 @@ onlineconf-import - import parameters from file
 
 =head1 SYNOPSIS
 
-    onlineconf-import [-n] [-o] [-p PATH] [-u USER] [-m COMMENT]
+    onlineconf-import [-n] [-o] -p PATH [-u USER] [-m COMMENT] [-z]
                       { -f FILE | -x SERVER=FILE [-x SERVER=FILE ...] }
                       [-c CONFIG] [-l LOGLEVEL]
 
@@ -159,6 +188,10 @@ file from which parameters are loaded, same as B<-x *=FILE>
 =item B<-x, --case SERVER=FILE>
 
 load parameters from FILE for case SERVER
+
+=item B<-z, --finalize>
+
+replace case parameter to text if all cases are equal
 
 =item B<-u, --user=USER>
 
