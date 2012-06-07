@@ -32,6 +32,8 @@ $(function() {
     }
 
     function selectNode (path) {
+        var $node = $('#node-' + path.replace(/([\/:\.])/g, '\\$1'));
+        if ($node.length > 0 && $('#tree').jstree('is_selected', $node)) return;
         var chunks = path.split(/\//);
         var parent_path = '#node-\\/';
         var current_path = '';
