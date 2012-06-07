@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 6;
 use Log::Dispatch;
 use MR::OnlineConf::Updater::Parameter;
 use MR::OnlineConf::Updater::PerlMemory;
