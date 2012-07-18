@@ -370,7 +370,6 @@ $(function() {
         },
         close: function() {
             $('#create-form').validationEngine('hideAll');
-            $('#create-data').validationEngine('hidePrompt');
             $('#create-notification').overridable_slider('destroy');
         },
         buttons: {
@@ -436,10 +435,11 @@ $(function() {
             $('#edit-description').text(node.description);
         },
         close: function() {
-            $('#edit-data').validationEngine('hidePrompt');
+            $('#edit-form').validationEngine('hideAll');
         },
         buttons: {
             Изменить: function() {
+                if (!$('#edit-form').validationEngine('validate')) return;
                 var mime = $('#edit-mime').val();
                 var data = $('#edit-data').data('getter')();
                 if (!mimeType[mime].validate($('#edit-data'), data)) return;
@@ -458,6 +458,7 @@ $(function() {
             }
         }
     });
+    $('#edit-form').validationEngine();
 
     $('#delete-dialog').dialog({
         autoOpen: false,
@@ -469,8 +470,12 @@ $(function() {
             $('#delete-path').text(path);
             $('#delete-comment').val('');
         },
+        close: function() {
+            $('#delete-form').validationEngine('hideAll');
+        },
         buttons: {
             Удалить: function() {
+                if (!$('#delete-form').validationEngine('validate')) return;
                 var $node = $(this).data('node');
                 var path = $node.data('node').path;
                 $.ajax({
@@ -491,6 +496,7 @@ $(function() {
             }
         }
     });
+    $('#delete-form').validationEngine();
 
     $('#rename-dialog').dialog({
         autoOpen: false,
@@ -528,11 +534,20 @@ $(function() {
             $('#move-path').val('');
             $('#move-symlink').prop('checked', 'checked');
         },
+        close: function() {
+            $('#move-form').validationEngine('hideAll');
+        },
         buttons: {
             Переместить: function () {
+                if (!$('#move-form').validationEngine('validate')) return;
                 var $node = $(this).data('node');
                 var node = $node.data('node');
-                $.post('/config' + node.path, { path: $('#move-path').val().replace(/\/$/, '/' + node.name), symlink: $('#move-symlink').prop('checked') ? 1 : 0 }, function(data) {
+                var data = {
+                    path: $('#move-path').val().replace(/\/$/, '/' + node.name),
+                    symlink: $('#move-symlink').prop('checked') ? 1 : 0,
+                    comment: $('#move-comment').val()
+                };
+                $.post('/config' + node.path, data, function(data) {
                     delete data.result;
                     $('#tree').jstree('refresh', -1);
                     $node.data('node', data);
@@ -545,6 +560,7 @@ $(function() {
             }
         }
     });
+    $('#move-form').validationEngine();
     $('#move-path').autocompletePath();
 
     $('#notification-dialog').node_dialog({

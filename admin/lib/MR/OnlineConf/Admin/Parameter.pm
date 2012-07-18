@@ -273,6 +273,7 @@ sub resolve_symlink {
 sub create {
     my ($self, %in) = @_;
     $self->validate();
+    die "Comment is required\n" unless defined $in{comment} && length $in{comment};
     MR::OnlineConf::Admin::Storage->transaction(sub {
         my $parent_path = $self->path;
         $parent_path =~ s/\/[^\/]+$//;
@@ -304,6 +305,7 @@ sub create {
 sub update {
     my ($self, %in) = @_;
     $self->validate();
+    die "Comment is required\n" unless defined $in{comment} && length $in{comment};
     MR::OnlineConf::Admin::Storage->transaction(sub {
         my %changed;
         {
@@ -329,6 +331,7 @@ sub update {
 
 sub delete {
     my ($self, %in) = @_;
+    die "Comment is required\n" unless defined $in{comment} && length $in{comment};
     MR::OnlineConf::Admin::Storage->transaction(sub {
         {
             $self->clear();
@@ -350,6 +353,7 @@ sub delete {
 
 sub move {
     my ($self, %in) = @_;
+    die "Comment is required\n" unless defined $in{comment} && length $in{comment};
     MR::OnlineConf::Admin::Storage->transaction(sub {
         my $comment = sprintf "Moved from %s.", $self->path;
         $comment .= ' ' . $in{comment} if defined $in{comment};

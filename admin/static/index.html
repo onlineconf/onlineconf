@@ -54,7 +54,7 @@
             <div><label for="create-mime">Тип данных:</label><span class="value"><select id="create-mime" name="mime"/></span></div>
             <div><label for="create-data">Значение:</label><span class="value" id="create-data"/></div>
             <div><label for="create-notification">Уведомления:</label><span class="value" id="create-notification"/></div>
-            <div><label for="create-comment">Комментарий:</label><span class="value"><input id="create-comment" name="comment"/></span></div>
+            <div><label for="create-comment">Комментарий:</label><span class="value"><input id="create-comment" name="comment" class="validate[required]"/></span></div>
             </form>
         </div>
 
@@ -62,7 +62,7 @@
             <form id="edit-form">
             <div><label for="edit-mime">Тип данных:</label><span class="value"><select id="edit-mime" name="mime"/></span></div>
             <div><label for="edit-data">Значение:</label><span class="value" id="edit-data"/></div>
-            <div><label for="edit-comment">Комментарий:</label><span class="value"><input id="edit-comment" name="comment"/></span></div>
+            <div><label for="edit-comment">Комментарий:</label><span class="value"><input id="edit-comment" name="comment" class="validate[required]"/></span></div>
             <div id="edit-description"/>
             </form>
         </div>
@@ -70,7 +70,7 @@
         <div id="delete-dialog" style="display:none" class="nice-form">
             Вы уверены, что хотите удалить <span id="delete-path" class="node-name"/>?
             <form id="delete-form">
-            <div><label for="delete-comment">Комментарий:</label><span class="value"><input id="delete-comment" name="comment"/></span></div>
+            <div><label for="delete-comment">Комментарий:</label><span class="value"><input id="delete-comment" name="comment" class="validate[required]"/></span></div>
             </form>
         </div>
 
@@ -85,6 +85,7 @@
             <form id="move-form">
             <div><label for="move-path">Путь:</label><span class="value"><input id="move-path" name="path"/></span></div>
             <div><label for="move-symlink">Оставить symlink:</label><span class="value"><input id="move-symlink" name="symlink" type="checkbox" checked="checked"/></span></div>
+            <div><label for="move-comment">Комментарий:</label><span class="value"><input id="move-comment" name="comment" class="validate[required]"/></span></div>
             </form>
         </div>
 
