@@ -30,6 +30,7 @@ sub set {
         $node->update();
         $self->render(json => { result => 'Renamed', %{$self->_node($node)} });
     } elsif (defined $self->param('path')) {
+        die "Comment is required\n" unless defined $self->param('comment') && length $self->param('comment');
         my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
         $node->move(
             path    => scalar $self->param('path'),
@@ -39,12 +40,14 @@ sub set {
         );
         $self->render(json => { result => 'Moved', %{$self->_node($node)} });
     } elsif (defined $self->param('version')) {
+        die "Comment is required\n" unless defined $self->param('comment') && length $self->param('comment');
         my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
         $node->mime(scalar $self->param('mime'));
         $node->data(scalar $self->param('data'));
         $node->update(version => scalar $self->param('version'), comment => scalar $self->param('comment'));
         $self->render(json => { result => 'Changed', %{$self->_node($node)} });
     } else {
+        die "Comment is required\n" unless defined $self->param('comment') && length $self->param('comment');
         my $node = MR::OnlineConf::Admin::Parameter->new(
             path         => $self->_path,
             mime         => scalar $self->param('mime'),
@@ -62,6 +65,7 @@ sub set {
 
 sub delete {
     my ($self) = @_;
+    die "Comment is required\n" unless defined $self->param('comment') && length $self->param('comment');
     my $node = MR::OnlineConf::Admin::Parameter->new($self->_path, $self->username);
     $node->delete(version => scalar $self->param('version'), comment => scalar $self->param('comment'));
     $self->render(json => { result => 'Deleted' });

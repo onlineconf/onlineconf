@@ -533,6 +533,7 @@ $(function() {
             $(this).dialog('option', 'title', 'Переместить ' + node.path);
             $('#move-path').val('');
             $('#move-symlink').prop('checked', 'checked');
+            $('#move-comment').val('');
         },
         close: function() {
             $('#move-form').validationEngine('hideAll');
