@@ -1,7 +1,9 @@
 package MR::OnlineConf::Updater::PerlMemory;
 
 use Mouse;
+use IO::Interface::Simple;
 use List::MoreUtils qw/uniq/;
+use Net::IP::CMatch;
 use Scalar::Util qw/weaken/;
 use Sys::Hostname ();
 use Text::Glob;
@@ -23,13 +25,19 @@ has _index => (
     default => sub { {} },
 );
 
+has _dirty_cases => (
+    is  => 'ro',
+    isa => 'ArrayRef[MR::OnlineConf::Updater::Parameter]',
+    default => sub { [] },
+);
+
 has _dirty_symlinks => (
     is  => 'ro',
     isa => 'ArrayRef[MR::OnlineConf::Updater::Parameter]',
     default => sub { [] },
 );
 
-has _symlink_target => (
+has _required_by => (
     is  => 'ro',
     isa => 'HashRef[ArrayRef[MR::OnlineConf::Updater::Parameter]]',
     default => sub { {} },
@@ -39,12 +47,12 @@ sub put {
     my ($self, $param) = @_;
     if (my $node = $self->_index->{$param->id}) {
         if ($node->version < $param->version) {
-            $self->_unmake_symlink($node) if $node->is_symlink;
+            $self->_remove_from_requires($node);
             if ($node->path eq $param->path) {
                 my $old_version = $node->version;
                 $node->update($param);
                 $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                $self->_make_symlink($node) if $node->is_symlink;
+                $self->_add_to_requires($node);
             } else {
                 if (my $old_p = $self->get($node->parent_path)) {
                     delete $old_p->children->{$node->name};
@@ -55,7 +63,7 @@ sub put {
                     $node->update($param);
                     $new_p->add_child($node);
                     $self->log->debug(sprintf "Parameter %s was updated from version %s to %s and moved from %s", $node->path, $old_version, $node->version, $old_path);
-                    $self->_make_symlink($node) if $node->is_symlink;
+                    $self->_add_to_requires($node);
                 }
             }
         }
@@ -71,7 +79,7 @@ sub put {
             } elsif (@path == 0) {
                 $node->add_child($param);
                 $self->_index->{$param->id} = $param;
-                $self->_make_symlink($param) if $param->is_symlink;
+                $self->_add_to_requires($param);
                 return 1;
             } else {
                 die sprintf "Failed to put parameter %s: no parent node found", $param->path;
@@ -79,11 +87,11 @@ sub put {
         }
         if ($node->path eq $param->path) {
             if ($node->version < $param->version) {
-                $self->_unmake_symlink($node) if $node->is_symlink;
+                $self->_remove_from_requires($node);
                 my $old_version = $node->version;
                 $node->update($param);
                 $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                $self->_make_symlink($node) if $node->is_symlink;
+                $self->_add_to_requires($node);
                 return 1;
             }
         } elsif ($param->path eq $parent->path . '/' . $param->name) {
@@ -92,7 +100,7 @@ sub put {
             } else {
                 $parent->add_child($param);
                 $self->_index->{$param->id} = $param;
-                $self->_make_symlink($param) if $param->is_symlink;
+                $self->_add_to_requires($param);
                 return 1;
             }
         } else {
@@ -110,7 +118,7 @@ sub put {
 
 sub delete {
     my ($self, $param) = @_;
-    $self->_unmake_symlink($param) if $param->is_symlink;
+    $self->_remove_from_requires($param);
     delete $self->_index->{$param->id};
     my @path = split /\//, $param->path;
     shift @path;
@@ -158,6 +166,7 @@ sub get {
 sub finalize {
     my ($self) = @_;
     $self->_resolve_symlinks();
+    $self->_resolve_cases();
     return;
 }
 
@@ -188,32 +197,86 @@ sub _resolve_symlink {
     return;
 }
 
-sub _make_symlink {
+sub _add_to_requires {
     my ($self, $node) = @_;
-    my $symlinks = $self->_symlink_target->{$node->value} ||= [];
-    @$symlinks = grep $_, uniq @$symlinks, $node;
-    weaken($_) foreach @$symlinks;
-    push @{$self->_dirty_symlinks}, $node;
-    $self->_resolve_symlink_depends($node);
+    my $requires = $node->requires;
+    foreach my $reqpath (@$requires) {
+        my $list = $self->_required_by->{$reqpath} ||= [];
+        @$list = grep $_, uniq @$list, $node;
+        weaken($_) foreach @$list;
+    }
+    $self->_resolve_depends($node);
+    push @{$self->_dirty_cases}, $node if $node->is_case;
+    push @{$self->_dirty_symlinks}, $node if $node->is_symlink;
     return;
 }
 
-sub _unmake_symlink {
+sub _remove_from_requires {
     my ($self, $node) = @_;
-    my $symlinks = $self->_symlink_target->{$node->value} ||= [];
-    @$symlinks = grep { $_ && $_->id != $node->id } uniq @$symlinks;
-    weaken($_) foreach @$symlinks;
-    $self->_resolve_symlink_depends($node);
+    my $requires = $node->requires;
+    foreach my $reqpath (@$requires) {
+        my $list = $self->_required_by->{$reqpath} ||= [];
+        @$list = grep { $_ && $_->id != $node->id } uniq @$list;
+        weaken($_) foreach @$list;
+    }
+    $self->_resolve_depends($node);
+    return;
+}
+
+sub _resolve_depends {
+    my ($self, $node) = @_;
+    $self->_resolve_case_depends($node);
+    $self->_resolve_symlink_depends($node) if $node->is_symlink;
     return;
 }
 
 sub _resolve_symlink_depends {
     my ($self, $node) = @_;
     my $path = $node->path;
-    my $target = $self->_symlink_target;
+    my $target = $self->_required_by;
     foreach my $symlink (map @{$target->{$_}}, grep { index($_, "$path/") == 0 } keys %$target) {
         $symlink->clear_symlink_target();
-        push @{$self->_dirty_symlinks}, $symlink;
+        push @{$self->_dirty_symlinks}, $symlink if $symlink->is_symlink;
+    }
+    return;
+}
+
+sub _resolve_cases {
+    my ($self) = @_;
+    my $datacenter = $self->_which_datacenter();
+    $self->log->debug(sprintf "Datacenter is %s", $datacenter ? $datacenter->name : 'unknown');
+    my $cases = $self->_dirty_cases;
+    foreach my $case (sort { length($a->path) <=> length($b->path) } uniq @$cases) {
+        $case->resolve_case($datacenter);
+        $self->_add_to_requires($case);
+        $self->log->debug(sprintf "Case %s resolved", $case->path);
+    }
+    @$cases = ();
+    $self->_resolve_symlinks();
+    return;
+}
+
+sub _resolve_case_depends {
+    my ($self, $node) = @_;
+    my $cases = $self->_required_by->{$node->path};
+    foreach my $case (grep $_->is_case, @$cases) {
+        $case->clear();
+        push @{$self->_dirty_cases}, $case;
+        $self->_resolve_depends($case);
+    }
+    return;
+}
+
+sub _which_datacenter {
+    my ($self) = @_;
+    my @addrs = map $_->address, grep { $_->is_running && !$_->is_loopback } IO::Interface::Simple->interfaces();
+    if (my $datacenters = $self->get('/onlineconf/datacenter')) {
+        foreach my $dc (values %{$datacenters->children}) {
+            my @masks = ref $dc->value eq 'ARRAY' ? @{$dc->value} : grep $_, split /(?:,|\s+)/, $dc->value;
+            foreach my $addr (@addrs) {
+                return $dc if match_ip($addr, @masks);
+            }
+        }
     }
     return;
 }

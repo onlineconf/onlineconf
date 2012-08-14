@@ -27,11 +27,19 @@ $(function() {
         try {
             var cases = $.parseJSON(data);
             $.each(cases, function (id, value) {
-                $('<span/>')
-                    .append($('<span class="case-server"/>').text(value.server))
-                    .append(': ')
-                    .append($('<span class="case-value"/>').text(value.value))
-                    .appendTo(result);
+                var $key = $('<span class="case-key"/>');
+                var def = false;
+                if ('datacenter' in value) {
+                    $key.text(value.datacenter);
+                    resolveDatacenter($key);
+                } else if ('server' in value) {
+                    $key.text(value.server);
+                } else {
+                    def = true;
+                }
+                var $span = $('<span/>');
+                if (!def) $span.append($key).append(': ');
+                $span.append($('<span class="case-value"/>').text(value.value)).appendTo(result);
                 if (id < cases.length - 1) result.append('; ');
             });
         } catch (e) {
@@ -50,19 +58,32 @@ $(function() {
     }
 
     function viewSymlink (span, mime, data) {
-        span.empty().append($('<a/>').attr('href', '#' + data).text(data));
+        span.empty().append($('<a class="symlink"/>').attr('href', '#' + data).text(data));
     }
 
     function viewCase (span, mime, data) {
         span.empty();
+        var cspan = $('<div class="case-view"/>').appendTo(span);
         try {
             var cases = $.parseJSON(data);
             $.each(cases, function (id, value) {
-                var vspan = $('<span class="value case-value"/>');
-                $('<div class="nice-form"/>')
-                    .append($('<span class="label case-server"/>').text(value.server))
+                var $key = $('<span class="case-key"/>');
+                var kspan = $('<span class="case-key-block"/>')
+                    .append($key)
+                    .append(': ');
+                var vspan = $('<span class="case-value case-value-block"/>');
+                if ('datacenter' in value) {
+                    $key.text(value.datacenter);
+                    resolveDatacenter($key);
+                } else if ('server' in value) {
+                    $key.text(value.server);
+                } else {
+                    $key.text('default').addClass('case-key-default');
+                }
+                $('<div/>')
+                    .append(kspan)
                     .append(vspan)
-                    .appendTo(span);
+                    .appendTo(cspan);
                 mimeType[value.mime].view(vspan, value.mime, value.value);
             });
         } catch (e) {
@@ -92,14 +113,44 @@ $(function() {
 
     function editCase (span, mime, data) {
         span.empty().parent('div').show();
+        var defaultExists = false;
         var container = $('<div/>').appendTo(span);
-        var addFunc = function (s, m, v) {
+        var changeKey = function () {
+            var $kvSpan = $(this).parent('span.label').find('~ span.value');
+            var val = $kvSpan.find('select, input').val();
+            $kvSpan.empty();
+            if ($(this).val() == 'datacenter') {
+                var $dc = $('<select name="datacenter"/>').appendTo($kvSpan);
+                $.get('/config/onlineconf/datacenter?symlink=resolve', {}, function (data) {
+                    $dc.empty();
+                    $.each(data.children, function (id, param) {
+                        $('<option/>').val(param.name).text(param.summary || param.name).appendTo($dc);
+                    });
+                    $dc.val(val);
+                });
+            } else if ($(this).val() == 'server') {
+                $('<input name="server"/>')
+                    .val(val)
+                    .appendTo($kvSpan)
+                    .addClass('input-width-fill')
+                    .wrap($('<div class="ui-widget-content ui-corner-all input-width-fill-wrapper"/>'));
+            }
+            $(this).parents('.value-case:first').siblings().find('> div > span > select > option[value=default]').toggle($(this).val() != 'default');
+        };
+        var addFunc = function (kt, kv, m, v) {
             var div = $('<div class="value-case nice-form ui-corner-all"/>').appendTo(container);
-            var server = $('<input name="server"/>').val(s);
+            var keyType = $('<select name="key"/>')
+                .append('<option value="default">Default</option>')
+                .append('<option value="server">Сервер</option>')
+                .append('<option value="datacenter">Датацентр</option>')
+                .change(changeKey)
+                .val(kt);
+            if (span.find('> div > div > div > span > select > option[value=default]:selected').length) keyType.find('option[value=default]').hide();
             $('<div/>')
-                .append('<span class="label">Сервер:</span>')
-                .append($('<span class="value"/>').append(server))
-                .appendTo(div);
+                .append($('<span class="label"/>').append(keyType))
+                .append($('<span class="value"/>').append($('<input/>').val(kv)))
+                .appendTo(div)
+                .find('span.label select').change().end();
             var value = $('<span class="value getter"/>').data('getter', function () { return v });
             var type = $('<select name="mime"/>').change(function () {
                 value.data('getter', mimeType[$(this).val()].edit(value, $(this).val(), value.data('getter')(true)));
@@ -112,31 +163,33 @@ $(function() {
             }
             type.val(m);
             $('<div/>')
-                .append('<span class="label">Тип:</span>')
+                .append('<span class="label"><span>Тип:</span></span>')
                 .append($('<span class="value"/>').append(type))
                 .appendTo(div);
             $('<div/>')
-                .append('<span class="label">Значение:</span>')
+                .append('<span class="label"><span>Значение:</span></span>')
                 .append(value)
                 .appendTo(div);
             $('<div/>')
                 .append($('<button type="button">Удалить</button>').click(function () { div.remove() }))
                 .appendTo(div);
-            server.addClass('input-width-fill').wrap($('<div class="ui-widget-content ui-corner-all input-width-fill-wrapper"/>'));
             type.change();
             return false;
         };
         $('<div/>')
-            .append($('<button type="button">Добавить</button>').click(function () { addFunc() }))
+            .append($('<button type="button">Добавить</button>').click(function () { addFunc('server') }))
             .appendTo(span);
         var ok = false;
         try {
             var cases = $.parseJSON(data);
             if ($.isArray(cases)) {
                 $.each(cases, function (id, value) {
-                    if (typeof value === "object" && "server" in value && "mime" in value && "value" in value) {
+                    if (typeof value === "object" && "mime" in value && "value" in value) {
+                        var key = "server" in value ? 'server'
+                            : "datacenter" in value ? 'datacenter'
+                            : "default";
                         ok = true;
-                        addFunc(value.server, value.mime, value.value);
+                        addFunc(key, value[key], value.mime, value.value);
                     }
                 });
             }
@@ -145,18 +198,27 @@ $(function() {
         if (!ok) {
             var mime = span.data('mime');
             if (mime == null) mime = 'application/x-null';
-            addFunc('*', mime, data);
+            addFunc('default', '', mime, data);
         }
         return function (change) {
             var cases = [];
-            container.find('.value-case').each(function () {
-                cases.push({
-                    server: $(this).find('input[name=server]').val(),
+            container.find('> .value-case').each(function () {
+                var data = {
                     mime: $(this).find('select[name=mime]').val(),
                     value: $(this).find('span.value.getter').data('getter')()
-                });
+                };
+                var key = $(this).find('select[name=key]').val();
+                if (key == 'datacenter') {
+                    data.datacenter = $(this).find('select[name=datacenter]').val();
+                } else if (key == 'server') {
+                    data.server = $(this).find('input[name=server]').val();
+                }
+                if (key == 'default') cases.unshift(data);
+                else cases.push(data);
             });
             if (change) {
+                var def = $.map(cases, function (v) { return !("server" in v || "datacenter" in v) ? v.value : null });
+                if (def.length) return def[0];
                 var star = $.map(cases, function (v) { return v.server == "*" ? v.value : null });
                 return star[0];
             } else {
@@ -179,5 +241,30 @@ $(function() {
         }
         span.validationEngine('hidePrompt');
         return true;
+    }
+
+    var resolveDcQueue = [];
+    var resolveDcTime = new Date(0);
+    var resolveDcMap = {};
+    function resolveDatacenter (span) {
+        if (resolveDcTime < new Date - new Date(60000)) {
+            if (resolveDcQueue.length == 0) {
+                $.get('/config/onlineconf/datacenter?symlink=resolve', {}, function (data) {
+                    resolveDcMap = {};
+                    $.each(data.children, function (id, param) {
+                        resolveDcMap[param.name] = param.summary;
+                    });
+                    $.each(resolveDcQueue, function (id, elem) {
+                        var summary = resolveDcMap[elem.name]
+                        if (summary) elem.span.text(summary);
+                    });
+                    resolveDcQueue = [];
+                    resolveDcTime = new Date;
+                });
+            }
+            resolveDcQueue.push({ span: span, name: span.text() });
+        }
+        var summary = resolveDcMap[span.text()]
+        if (summary) span.text(summary);
     }
 });

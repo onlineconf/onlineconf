@@ -41,21 +41,30 @@ span.node-notification-modified { background-image: url("/css/type/notification.
 span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
-span.node-data a.symlink { color: inherit }
 
-span.case-preview { color: gray }
-span.case-server { color: #004400 }
+a.symlink, .jstree a.symlink { color: #000088; text-decoration: none }
+
+span.case-preview, div.case-view { color: gray }
+span.case-key { color: #005500 }
 span.case-value { color: black }
+div.case-view { overflow: auto }
+div.case-view > div { position: relative }
+div.case-view span.case-key-block { position: absolute; width: 9em }
+div.case-view span.case-value-block { display: inline-block; margin-left: 9em; line-height: 18px; min-height: 18px }
+span.case-key.case-key-default { font-style: italic }
 
 .nice-form { position: relative }
-.nice-form div > label, .nice-form span.label { position: absolute; width: 7em }
-.nice-form span.value { display: block; margin-left: 7em; line-height: 18px; min-height: 18px }
+.nice-form div > label, .nice-form span.label { position: absolute; width: 7em; padding: 2px 0 }
+.nice-view div > label, .nice-view span.label { padding: 0 }
+.nice-form span.value { display: block; margin-left: 7em; line-height: 18px; min-height: 24px; overflow: hidden }
+.nice-form span.label select { margin: -2px 0 }
 span.value input[type=text], span.value select, span.value textarea { width: 100% }
 
 #move-dialog.nice-form label { width: 9em }
 #move-dialog.nice-form span.value { margin-left: 9em; }
 
-div.value-case { border: 1px solid #AAAAAA; margin: 1px; padding: 2px 2px 2px 4px }
+div.value-case { border: 1px solid #AAAAAA; margin: 1px; padding: 2px }
+div.value-case span.label > span { padding: 0 2px }
 
 #description, #data { white-space: pre-wrap }
 #create-dialog textarea, #edit-dialog textarea, #rename-dialog textarea { height: 8em }
@@ -69,7 +78,7 @@ div.value-case { border: 1px solid #AAAAAA; margin: 1px; padding: 2px 2px 2px 4p
 
 span.null { color: gray }
 
-.input-width-fill-wrapper { margin: 1px; padding: 0 2px }
+.input-width-fill-wrapper { margin: 1px; padding: 1px 2px }
 .input-width-fill { border: none; margin: 0; padding: 0; width: 100% }
 .input-width-fill:focus { outline: none }
 .input-focus, .CodeMirror-focused { border-color: #FF6600 }

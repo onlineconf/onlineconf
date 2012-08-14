@@ -21,7 +21,7 @@ $(function() {
             .append(data_and_icon.append(data.addClass('node-icon-' + data_and_icon.children().length)))
             .append($('<span class="node-version"/>').text(node.version))
             .append($('<span class="node-mtime"/>').text(node.mtime))
-        return $('<span/>').append(title).append(table).html();
+        return $('<span/>').append(title).append(table)[0];
     }
 
     function updateNodeData ($node, data) {
@@ -91,7 +91,7 @@ $(function() {
                         var children = [];
                         $.each(data.children || [], function (id, child) {
                             children.push({
-                                data: nodeTitle(child),
+                                data: { title: nodeTitle(child) },
                                 attr: { id: 'node-' + child.path, rel: child.mime },
                                 metadata: { node: child },
                                 state: child.num_children == 0 ? null : 'closed'
@@ -103,7 +103,7 @@ $(function() {
                         }
                         if ($node == -1) {
                             success.call(tree, {
-                                data: nodeTitle(data),
+                                data: { title: nodeTitle(data) },
                                 attr: { id: 'node-' + data.path, rel: 'root' },
                                 metadata: { node: data },
                                 state: 'open',
@@ -398,7 +398,7 @@ $(function() {
                 $.post(path, params, function(data) {
                     $('#tree')
                         .jstree('create_node', $parent, 'inside', {
-                            data: nodeTitle(data),
+                            data: { title: nodeTitle(data) },
                             attr: { id: 'node-' + data.path, rel: data.mime },
                             metadata: { node: data }
                         }, function (node) { this.select_node(node, true) });

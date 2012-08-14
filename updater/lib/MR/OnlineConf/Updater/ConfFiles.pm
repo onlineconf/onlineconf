@@ -53,7 +53,7 @@ sub _walk_tree {
         next if $self->{seen_node}->{$child->id};
         $child = $child->real_node();
         next if !$child || $self->{seen_node}->{$child->id};
-        if ($child->content_type ne 'application/x-null') {
+        if (!$child->is_null) {
             my $value = $child->value;
             if (ref $value) {
                 $data{"$name:JSON"} = eval { JSON::to_json($value) };
