@@ -11,11 +11,11 @@ $(function() {
     };
 
     function previewNull (data) {
-        return '';
+        return $('<span class="null"/>');
     }
 
     function previewText (data) {
-        return data;
+        return $('<span/>').text(data);
     }
 
     function previewSymlink (data) {
@@ -39,7 +39,9 @@ $(function() {
                 }
                 var $span = $('<span/>');
                 if (!def) $span.append($key).append(': ');
-                $span.append($('<span class="case-value"/>').text(value.value)).appendTo(result);
+                var $value = mimeType[value.mime].preview(value.value);
+                if (value.mime == 'application/x-case') $value.prepend('{ ').append(' }');
+                $span.append($('<span class="case-value"/>').append($value)).appendTo(result);
                 if (id < cases.length - 1) result.append('; ');
             });
         } catch (e) {

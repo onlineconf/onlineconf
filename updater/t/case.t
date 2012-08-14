@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 26;
+use Test::More tests => 27;
 use Log::Dispatch;
 use Sys::Hostname;
 use MR::OnlineConf::Updater::Parameter;
@@ -44,6 +44,7 @@ $tree->put(MR::OnlineConf::Updater::Parameter->new($_)) foreach (
     { id => 14, name => 'mod', path => '/test/mod', content_type => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test/value"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1/value"},{"server":"$hostname","mime":"application/x-symlink","value":"/test/branch2/value"}]#, version => 1 },
     { id => 15, name => 'curmod', path => '/test/curmod', content_type => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1"},{"server":"$hostname","mime":"application/x-symlink","value":"/test/branch2"}]#, version => 1 },
     { id => 16, name => 'case6', path => '/test/case6', content_type => 'application/x-case', data => qq#[{"server":"xxx","mime":"text/plain","value":5},{"datacenter":"xxx","mime":"text/plain","value":6}]#, version => 1 },
+    { id => 17, name => 'case7', path => '/test/case7', content_type => 'application/x-case', data => qq#[{"server":"$hostname","mime":"application/x-case","value":"[{\\"datacenter\\":\\"test-dc\\",\\"mime\\":\\"text/plain\\",\\"value\\":\\"10\\"}]"}]#, version => 1 },
     { id => 101, name => 'onlineconf', path => '/onlineconf', content_type => 'application/x-null', data => undef, version => 1 },
     { id => 102, name => 'datacenter', path => '/onlineconf/datacenter', content_type => 'application/x-symlink', data => '/infrastructure/datacenter', version => 1 },
     { id => 103, name => 'infrastructure', path => '/infrastructure', content_type => 'application/x-null', data => undef, version => 1 },
@@ -60,6 +61,7 @@ is($tree->get('/test/case3')->value, 5, "default: /test/case3 has correct value"
 is($tree->get('/test/case4')->value, 6, "when datacenter: symlink in /test/case4 has correct value");
 is($tree->get('/test/case5')->value, 6, "when datacenter: symlink in /test/case5 has correct value");
 is($tree->get('/test/case6')->value, undef, "no such case");
+is($tree->get('/test/case7')->value, 10, "deep datacenter case");
 is($tree->get('/atest/case2')->value, 25, "when datacenter: /test/acase2 has correct value");
 is($tree->get('/onlineconf/datacenter/test-dc')->value, '188.93.61.0/24', "/onlinconf/datacenter/test-dc has correct value");
 is($tree->get('/test/mod')->value, 18, "/test/mod use server");

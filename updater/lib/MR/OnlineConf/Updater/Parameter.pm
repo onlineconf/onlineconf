@@ -219,21 +219,19 @@ sub _resolve_case {
     foreach my $case (sort _sort @$data) {
         if (exists $case->{server}) {
             if (Text::Glob::match_glob($case->{server}, Sys::Hostname::hostname())) {
-                $self->_apply_case($case);
+                $self->_apply_case($case, $datacenter);
                 return;
             }
         } elsif (exists $case->{datacenter}) {
-            if (@_ == 3) {
-                if ($datacenter && $case->{datacenter} eq $datacenter->name) {
-                    $self->_case_requires->{$datacenter->path} = 1;
-                    $self->_apply_case($case);
-                    return;
-                }
+            if ($datacenter && $case->{datacenter} eq $datacenter->name) {
+                $self->_case_requires->{$datacenter->path} = 1;
+                $self->_apply_case($case, $datacenter);
+                return;
             } else {
                 $self->_case_requires->{"/onlineconf/datacenter/$case->{datacenter}"} = 1;
             }
         } else {
-            $self->_apply_case($case);
+            $self->_apply_case($case, $datacenter);
             return;
         }
     }
@@ -242,9 +240,9 @@ sub _resolve_case {
 }
 
 sub _apply_case {
-    my ($self, $case) = @_;
+    my ($self, $case, $datacenter) = @_;
     if ($case->{mime} eq 'application/x-case') {
-        $self->_resolve_case($case->{value});
+        $self->_resolve_case($case->{value}, $datacenter);
     } else {
         $self->_case_content_type($case->{mime});
         $self->_case_data($case->{value});

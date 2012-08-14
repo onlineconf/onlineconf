@@ -42,7 +42,7 @@ span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
 
-a.symlink, .jstree a.symlink { color: #000088; text-decoration: none }
+a.symlink, .jstree a.symlink { color: #000088; text-decoration: none; padding: 0 }
 
 span.case-preview, div.case-view { color: gray }
 span.case-key { color: #005500 }
