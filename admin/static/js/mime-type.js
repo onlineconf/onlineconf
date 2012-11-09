@@ -55,8 +55,10 @@ $(function() {
 
     function viewText (span, mime, data) {
         span.empty();
-        var cm = CodeMirror(span[0], { readOnly: 'nocursor', mode: mime });
+        var viewer = $('<span/>').appendTo(span);
+        var cm = CodeMirror(viewer[0], { readOnly: true, mode: mime });
         cm.setValue(data != null ? data : '');
+        createCodeMirrorToolbar(cm).prependTo(span);
     }
 
     function viewSymlink (span, mime, data) {
@@ -99,9 +101,11 @@ $(function() {
 
     function editText (span, mime, data) {
         span.empty().parent('div').show();
-        var cm = CodeMirror(span[0], { mode: mime, tabMode: mime == 'text/plain' ? 'default' : 'shift' });
+        var editor = $('<span/>').appendTo(span);
+        var cm = CodeMirror(editor[0], { mode: mime, tabMode: mime == 'text/plain' ? 'default' : 'shift' });
         cm.setValue(data != null ? data : '');
-        span.find('.CodeMirror').addClass('ui-widget-content ui-corner-all');
+        editor.find('.CodeMirror').addClass('ui-widget-content ui-corner-all');
+        createCodeMirrorToolbar(cm).prependTo(span);
         return function () { return cm.getValue() };
     }
 
@@ -269,4 +273,64 @@ $(function() {
         var summary = resolveDcMap[span.text()]
         if (summary) span.text(summary);
     }
+
+    function createCodeMirrorToolbar (cm) {
+        var rand = Math.random();
+        var fullscreen = $('<input type="checkbox" id="cm-fullscreen-' + rand + '"/>');
+        var wrap = $('<input type="checkbox" id="cm-wrap-' + rand + '"/>');
+        var toolbar = $('<span class="cm-toolbar"/>')
+            .append('<label for="cm-fullscreen-' + rand + '">Fullscreen</label>')
+            .append(fullscreen)
+            .append('<label for="cm-wrap-' + rand + '">Переносить</label>')
+            .append(wrap);
+        fullscreen.button({ text: false, label: 'Fullscreen', icons: { primary: 'ui-icon-arrow-4-diag' } })
+            .click(function (e) {
+                toolbar.stop().fadeTo(0, 1);
+                if ($(this).prop('checked')) setFullScreen(cm, true);
+                cm.focus();
+            });
+        wrap.button({ text: false, icons: { primary: 'ui-icon-arrowreturn-1-w' } })
+            .click(function (e) {
+                toolbar.stop().fadeTo(0, 1);
+                var value = $(this).prop('checked') ? true : false;
+                cm.setOption('lineWrapping', value);
+                cm.setOption('lineNumbers', value);
+                cm.focus();
+            });
+        toolbar.buttonset();
+        cm.setOption('extraKeys', { "Esc": function (cm) { setFullScreen(cm, false); fullscreen.prop('checked', false).button('refresh') } });
+        cm.setOption('onFocus', function (e) { toolbar.fadeIn() });
+        cm.setOption('onBlur', function (e) { toolbar.fadeOut() });
+        return toolbar;
+    }
+
+    function winHeight() {
+        return window.innerHeight || (document.documentElement || document.body).clientHeight;
+    }
+
+    function setFullScreen(cm, full) {
+        var $wrap = $(cm.getWrapperElement());
+        if ($wrap.hasClass('CodeMirror-fullscreen') == full) return;
+        var scroll = cm.getScrollerElement();
+        if (full) {
+            $wrap.parent().addClass('CodeMirror-was-here');
+            $wrap.addClass('CodeMirror-fullscreen').remove().appendTo('body');
+            scroll.style.height = winHeight() + "px";
+            document.documentElement.style.overflow = "hidden";
+        } else {
+            var $parent = $('.CodeMirror-was-here');
+            $wrap.remove().removeClass('CodeMirror-fullscreen').appendTo($parent);
+            $parent.removeClass('CodeMirror-was-here');
+            scroll.style.height = "";
+            document.documentElement.style.overflow = "";
+        }
+        cm.refresh();
+        cm.focus();
+    }
+
+    CodeMirror.connect(window, "resize", function() {
+        var showing = document.body.getElementsByClassName("CodeMirror-fullscreen")[0];
+        if (!showing) return;
+        showing.CodeMirror.getScrollerElement().style.height = winHeight() + "px";
+    });
 });

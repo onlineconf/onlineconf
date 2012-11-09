@@ -71,8 +71,8 @@ $(function() {
     }
 
     $.validationEngineLanguage.allRules.nodeName = {
-        regex: /^[a-z0-9\-]+$/,
-        alertText: '* Только строчные латинские буквы, цифры и дефис'
+        regex: /^[a-z0-9_\-]+$/,
+        alertText: '* Только строчные латинские буквы, цифры, подчеркивание и дефис'
     };
 
     $('#tree').jstree({
