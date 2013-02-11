@@ -9,6 +9,7 @@ use Data::Dumper;
 use YAML;
 use Carp qw/carp confess/;
 use POSIX qw/strftime/;
+use Sys::Hostname ();
 use base qw/Class::Singleton Exporter/;
 
 sub PRELOAD()   {'_ALL_'}
@@ -31,37 +32,47 @@ my $DEFAULT_CONFIG = {
     debug => 0,
 };
 
-sub _new_instance {
-    my ($class,%opts) = @_;
-    %opts = (
-        debug=>0,
-        check_interval=>5,
-        reload => 1,
-        %opts);
-    my $config = {};
-    my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
-    if (-r $file){
-        $config = YAML::LoadFile($file) or 
-            confess "cant load config file at $file";
-    }else{
-        warn "WARNING: onlineconf can't load config file from `$file`. default config will be used.\n";
-        $config = $DEFAULT_CONFIG;
+{
+    my $config;
+    my $cache = {};
+    my $checks = {};
+    my $load = {};
+    my $local = {};
+
+    sub _read_config {
+        my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
+        if (-r $file) {
+            $config = YAML::LoadFile($file) or
+                confess "cant load config file at $file";
+        } else {
+            warn "WARNING: onlineconf can't load config file from `$file`. default config will be used.\n";
+            $config = $DEFAULT_CONFIG;
+        }
+        return;
     }
-    my $hostname = `hostname`;
-    chomp $hostname;
-    my $self = {
-        cache=>{},
-        check_all => 0,
-        checks    => {},
-        load      => {},
-        cfg       => \%opts,
-        logstatus => undef,
-        hostname  => $hostname,
-        local     => {},
-        config    => $config,
-        test_expires => 0,
-    };
-    return bless $self , $class;
+
+    sub _new_instance {
+        my ($class, %opts) = @_;
+        %opts = (
+            debug=>0,
+            check_interval=>5,
+            reload => 1,
+            %opts);
+        _read_config() unless $config;
+        my $self = {
+            cache     => $cache,
+            check_all => 0,
+            checks    => $checks,
+            load      => $load,
+            cfg       => \%opts,
+            logstatus => undef,
+            hostname  => Sys::Hostname::hostname(),
+            local     => $local,
+            config    => $config,
+            test_expires => 0,
+        };
+        return bless $self , $class;
+    }
 }
 
 sub _say {
@@ -113,7 +124,8 @@ sub getModule {
     $self->reload($module) if $self->{cfg}{reload};
     my $local = exists $self->{local}{$module} ? $self->{local}{$module} : undef;
     my $cache = $self->{cache}{$module};
-    return { map { $_ => $local && exists $local->{$_} ? $local->{$_} : $cache->{$_} } keys %$cache };
+    return $cache unless $local;
+    return { map { $_ => exists $local->{$_} ? $local->{$_} : $cache->{$_} } keys %$cache };
 }
 
 sub preload {
@@ -182,10 +194,7 @@ sub _reload_all {
 
 sub reload {
     my ($self,$module,%opts) = @_;
-    %opts = (force=>0,%opts);
-    unless ($opts{force}){
-        return unless $self->_check($module);
-    }
+    return unless $opts{force} || $self->_check($module);
     return $self->_reload($module);
 }
 
