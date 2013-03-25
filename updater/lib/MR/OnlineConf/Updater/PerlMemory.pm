@@ -165,8 +165,8 @@ sub get {
 
 sub finalize {
     my ($self) = @_;
-    $self->_resolve_symlinks();
     $self->_resolve_cases();
+    $self->_resolve_symlinks();
     return;
 }
 
@@ -225,7 +225,6 @@ sub _remove_from_requires {
 
 sub _resolve_depends {
     my ($self, $node) = @_;
-    $self->_resolve_case_depends($node);
     $self->_resolve_symlink_depends($node) if $node->is_symlink;
     return;
 }
@@ -256,20 +255,10 @@ sub _resolve_cases {
     return;
 }
 
-sub _resolve_case_depends {
-    my ($self, $node) = @_;
-    my $cases = $self->_required_by->{$node->path};
-    foreach my $case (grep $_->is_case, @$cases) {
-        $case->clear();
-        push @{$self->_dirty_cases}, $case;
-        $self->_resolve_depends($case);
-    }
-    return;
-}
-
 sub _which_datacenter {
     my ($self) = @_;
     my @addrs = map $_->address, grep { $_->is_running && !$_->is_loopback } IO::Interface::Simple->interfaces();
+    local $self->{seen} = {};
     if (my $datacenters = $self->get('/onlineconf/datacenter')) {
         foreach my $dc (values %{$datacenters->children}) {
             my @masks = ref $dc->value eq 'ARRAY' ? @{$dc->value} : grep $_, split /(?:,|\s+)/, $dc->value;
