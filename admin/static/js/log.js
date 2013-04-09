@@ -13,7 +13,6 @@ $(function() {
             var $log = $('#log');
             var node = $(this).node_dialog('option', 'node').data('node');
             $.get('/log' + node.path, function(data) {
-                var cm = [];
                 $log.empty();
                 $.each(data, function(id, log) {
                     var $data = $('<td class="log-data"/>');
@@ -29,13 +28,12 @@ $(function() {
                     } else if (log.rw == null) {
                         $data.addClass('log-no-access').text('нет доступа');
                     } else if (log.data != null && log.data != '') {
-                        cm.push({ element: $data[0], mime: log.mime, data: log.data });
-                        $data.text(log.data);
+                        mimeType[log.mime].view($data, log.mime, log.data);
                     }
                 });
                 ui.success();
-                $.each(cm, function (id, cm) {
-                    mimeType[cm.mime].view($(cm.element), cm.mime, cm.data);
+                $log.find('.CodeMirror').each(function () {
+                    this.CodeMirror.refresh();
                 });
             })
         }
@@ -74,7 +72,6 @@ $(function() {
         var $dialog = $('#global-log-dialog');
         var $log = $('#global-log-table').empty();
         $.get('/global-log', $(this).serialize(), function(data) {
-            var cm = [];
             $log.empty();
             $.each(data, function(id, log) {
                 var $data = $('<td class="log-data"/>');
@@ -90,13 +87,8 @@ $(function() {
                 } else if (log.rw == null) {
                     $data.addClass('log-no-access').text('нет доступа');
                 } else if (log.data != null && log.data != '') {
-                    cm.push({ element: $data[0], mime: log.mime, data: log.data });
-                    $data.text(log.data);
+                    mimeType[log.mime].view($data, log.mime, log.data);
                 }
-                $dialog.dialog('option', 'position', $dialog.dialog('option', 'position'));
-            });
-            $.each(cm, function (id, cm) {
-                mimeType[cm.mime].view($(cm.element), cm.mime, cm.data);
             });
             $dialog
                 .dialog('option', 'width', window.innerWidth - 100 > $log.width() + 40 ? $log.width() + 40 : window.innerWidth - 100)

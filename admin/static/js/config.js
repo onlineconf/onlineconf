@@ -306,6 +306,24 @@ $(function() {
             $('#log-dialog').node_dialog('option', 'node', node).node_dialog('open');
         });
 
+    $('#tree').tooltip({
+        items: 'span.node-data',
+        content: function () {
+            var node = $(this).parents('li:first').data('node');
+            if (node) {
+                var span = $('<span/>');
+                mimeType[node.mime].view(span, node.mime, node.data);
+                return span;
+            }
+        },
+        open: function (event, ui) {
+            ui.tooltip.find('div.CodeMirror').each(function () {
+                this.CodeMirror.setOption('lineWrapping', true);
+                this.CodeMirror.refresh();
+            });
+        }
+    });
+
     $('#create-mime').change(function () {
         $('#create-data')
             .data('getter', mimeType[$(this).val()].edit($('#create-data'), $(this).val(), $('#create-data').data('getter')(true)))

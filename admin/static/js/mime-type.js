@@ -299,38 +299,25 @@ $(function() {
             });
         toolbar.buttonset();
         cm.setOption('extraKeys', { "Esc": function (cm) { setFullScreen(cm, false); fullscreen.prop('checked', false).button('refresh') } });
-        cm.setOption('onFocus', function (e) { toolbar.fadeIn() });
-        cm.setOption('onBlur', function (e) { toolbar.fadeOut() });
+        cm.on('focus', function (cm) { toolbar.fadeIn() });
+        cm.on('blur', function (cm) { toolbar.fadeOut() });
         return toolbar;
-    }
-
-    function winHeight() {
-        return window.innerHeight || (document.documentElement || document.body).clientHeight;
     }
 
     function setFullScreen(cm, full) {
         var $wrap = $(cm.getWrapperElement());
         if ($wrap.hasClass('CodeMirror-fullscreen') == full) return;
-        var scroll = cm.getScrollerElement();
         if (full) {
-            $wrap.parent().addClass('CodeMirror-was-here');
-            $wrap.addClass('CodeMirror-fullscreen').remove().appendTo('body');
-            scroll.style.height = winHeight() + "px";
             document.documentElement.style.overflow = "hidden";
+            $wrap.addClass('CodeMirror-fullscreen').height($(window).height());
         } else {
-            var $parent = $('.CodeMirror-was-here');
-            $wrap.remove().removeClass('CodeMirror-fullscreen').appendTo($parent);
-            $parent.removeClass('CodeMirror-was-here');
-            scroll.style.height = "";
             document.documentElement.style.overflow = "";
+            $wrap.removeClass('CodeMirror-fullscreen').height('');
         }
         cm.refresh();
-        cm.focus();
     }
 
-    CodeMirror.connect(window, "resize", function() {
-        var showing = document.body.getElementsByClassName("CodeMirror-fullscreen")[0];
-        if (!showing) return;
-        showing.CodeMirror.getScrollerElement().style.height = winHeight() + "px";
+    CodeMirror.on(window, "resize", function() {
+        $('.CodeMirror-fullscreen').height($(window).height());
     });
 });
