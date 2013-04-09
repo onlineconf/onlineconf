@@ -31,7 +31,10 @@ $(function() {
                 var def = false;
                 if ('datacenter' in value) {
                     $key.text(value.datacenter);
-                    resolveDatacenter($key);
+                    resolveList('datacenter', $key);
+                } else if ('group' in value) {
+                    $key.text(value.group);
+                    resolveList('group', $key);
                 } else if ('server' in value) {
                     $key.text(value.server);
                 } else {
@@ -55,8 +58,8 @@ $(function() {
 
     function viewText (span, mime, data) {
         span.empty();
-        var viewer = $('<span/>').appendTo(span);
-        var cm = CodeMirror(viewer[0], { readOnly: true, mode: mime });
+        var viewer = $('<span class="view-text"/>').appendTo(span);
+        var cm = CodeMirror(viewer[0], { readOnly: true, mode: mime, tabindex: -1 });
         cm.setValue(data != null ? data : '');
         createCodeMirrorToolbar(cm).prependTo(span);
     }
@@ -78,7 +81,10 @@ $(function() {
                 var vspan = $('<span class="case-value case-value-block"/>');
                 if ('datacenter' in value) {
                     $key.text(value.datacenter);
-                    resolveDatacenter($key);
+                    resolveList('datacenter', $key);
+                } else if ('group' in value) {
+                    $key.text(value.group);
+                    resolveList('group', $key);
                 } else if ('server' in value) {
                     $key.text(value.server);
                 } else {
@@ -134,6 +140,16 @@ $(function() {
                     });
                     $dc.val(val);
                 });
+            } else if ($(this).val() == 'group') {
+                var $dc = $('<select name="group"/>').appendTo($kvSpan);
+                $.get('/config/onlineconf/group?symlink=resolve', {}, function (data) {
+                    $dc.empty();
+                    $.each(data.children, function (id, param) {
+                        if (param.name == 'priority') return;
+                        $('<option/>').val(param.name).text(param.summary || param.name).appendTo($dc);
+                    });
+                    $dc.val(val);
+                });
             } else if ($(this).val() == 'server') {
                 $('<input name="server"/>')
                     .val(val)
@@ -148,6 +164,7 @@ $(function() {
             var keyType = $('<select name="key"/>')
                 .append('<option value="default">Default</option>')
                 .append('<option value="server">Сервер</option>')
+                .append('<option value="group">Группа</option>')
                 .append('<option value="datacenter">Датацентр</option>')
                 .change(changeKey)
                 .val(kt);
@@ -192,6 +209,7 @@ $(function() {
                 $.each(cases, function (id, value) {
                     if (typeof value === "object" && "mime" in value && "value" in value) {
                         var key = "server" in value ? 'server'
+                            : "group" in value ? 'group'
                             : "datacenter" in value ? 'datacenter'
                             : "default";
                         ok = true;
@@ -216,6 +234,8 @@ $(function() {
                 var key = $(this).find('select[name=key]').val();
                 if (key == 'datacenter') {
                     data.datacenter = $(this).find('select[name=datacenter]').val();
+                } else if (key == 'group') {
+                    data.group = $(this).find('select[name=group]').val();
                 } else if (key == 'server') {
                     data.server = $(this).find('input[name=server]').val();
                 }
@@ -223,7 +243,7 @@ $(function() {
                 else cases.push(data);
             });
             if (change) {
-                var def = $.map(cases, function (v) { return !("server" in v || "datacenter" in v) ? v.value : null });
+                var def = $.map(cases, function (v) { return !("server" in v || "group" in v || "datacenter" in v) ? v.value : null });
                 if (def.length) return def[0];
                 var star = $.map(cases, function (v) { return v.server == "*" ? v.value : null });
                 return star[0];
@@ -249,28 +269,34 @@ $(function() {
         return true;
     }
 
-    var resolveDcQueue = [];
-    var resolveDcTime = new Date(0);
-    var resolveDcMap = {};
-    function resolveDatacenter (span) {
-        if (resolveDcTime < new Date - new Date(60000)) {
-            if (resolveDcQueue.length == 0) {
-                $.get('/config/onlineconf/datacenter?symlink=resolve', {}, function (data) {
-                    resolveDcMap = {};
+    var resolveStash = {};
+    function resolveList (type, span) {
+        if (!(type in resolveStash)) {
+            resolveStash[type] = {
+                time: new Date(0),
+                queue: [],
+                map: {}
+            };
+        }
+        var stash = resolveStash[type];
+        if (stash.time < new Date - new Date(60000)) {
+            if (stash.queue.length == 0) {
+                $.get('/config/onlineconf/' + type + '?symlink=resolve', {}, function (data) {
+                    stash.map = {};
                     $.each(data.children, function (id, param) {
-                        resolveDcMap[param.name] = param.summary;
+                        stash.map[param.name] = param.summary;
                     });
-                    $.each(resolveDcQueue, function (id, elem) {
-                        var summary = resolveDcMap[elem.name]
+                    $.each(stash.queue, function (id, elem) {
+                        var summary = stash.map[elem.name]
                         if (summary) elem.span.text(summary);
                     });
-                    resolveDcQueue = [];
-                    resolveDcTime = new Date;
+                    stash.queue = [];
+                    stash.time = new Date;
                 });
             }
-            resolveDcQueue.push({ span: span, name: span.text() });
+            stash.queue.push({ span: span, name: span.text() });
         }
-        var summary = resolveDcMap[span.text()]
+        var summary = stash.map[span.text()]
         if (summary) span.text(summary);
     }
 

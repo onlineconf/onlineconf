@@ -6,6 +6,7 @@ use JSON;
 use File::Spec::Unix;
 use Sys::Hostname ();
 use Text::Glob;
+use MR::OnlineConf::Updater::Transaction;
 
 has id => (
     is  => 'ro',
@@ -115,8 +116,23 @@ has requires => (
     is  => 'ro',
     isa => 'ArrayRef[Str]',
     lazy    => 1,
-    clearer => 'clear_requires',
-    default => sub { [ $_[0]->is_symlink ? ($_[0]->value) : (), keys %{$_[0]->_case_requires} ] },
+    clearer => '_clear_requires',
+    default => sub { [ $_[0]->is_symlink ? ($_[0]->value) : () ] },
+);
+
+has dirty => (
+    is  => 'rw',
+    isa => 'Bool',
+    default => 0,
+    trigger => sub { MR::OnlineConf::Updater::Transaction->add_to_dirty($_[0]) if $_[1] },
+);
+
+has dirty_children => (
+    is  => 'ro',
+    isa => 'Bool',
+    default => 0,
+    writer  => '_dirty_children',
+    trigger => sub { MR::OnlineConf::Updater::Transaction->add_to_dirty($_[0]) if $_[1] },
 );
 
 has _case_content_type => (
@@ -131,12 +147,20 @@ has _case_data => (
     clearer => '_clear_case_data',
 );
 
-has _case_requires => (
-    is  => 'rw',
-    isa => 'HashRef',
+has requires_datacenter => (
+    is  => 'ro',
+    isa => 'Bool',
     lazy    => 1,
-    default => sub { {} },
-    clearer => '_clear_case_requires',
+    default => sub { $_[0]->_has_case_of_type('datacenter') },
+    clearer => '_clear_requires_datacenter',
+);
+
+has requires_group => (
+    is  => 'ro',
+    isa => 'Bool',
+    lazy    => 1,
+    default => sub { $_[0]->_has_case_of_type('group') },
+    clearer => '_clear_requires_group',
 );
 
 sub child {
@@ -147,13 +171,16 @@ sub child {
 sub add_child {
     my ($self, $child) = @_;
     $self->children->{$child->name} = $child;
-    $child->_resolve_case($child->data) if $child->content_type eq 'application/x-case';
+    $self->_dirty_children(1);
+    $child->dirty(1);
     return;
 }
 
 sub delete_child {
     my ($self, $child) = @_;
     delete $self->children->{$child->name};
+    $self->_dirty_children(1);
+    $child->dirty(1);
     return;
 }
 
@@ -167,7 +194,7 @@ sub update {
         $self->_name($new->name);
         $self->_update_children_path();
     }
-    $self->_resolve_case($self->data) if $self->content_type eq 'application/x-case';
+    $self->dirty(1);
     return;
 }
 
@@ -199,39 +226,55 @@ sub clear {
     $self->clear_is_null();
     $self->clear_is_symlink();
     $self->clear_symlink_target();
-    $self->clear_requires();
+    $self->_clear_requires();
+    $self->_clear_requires_datacenter();
+    $self->_clear_requires_group();
     $self->_clear_case_content_type();
     $self->_clear_case_data();
-    $self->_clear_case_requires();
+    return;
+}
+
+sub is_dirty {
+    my ($self) = @_;
+    return $self->dirty || $self->dirty_children;
+}
+
+sub clear_dirty {
+    my ($self) = @_;
+    $self->dirty(0);
+    $self->_dirty_children(0);
     return;
 }
 
 sub resolve_case {
-    my ($self, $datacenter) = @_;
+    my ($self, $datacenter, $groups) = @_;
     $self->clear();
-    $self->_resolve_case($self->data, $datacenter);
+    $self->_resolve_case($self->data, $datacenter, $groups);
     return;
 }
 
 sub _resolve_case {
-    my ($self, $data, $datacenter) = @_;
+    my ($self, $data, $datacenter, $groups) = @_;
     $data = JSON::from_json($data);
-    foreach my $case (sort _sort @$data) {
+    my %groups = map { $_ => 1 } @$groups;
+    foreach my $case ($self->_sort_case($data, $groups)) {
         if (exists $case->{server}) {
             if (Text::Glob::match_glob($case->{server}, Sys::Hostname::hostname())) {
-                $self->_apply_case($case, $datacenter);
+                $self->_apply_case($case, $datacenter, $groups);
+                return;
+            }
+        } elsif (exists $case->{group}) {
+            if ($groups{$case->{group}}) {
+                $self->_apply_case($case, $datacenter, $groups);
                 return;
             }
         } elsif (exists $case->{datacenter}) {
             if ($datacenter && $case->{datacenter} eq $datacenter->name) {
-                $self->_case_requires->{$datacenter->path} = 1;
-                $self->_apply_case($case, $datacenter);
+                $self->_apply_case($case, $datacenter, $groups);
                 return;
-            } else {
-                $self->_case_requires->{"/onlineconf/datacenter/$case->{datacenter}"} = 1;
             }
         } else {
-            $self->_apply_case($case, $datacenter);
+            $self->_apply_case($case, $datacenter, $groups);
             return;
         }
     }
@@ -239,10 +282,35 @@ sub _resolve_case {
     return;
 }
 
+sub _sort_case {
+    my ($self, $data, $groups) = @_;
+    my %group_idx = map { $groups->[$_] => $_ } (0 .. $#$groups);
+    return sort {
+        if (exists $a->{server} && exists $b->{server}) {
+            my $as = $a->{server};
+            my $bs = $b->{server};
+            my $ar = $as =~ s/(?:[\*\?]+|\{.*?\}|\[.*?\])//g;
+            my $br = $bs =~ s/(?:[\*\?]+|\{.*?\}|\[.*?\])//g;
+            return length($bs) <=> length($as) || $ar <=> $br || length($b->{server}) <=> length($a->{server});
+        } elsif (exists $a->{group} && exists $b->{group}) {
+            return exists $group_idx{$a->{group}}
+                ? exists $group_idx{$b->{group}} ? $group_idx{$a->{group}} <=> $group_idx{$b->{group}} : -1
+                : exists $group_idx{$b->{group}} ? 1 : $a->{group} cmp $b->{group};
+        } elsif (exists $a->{datacenter} && exists $b->{datacenter}) {
+            return $a->{datacenter} cmp $b->{datacenter};
+        } else {
+            return exists $a->{server} ? -1 : exists $b->{server} ? 1
+                : exists $a->{group} ? -1 : exists $b->{group} ? 1
+                : exists $a->{datacenter} ? -1 : exists $b->{datacenter} ? 1
+                : 0;
+        }
+    } @$data;
+}
+
 sub _apply_case {
-    my ($self, $case, $datacenter) = @_;
+    my ($self, $case, $datacenter, $groups) = @_;
     if ($case->{mime} eq 'application/x-case') {
-        $self->_resolve_case($case->{value}, $datacenter);
+        $self->_resolve_case($case->{value}, $datacenter, $groups);
     } else {
         $self->_case_content_type($case->{mime});
         $self->_case_data($case->{value});
@@ -250,29 +318,30 @@ sub _apply_case {
     return;
 }
 
-sub _sort {
-    if (exists $a->{server} && exists $b->{server}) {
-        my $as = $a->{server};
-        my $bs = $b->{server};
-        my $ar = $as =~ s/(?:[\*\?]+|\{.*?\}|\[.*?\])//g;
-        my $br = $bs =~ s/(?:[\*\?]+|\{.*?\}|\[.*?\])//g;
-        return length($bs) <=> length($as) || $ar <=> $br || length($b->{server}) <=> length($a->{server});
-    } elsif (exists $a->{datacenter} && exists $b->{datacenter}) {
-        return $a->{datacenter} cmp $b->{datacenter};
-    } else {
-        return exists $a->{server} ? -1 : exists $b->{server} ? 1
-            : exists $a->{datacenter} ? -1 : exists $b->{datacenter} ? 1
-            : 0;
-    }
-}
-
 sub _update_children_path {
     my ($self) = @_;
     foreach my $child (values %{$self->children}) {
         $child->_path(File::Spec::Unix->catfile($self->path, $child->name));
         $child->_update_children_path();
+        $child->dirty(1);
     }
     return;
+}
+
+sub _has_case_of_type {
+    my ($self, $type) = @_;
+    return 0 unless $self->is_case;
+    return ref($self)->_data_has_case_of_type($self->data, $type);
+}
+
+sub _data_has_case_of_type {
+    my ($class, $data, $type) = @_;
+    $data = JSON::from_json($data);
+    foreach my $case (@$data) {
+        return 1 if exists $case->{$type}
+            || $case->{mime} eq 'application/x-case' && $class->_data_has_case_of_type($case->{value}, $type);
+    }
+    return 0;
 }
 
 no Mouse;

@@ -5,8 +5,10 @@ use IO::Interface::Simple;
 use List::MoreUtils qw/uniq/;
 use Net::IP::CMatch;
 use Scalar::Util qw/weaken/;
-use Sys::Hostname ();
-use Text::Glob;
+use MR::OnlineConf::Updater::Transaction;
+use MR::OnlineConf::Updater::Util;
+
+my $transaction;
 
 has log => (
     is  => 'ro',
@@ -25,26 +27,27 @@ has _index => (
     default => sub { {} },
 );
 
-has _dirty_cases => (
-    is  => 'ro',
-    isa => 'ArrayRef[MR::OnlineConf::Updater::Parameter]',
-    default => sub { [] },
-);
-
-has _dirty_symlinks => (
-    is  => 'ro',
-    isa => 'ArrayRef[MR::OnlineConf::Updater::Parameter]',
-    default => sub { [] },
-);
-
 has _required_by => (
     is  => 'ro',
-    isa => 'HashRef[ArrayRef[MR::OnlineConf::Updater::Parameter]]',
+    isa => 'HashRef[HashRef[MR::OnlineConf::Updater::Parameter]]',
+    default => sub { {} },
+);
+
+has _require_datacenter => (
+    is  => 'ro',
+    isa => 'HashRef',
+    default => sub { {} },
+);
+
+has _require_group => (
+    is  => 'ro',
+    isa => 'HashRef',
     default => sub { {} },
 );
 
 sub put {
     my ($self, $param) = @_;
+    $transaction ||= MR::OnlineConf::Updater::Transaction->new();
     if (my $node = $self->_index->{$param->id}) {
         if ($node->version < $param->version) {
             $self->_remove_from_requires($node);
@@ -55,7 +58,7 @@ sub put {
                 $self->_add_to_requires($node);
             } else {
                 if (my $old_p = $self->get($node->parent_path)) {
-                    delete $old_p->children->{$node->name};
+                    $old_p->delete_child($node);
                 }
                 if (my $new_p = $self->get($param->parent_path)) {
                     my $old_version = $node->version;
@@ -118,6 +121,7 @@ sub put {
 
 sub delete {
     my ($self, $param) = @_;
+    $transaction ||= MR::OnlineConf::Updater::Transaction->new();
     $self->_remove_from_requires($param);
     delete $self->_index->{$param->id};
     my @path = split /\//, $param->path;
@@ -165,19 +169,43 @@ sub get {
 
 sub finalize {
     my ($self) = @_;
+    $transaction ||= MR::OnlineConf::Updater::Transaction->new();
     $self->_resolve_cases();
     $self->_resolve_symlinks();
+    undef $transaction;
     return;
+}
+
+sub _has_dirty_deep {
+    my ($self, $path) = @_;
+    my $node = $self->get($path);
+    return 0 unless $node;
+    return 1 if $node->is_dirty();
+    foreach my $child (values %{$node->children}) {
+        return 1 if $self->_has_dirty_deep($child->path);
+    }
+    return 0;
 }
 
 sub _resolve_symlinks {
     my ($self) = @_;
-    my $symlinks = $self->_dirty_symlinks;
-    foreach my $symlink (sort { length($a->path) <=> length($b->path) } uniq @$symlinks) {
+    $self->_mark_dirty_symlinks();
+    foreach my $symlink (sort { length($a->path) <=> length($b->path) } MR::OnlineConf::Updater::Transaction->dirty_symlinks()) {
         local $self->{seen} = {};
         $self->_resolve_symlink($symlink);
     }
-    @$symlinks = ();
+    return;
+}
+
+sub _mark_dirty_symlinks {
+    my ($self) = @_;
+    foreach my $node (MR::OnlineConf::Updater::Transaction->dirty()) {
+        my $path = $node->path;
+        my $target = $self->_required_by;
+        foreach my $node (grep defined, map values %{$target->{$_}}, grep { index($_, "$path/") == 0 } keys %$target) {
+            $node->dirty(1);
+        }
+    }
     return;
 }
 
@@ -201,13 +229,12 @@ sub _add_to_requires {
     my ($self, $node) = @_;
     my $requires = $node->requires;
     foreach my $reqpath (@$requires) {
-        my $list = $self->_required_by->{$reqpath} ||= [];
-        @$list = grep $_, uniq @$list, $node;
-        weaken($_) foreach @$list;
+        my $req = $self->_required_by->{$reqpath} ||= {};
+        $req->{$node->id} = $node;
+        weaken($req->{$node->id});
     }
-    $self->_resolve_depends($node);
-    push @{$self->_dirty_cases}, $node if $node->is_case;
-    push @{$self->_dirty_symlinks}, $node if $node->is_symlink;
+    $self->_require_datacenter->{$node->path} = $node if $node->requires_datacenter;
+    $self->_require_group->{$node->path} = $node if $node->requires_group;
     return;
 }
 
@@ -215,43 +242,42 @@ sub _remove_from_requires {
     my ($self, $node) = @_;
     my $requires = $node->requires;
     foreach my $reqpath (@$requires) {
-        my $list = $self->_required_by->{$reqpath} ||= [];
-        @$list = grep { $_ && $_->id != $node->id } uniq @$list;
-        weaken($_) foreach @$list;
+        my $req = $self->_required_by->{$reqpath} ||= {};
+        delete $req->{$node->id};
     }
-    $self->_resolve_depends($node);
-    return;
-}
-
-sub _resolve_depends {
-    my ($self, $node) = @_;
-    $self->_resolve_symlink_depends($node) if $node->is_symlink;
-    return;
-}
-
-sub _resolve_symlink_depends {
-    my ($self, $node) = @_;
-    my $path = $node->path;
-    my $target = $self->_required_by;
-    foreach my $symlink (map @{$target->{$_}}, grep { index($_, "$path/") == 0 } keys %$target) {
-        $symlink->clear_symlink_target();
-        push @{$self->_dirty_symlinks}, $symlink if $symlink->is_symlink;
-    }
+    delete $self->_require_datacenter->{$node->path};
+    delete $self->_require_group->{$node->path};
     return;
 }
 
 sub _resolve_cases {
     my ($self) = @_;
+    $self->_mark_dirty_cases();
     my $datacenter = $self->_which_datacenter();
     $self->log->debug(sprintf "Datacenter is %s", $datacenter ? $datacenter->name : 'unknown');
-    my $cases = $self->_dirty_cases;
-    foreach my $case (sort { length($a->path) <=> length($b->path) } uniq @$cases) {
-        $case->resolve_case($datacenter);
+    my $groups = $self->_which_groups();
+    $self->log->debug(sprintf "Groups are [%s]", join ', ', @$groups);
+    foreach my $case (sort { length($a->path) <=> length($b->path) } MR::OnlineConf::Updater::Transaction->dirty_cases()) {
+        $case->resolve_case($datacenter, $groups);
         $self->_add_to_requires($case);
         $self->log->debug(sprintf "Case %s resolved", $case->path);
     }
-    @$cases = ();
-    $self->_resolve_symlinks();
+    return;
+}
+
+sub _mark_dirty_cases {
+    my ($self) = @_;
+    local $self->{seen} = {};
+    if ($self->_has_dirty_deep('/onlineconf/datacenter')) {
+        foreach my $node (values %{$self->_require_datacenter}) {
+            $node->dirty(1);
+        }
+    }
+    if ($self->_has_dirty_deep('/onlineconf/group')) {
+        foreach my $node (values %{$self->_require_group}) {
+            $node->dirty(1);
+        }
+    }
     return;
 }
 
@@ -268,6 +294,35 @@ sub _which_datacenter {
         }
     }
     return;
+}
+
+sub _which_groups {
+    my ($self) = @_;
+    my @groups;
+    local $self->{seen} = {};
+    if (my $groups = $self->get('/onlineconf/group')) {
+        my @all_groups = grep { $_ ne 'priority' } sort keys %{$groups->children};
+        my @ordered_groups;
+        if (my $priority = $self->get('/onlineconf/group/priority')) {
+            push @ordered_groups, map { $_ eq '*' ? @all_groups : $_ }
+                split /\s*,\s*/, $priority->value if $priority->value;
+        }
+        push @ordered_groups, @all_groups;
+        @ordered_groups = grep exists($groups->children->{$_}), uniq @ordered_groups;
+        my @list;
+        foreach my $name (@ordered_groups) {
+            push @list, $name => $groups->children->{$name};
+        }
+        while (my ($name, $node) = splice(@list, 0, 2)) {
+            $node = $self->get($node->path) or next;
+            my $glob = $node->value;
+            push @groups, $name if defined $glob && hostname_match_glob($glob);
+            foreach my $subname (sort keys %{$node->children}) {
+                push @list, $name => $node->children->{$subname};
+            }
+        }
+    }
+    return [ uniq @groups ];
 }
 
 no Mouse;
