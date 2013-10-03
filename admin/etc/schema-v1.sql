@@ -65,7 +65,7 @@ CREATE TABLE `my_config_module_group` (
     KEY `GroupID` (`GroupID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;
 
-INSERT INTO `my_config_module` (`Name,`Version`,`Comment`) VALUES ('@OVERLOAD',0,'Overloaded config params');
+INSERT INTO `my_config_module` (`Name`,`Version`,`Comment`) VALUES ('@OVERLOAD',0,'Overloaded config params');
 UPDATE `my_config_module` SET `ID`=2147483647 WHERE `Name`='@OVERLOAD';
 
 INSERT INTO `my_config_module` (`Name`,`Version`,`Comment`) VALUES ('@SELFTEST',0,'OnlineConf Self Test');
