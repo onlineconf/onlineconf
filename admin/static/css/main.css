@@ -133,3 +133,60 @@ span.enum-slider a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-
 #tree a.jstree-search span { color: inherit }
 
 .monitoring-alert { background-color: #FFCCCC }
+
+
+
+/* add server styles */
+.add-server-container {
+    border: 1px solid #CFCFCF;
+}
+.add-server-host-button {
+    display: block;
+    cursor: pointer;
+    padding: 3px 10px;
+    margin: 5px;
+}
+.add-server-host {
+    width: 60%;
+    display: inline-block;
+}
+.add-server-host-delete-button {
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    margin: -4px 0px 0px -20px;
+}
+span.value input.add-server-host {
+    width: 60%;
+    display: inline-block;
+}
+.add-server-port-delete-button {
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    margin: -4px 0px 0px -20px;
+}
+span.value input.add-server-port {
+    width: 90%;
+}
+.add-server-port-container {
+    display: inline-block;
+    float: right;
+    clear: both;
+    width: 34%;
+}
+.add-server-port-button {
+    display: block;
+    float: right;
+    cursor: pointer;
+    clear: both;
+    padding: 3px 10px;
+    margin: 5px;
+}
+.add-server-row {
+    overflow: hidden;
+    padding: 5px;
+}
+.add-server-row:nth-child(2n) {
+    background-color: #F0F1F2;
+}
