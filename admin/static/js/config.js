@@ -145,6 +145,9 @@ $(function() {
                 "text/plain": {
                     icon: { image: '/css/type/text.png' }
                 },
+                "application/x-server": {
+                    icon: { image: '/css/type/text.png' }
+                },
                 "application/x-case": {
                     icon: { image: '/css/type/case.png' }
                 }

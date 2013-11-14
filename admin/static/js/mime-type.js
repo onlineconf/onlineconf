@@ -93,6 +93,162 @@ $(function () {
     }
 
 
+    /* new server */
+    function editServer(span, mime, data) {
+        var addcontainer = $('<div class="add-server-container" />'),
+            ip = $('<span class="add-server-host-container" />').append(
+                $('<input type="text" data-type="ip" placeholder="127.0.0.1" class="add-server-host" />'),
+                $('<span class="add-server-host-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить хост" />')
+            ),
+            port = $('<span class="add-server-port-container" />').append(
+                $('<input type="text" data-type="port" placeholder="8080" class="add-server-port" />'),
+                $('<span class="add-server-port-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить порт" />')
+            ),
+            addServerButton = $('<div class="add-server-host-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить хост</div>'),
+            addPortButton = $('<span class="add-server-port-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить порт</span>'),
+            onAddServerCallback = function (event) {
+                var target = $(event.target),
+                    container = $('<div data-type="server" class="add-server-row" />')
+                        .append(ip.clone())
+                        .append(port.clone())
+                        .append(addPortButton.clone());
+
+                container.find('input[data-type="ip"]').mask('099.099.099.099');
+                target.before(container);
+            },
+            onAddPortCallback = function (event) {
+                var target = $(event.target),
+                    portClone = port.clone();
+
+                target.before(portClone);
+                portClone.find('[data-type="port"]').focus();
+            },
+            onDeletePortCallback = function (event) {
+                var target = $(event.target),
+                    parent = target.parent();
+
+                parent.remove();
+            },
+            onDeleteHostCallback = function (event) {
+                var target = $(event.target),
+                    parent = target.parents('[data-type="server"]');
+
+                if (window.confirm('А туда ли ты нажал, пацанчик?')) {
+                    parent.remove();
+                }
+            },
+            dataHash = {};
+            
+        if (data) {
+            data = data.split(';');
+            data.forEach(function (item) {
+                item = item.split(':');
+                if (dataHash[item[0]]) {
+                    dataHash[item[0]].push(item[1]);
+                } else {
+                    dataHash[item[0]] = [item[1]];
+                }
+            });
+            $.each(dataHash, function (key, value) {
+                var node = $('<div data-type="server" class="add-server-row" />'),
+                    ipClone;
+
+                ipClone = ip.clone();
+                ipClone.find('[data-type="ip"]').val(key);
+                node.append(ipClone);
+                value.forEach(function (item) {
+                    var portClone = port.clone();
+                    portClone.find('[data-type="port"]').val(item);
+                    node.append(portClone);
+                });
+                node.append(addPortButton.clone());
+                addcontainer.append(node);
+            });
+            addcontainer.append(addServerButton);
+        } else {
+            addcontainer.append(
+                $('<div data-type="server" class="add-server-row" />')
+                    .append(ip.clone())
+                    .append(port.clone())
+                    .append(addPortButton),
+                addServerButton
+            );
+        }
+        addcontainer.on('click', '.add-server-port-button', onAddPortCallback);
+        addcontainer.on('click', '.add-server-host-button', onAddServerCallback);
+        addcontainer.on('click', '.add-server-port-delete-button', onDeletePortCallback);
+        addcontainer.on('click', '.add-server-host-delete-button', onDeleteHostCallback);
+        addcontainer.find('input[data-type="ip"]').mask('099.099.099.099');
+
+        span.html(addcontainer);
+        span.parent().css('display', 'block');
+
+        return function () {
+            var result = [],
+                nodes = span.find('[data-type="server"]'),
+                host,
+                ports,
+                portValue,
+                j,
+                i;
+
+            for (i = 0; i < nodes.length; i += 1) {
+                host = $(nodes[i]).find('[data-type="ip"]').val();
+                ports = $(nodes[i]).find('[data-type="port"]');
+                for (j = 0; j < ports.length; j += 1) {
+                    portValue = $(ports[j]).val();
+                    if (portValue && portValue !== '') {
+                        result.push(host + ':' + portValue);
+                    } else {
+                        result.push(host);
+                    }
+                }
+            }
+            addcontainer.off('click', '.add-server-port-button', onAddPortCallback);
+            addcontainer.off('click', '.add-server-host-button', onAddServerCallback);
+            addcontainer.off('click', '.add-server-port-delete-button', onDeletePortCallback);
+            addcontainer.off('click', '.add-server-host-delete-button', onDeleteHostCallback);
+            addcontainer.remove();
+            return result.join(';');
+        };
+    }
+    function viewServer(span, mime, data) {
+        var view = $('<div class="view-server" />'),
+            dataHash = {},
+            ip = $('<span class="view-server-host" />'),
+            port = $('<span class="view-server-port" />');
+
+        view.append('<div>mime type: ' + mime + '</div>');
+        if (data) {
+            data = data.split(';');
+            data.forEach(function (item) {
+                item = item.split(':');
+                if (dataHash[item[0]]) {
+                    dataHash[item[0]].push(item[1]);
+                } else {
+                    dataHash[item[0]] = [item[1]];
+                }
+            });
+            $.each(dataHash, function (key, value) {
+                var node = $('<div class="add-server-row" />'),
+                    ipClone;
+
+                ipClone = ip.clone();
+                ipClone.html(key);
+                node.append(ipClone);
+                value.forEach(function (item) {
+                    var portClone = port.clone();
+                    portClone.html(item);
+                    node.append(portClone);
+                });
+                view.append(node);
+            });
+        }
+
+        span.html(view);
+    }
+    /* other */
+
     function previewNull() {
         return $('<span class="null"/>');
     }
@@ -144,126 +300,6 @@ $(function () {
         }
         return result;
     }
-
-    /* new server */
-    function editServer(span, mime, data) {
-        var addcontainer = $('<div class="add-server-container" />'),
-            ip = $('<span class="add-server-host-container" />').append(
-                $('<input type="text" data-type="ip" placeholder="127.0.0.1" class="add-server-host" />'),
-                $('<span class="add-server-host-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить хост" />')
-            ),
-            port = $('<span class="add-server-port-container" />').append(
-                $('<input type="text" data-type="port" placeholder="8080" class="add-server-port" />'),
-                $('<span class="add-server-port-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить порт" />')
-            ),
-            addServerButton = $('<div class="add-server-host-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить хост</div>'),
-            addPortButton = $('<span class="add-server-port-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить порт</span>'),
-            onAddServerCallback = function (event) {
-                var target = $(event.target);
-
-                target.before(
-                    $('<div data-type="server" class="add-server-row" />')
-                        .append(ip.clone())
-                        .append(port.clone())
-                        .append(addPortButton.clone())
-                );
-            },
-            onAddPortCallback = function (event) {
-                var target = $(event.target),
-                    portClone = port.clone();
-
-                target.before(portClone);
-                portClone.find('[data-type="port"]').focus();
-            },
-            onDeletePortCallback = function (event) {
-                var target = $(event.target),
-                    parent = target.parent();
-
-                parent.remove();
-            },
-            onDeleteHostCallback = function (event) {
-                var target = $(event.target),
-                    parent = target.parents('[data-type="server"]');
-
-                if (window.confirm('А туда ли ты нажал, пацанчик?')) {
-                    parent.remove();
-                }
-            },
-            dataHash = {};
-
-        if (data) {
-            data = data.split(';');
-            data.forEach(function (item) {
-                item = item.split(':');
-                if (dataHash[item[0]]) {
-                    dataHash[item[0]].push(item[1]);
-                } else {
-                    dataHash[item[0]] = [item[1]];
-                }
-            });
-            $.each(dataHash, function (key, value) {
-                var node = $('<div data-type="server" class="add-server-row" />'),
-                    ipClone;
-
-                ipClone = ip.clone();
-                ipClone.find('[data-type="ip"]').val(key);
-                node.append(ipClone);
-                value.forEach(function (item) {
-                    var portClone = port.clone();
-                    portClone.find('[data-type="port"]').val(item);
-                    node.append(portClone);
-                });
-                node.append(addPortButton.clone());
-                addcontainer.append(node);
-            });
-            addcontainer.append(addServerButton);
-        } else {
-            addcontainer.append(
-                $('<div data-type="server" class="add-server-row" />')
-                    .append(ip.clone())
-                    .append(port.clone())
-                    .append(addPortButton),
-                addServerButton
-            );
-        }
-        addcontainer.on('click', '.add-server-port-button', onAddPortCallback);
-        addcontainer.on('click', '.add-server-host-button', onAddServerCallback);
-        addcontainer.on('click', '.add-server-port-delete-button', onDeletePortCallback);
-        addcontainer.on('click', '.add-server-host-delete-button', onDeleteHostCallback);
-
-        span.html(addcontainer);
-        span.parent().css('display', 'block');
-
-        return function () {
-            var result = [],
-                nodes = span.find('[data-type="server"]'),
-                host,
-                ports,
-                j,
-                i;
-
-            for (i = 0; i < nodes.length; i += 1) {
-                host = $(nodes[i]).find('[data-type="ip"]').val();
-                ports = $(nodes[i]).find('[data-type="port"]');
-                for (j = 0; j < ports.length; j += 1) {
-                    result.push(host + ':' + $(ports[j]).val());
-                }
-            }
-            addcontainer.off('click', '.add-server-port-button', onAddPortCallback);
-            addcontainer.off('click', '.add-server-host-button', onAddServerCallback);
-            addcontainer.off('click', '.add-server-port-delete-button', onDeletePortCallback);
-            addcontainer.off('click', '.add-server-host-delete-button', onDeleteHostCallback);
-            addcontainer.remove();
-            return result.join(';');
-        };
-    }
-    function previewServer(data) {
-        console.log('preview', data);
-    }
-    function viewServer(span, mime, data) {
-        console.log('view', span, mime, data);
-    }
-    /* other */
 
     function viewNull(span) {
         span.empty().append('<span class="null">NULL</span>');

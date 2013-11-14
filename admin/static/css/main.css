@@ -174,6 +174,7 @@ span.value input.add-server-port {
     float: right;
     clear: both;
     width: 34%;
+    white-space: nowrap;
 }
 .add-server-port-button {
     display: block;
@@ -189,4 +190,11 @@ span.value input.add-server-port {
 }
 .add-server-row:nth-child(2n) {
     background-color: #F0F1F2;
+}
+.view-server-port {
+    float: right;
+    clear: both;
+}
+.view-server-host {
+    font-weight: bold;
 }
