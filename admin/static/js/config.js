@@ -250,6 +250,19 @@ $(function() {
                 };
             }
         },
+        sort: function (a, b) {
+            var aname = $(a).data('node').name;
+            var bname = $(b).data('node').name;
+            var amatch = aname.match(/^(\D*?)(\d+)(\D*?)$/);
+            var bmatch = bname.match(/^(\D*?)(\d+)(\D*?)$/);
+            if (amatch && bmatch && amatch[1] == bmatch[1]) {
+                var anum = parseInt(amatch[2]);
+                var bnum = parseInt(bmatch[2]);
+                return (anum == bnum ? amatch[3] > bmatch[3] : anum > bnum) ? 1 : -1;
+            } else {
+                return aname > bname ? 1 : -1;
+            }
+        },
         search: {
             show_only_matches: true,
             search_method: 'jstree_node_contains',
