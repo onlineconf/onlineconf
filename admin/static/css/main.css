@@ -198,3 +198,6 @@ span.value input.add-server-port {
 .view-server-host {
     font-weight: bold;
 }
+.add-server-simple {
+    width: 97% !important;
+}

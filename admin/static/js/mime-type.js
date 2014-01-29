@@ -92,8 +92,32 @@ $(function () {
         }
     }
 
-
     /* new server */
+    function parseServerData(data, mime) {
+        var dataHash = {};
+
+        if (mime === 'application/x-list') {
+            dataHash = data.split(',');
+        } else if (mime === 'application/x-server') {
+            data = data.split(',');
+            data.forEach(function (item) {
+                item = item.split(':');
+                if (dataHash[item[0]]) {
+                    dataHash[item[0]].push(item[1]);
+                } else {
+                    dataHash[item[0]] = [item[1]];
+                }
+            });
+        } else if (mime === 'application/x-server2') {
+            data = data.split(';');
+            data.forEach(function (item) {
+                item = item.split(':');
+                dataHash[item[0]] = item[1].split(',');
+            });
+        }
+
+        return dataHash;
+    }
     function editServer(span, mime, data) {
         var addcontainer = $('<div class="add-server-container" />'),
             ip = $('<span class="add-server-host-container" />').append(
@@ -104,16 +128,24 @@ $(function () {
                 $('<input type="text" data-type="port" placeholder="8080" class="add-server-port" />'),
                 $('<span class="add-server-port-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить порт" />')
             ),
-            addServerButton = $('<div class="add-server-host-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить хост</div>'),
+            addServerButton = $('<div class="add-server-host-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить значение</div>'),
             addPortButton = $('<span class="add-server-port-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить порт</span>'),
             onAddServerCallback = function (event) {
                 var target = $(event.target),
-                    container = $('<div data-type="server" class="add-server-row" />')
-                        .append(ip.clone())
+                    e,
+                    container = $('<div data-type="server" class="add-server-row" />');
+
+                if (target.hasClass('simple')) {
+                    e = ip.clone();
+                    e.find('[data-type="ip"]').addClass('add-server-simple');
+                    container.append(e);
+                } else {
+                    container.append(ip.clone())
                         .append(port.clone())
                         .append(addPortButton.clone());
+                }
 
-                container.find('input[data-type="ip"]').mask('099.099.099.099');
+//                container.find('input[data-type="ip"]').mask('099.099.099.099');
                 target.before(container);
             },
             onAddPortCallback = function (event) {
@@ -138,47 +170,55 @@ $(function () {
                 }
             },
             dataHash = {};
-            
+
+        if (mime === 'application/x-list') {
+            addServerButton.addClass('simple');
+        }
         if (data) {
-            data = data.split(';');
-            data.forEach(function (item) {
-                item = item.split(':');
-                if (dataHash[item[0]]) {
-                    dataHash[item[0]].push(item[1]);
-                } else {
-                    dataHash[item[0]] = [item[1]];
-                }
-            });
+            dataHash = parseServerData(data, mime);
             $.each(dataHash, function (key, value) {
                 var node = $('<div data-type="server" class="add-server-row" />'),
                     ipClone;
 
                 ipClone = ip.clone();
-                ipClone.find('[data-type="ip"]').val(key);
-                node.append(ipClone);
-                value.forEach(function (item) {
-                    var portClone = port.clone();
-                    portClone.find('[data-type="port"]').val(item);
-                    node.append(portClone);
-                });
-                node.append(addPortButton.clone());
+                if (mime === 'application/x-list') {
+                    ipClone.find('[data-type="ip"]').val(value).addClass('add-server-simple');
+                    node.append(ipClone);
+                } else {
+                    ipClone.find('[data-type="ip"]').val(key);
+                    node.append(ipClone);
+                    value.forEach(function (item) {
+                        var portClone = port.clone();
+                        portClone.find('[data-type="port"]').val(item);
+                        node.append(portClone);
+                    });
+                    node.append(addPortButton.clone());
+                }
                 addcontainer.append(node);
             });
             addcontainer.append(addServerButton);
         } else {
-            addcontainer.append(
-                $('<div data-type="server" class="add-server-row" />')
-                    .append(ip.clone())
-                    .append(port.clone())
-                    .append(addPortButton),
-                addServerButton
-            );
+            if (mime === 'application/x-list') {
+                addcontainer.append(
+                    $('<div data-type="server" class="add-server-row" />')
+                        .append(ip.clone()),
+                    addServerButton
+                ).find('[data-type="ip"]').addClass('add-server-simple');
+            } else {
+                addcontainer.append(
+                    $('<div data-type="server" class="add-server-row" />')
+                        .append(ip.clone())
+                        .append(port.clone())
+                        .append(addPortButton),
+                    addServerButton
+                );
+            }
         }
         addcontainer.on('click', '.add-server-port-button', onAddPortCallback);
         addcontainer.on('click', '.add-server-host-button', onAddServerCallback);
         addcontainer.on('click', '.add-server-port-delete-button', onDeletePortCallback);
         addcontainer.on('click', '.add-server-host-delete-button', onDeleteHostCallback);
-        addcontainer.find('input[data-type="ip"]').mask('099.099.099.099');
+//        addcontainer.find('input[data-type="ip"]').mask('099.099.099.099');
 
         span.html(addcontainer);
         span.parent().css('display', 'block');
@@ -190,18 +230,30 @@ $(function () {
                 ports,
                 portValue,
                 j,
+                splitter = ',',
                 i;
 
             for (i = 0; i < nodes.length; i += 1) {
                 host = $(nodes[i]).find('[data-type="ip"]').val();
                 ports = $(nodes[i]).find('[data-type="port"]');
-                for (j = 0; j < ports.length; j += 1) {
-                    portValue = $(ports[j]).val();
-                    if (portValue && portValue !== '') {
-                        result.push(host + ':' + portValue);
-                    } else {
-                        result.push(host);
+                if (mime === 'application/x-list') {
+                    result.push(host);
+                } else if (mime === 'application/x-server') {
+                    for (j = 0; j < ports.length; j += 1) {
+                        portValue = $(ports[j]).val();
+                        if (portValue && portValue !== '') {
+                            result.push(host + ':' + portValue);
+                        } else {
+                            result.push(host);
+                        }
                     }
+                } else if (mime === 'application/x-server2') {
+                    portValue = [];
+                    for (j = 0; j < ports.length; j += 1) {
+                        portValue.push($(ports[j]).val());
+                    }
+                    result.push(host + ':' + portValue.join(','));
+                    splitter = ';';
                 }
             }
             addcontainer.off('click', '.add-server-port-button', onAddPortCallback);
@@ -209,7 +261,7 @@ $(function () {
             addcontainer.off('click', '.add-server-port-delete-button', onDeletePortCallback);
             addcontainer.off('click', '.add-server-host-delete-button', onDeleteHostCallback);
             addcontainer.remove();
-            return result.join(';');
+            return result.join(splitter);
         };
     }
     function viewServer(span, mime, data) {
@@ -220,27 +272,24 @@ $(function () {
 
         view.append('<div>mime type: ' + mime + '</div>');
         if (data) {
-            data = data.split(';');
-            data.forEach(function (item) {
-                item = item.split(':');
-                if (dataHash[item[0]]) {
-                    dataHash[item[0]].push(item[1]);
-                } else {
-                    dataHash[item[0]] = [item[1]];
-                }
-            });
+            dataHash = parseServerData(data, mime);
             $.each(dataHash, function (key, value) {
                 var node = $('<div class="add-server-row" />'),
                     ipClone;
 
                 ipClone = ip.clone();
-                ipClone.html(key);
-                node.append(ipClone);
-                value.forEach(function (item) {
-                    var portClone = port.clone();
-                    portClone.html(item);
-                    node.append(portClone);
-                });
+                if (value && $.isArray(value)) {
+                    ipClone.html(key);
+                    node.append(ipClone);
+                    value.forEach(function (item) {
+                        var portClone = port.clone();
+                        portClone.html(item);
+                        node.append(portClone);
+                    });
+                } else {
+                    ipClone.html(value);
+                    node.append(ipClone);
+                }
                 view.append(node);
             });
         }
@@ -534,7 +583,9 @@ $(function () {
         "application/x-yaml": { title: "YAML", edit: editText, preview: previewText, view: viewText, validate: validateNone },
         "application/x-symlink": { title: "Symbolic link", edit: editSymlink, preview: previewSymlink, view: viewSymlink, validate: validateNone },
         "application/x-case": { title: "Case", edit: editCase, preview: previewCase, view: viewCase, validate: validateNone },
-        "application/x-server": { title: "Server", edit: editServer, preview: previewText, view: viewServer, validate: validateNone },
+        "application/x-list": { title: "Список", edit: editServer, preview: previewText, view: viewServer, validate: validateNone },//OK
+        "application/x-server": { title: "Список пар ip:port", edit: editServer, preview: previewText, view: viewServer, validate: validateNone },//OK
+        "application/x-server2": { title: "Список портов для ip", edit: editServer, preview: previewText, view: viewServer, validate: validateNone }
     };
 
     CodeMirror.on(window, "resize", function() {

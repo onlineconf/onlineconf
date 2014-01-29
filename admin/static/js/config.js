@@ -145,7 +145,13 @@ $(function() {
                 "text/plain": {
                     icon: { image: '/css/type/text.png' }
                 },
+                "application/x-list": {
+                    icon: { image: '/css/type/text.png' }
+                },
                 "application/x-server": {
+                    icon: { image: '/css/type/text.png' }
+                },
+                "application/x-server2": {
                     icon: { image: '/css/type/text.png' }
                 },
                 "application/x-case": {
