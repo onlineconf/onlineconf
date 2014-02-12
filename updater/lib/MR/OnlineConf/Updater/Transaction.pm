@@ -51,6 +51,11 @@ sub dirty_symlinks {
     return grep $_->is_symlink, values %{$self->_dirty};
 }
 
+sub dirty_templates {
+    my $self = shift->current();
+    return grep $_->is_template, values %{$self->_dirty};
+}
+
 no Mouse;
 __PACKAGE__->meta->make_immutable();
 

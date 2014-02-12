@@ -306,6 +306,23 @@ $(function () {
         return $('<span/>').text(data);
     }
 
+    function previewTemplate(data) {
+        var tokens = data.split(/(\$\{.*?\})/g),
+            $span = $('<span/>'),
+            i,
+            m;
+        for (i = 0; i < tokens.length; i++) {
+            if (i % 2 == 0) {
+                $span.append($('<span/>').text(tokens[i]));
+            } else if (m = tokens[i].match(/^\$\{(\/.*)\}$/)) {
+                $span.append($('<a class="template" onclick="event.stopPropagation()"/>').attr('href', '#' + m[1]).text(m[0]));
+            } else {
+                $span.append($('<span class="template"/>').text(tokens[i]));
+            }
+        }
+        return $span;
+    }
+
     function previewSymlink(data) {
         return $('<a class="symlink" onclick="event.stopPropagation()"/>').attr('href', '#' + data).text(data);
     }
@@ -414,6 +431,17 @@ $(function () {
         editor.find('.CodeMirror').addClass('ui-widget-content ui-corner-all');
         createCodeMirrorToolbar(cm).prependTo(span);
         return function () { return cm.getValue(); };
+    }
+
+    function editTemplate(span, mime, data) {
+        var result = editText(span, mime, data);
+        $('<ul class="note"/>')
+            .append('<li>${hostname} - полное имя хоста</li>')
+            .append('<li>${short_hostname} - сокращенное имя хоста</li>')
+            .append('<li>${ip} - ip-адрес, соответствующий хосту</li>')
+            .append('<li>${/path/of/parameter} - значение параметра</li>')
+            .appendTo(span);
+        return result;
     }
 
     function editSymlink(span, mime, data) {
@@ -579,6 +607,7 @@ $(function () {
     mimeType = {
         "application/x-null": { title: "Null", edit: editNull, preview: previewNull, view: viewNull, validate: validateNone },
         "text/plain": { title: "Text", edit: editText, preview: previewText, view: viewText, validate: validateNone },
+        "application/x-template": { title: "Template", edit: editTemplate, preview: previewTemplate, view: viewText, validate: validateNone },
         "application/json": { title: "JSON", edit: editText, preview: previewText, view: viewText, validate: validateJSON },
         "application/x-yaml": { title: "YAML", edit: editText, preview: previewText, view: viewText, validate: validateNone },
         "application/x-symlink": { title: "Symbolic link", edit: editSymlink, preview: previewSymlink, view: viewSymlink, validate: validateNone },
@@ -587,6 +616,30 @@ $(function () {
         "application/x-server": { title: "Список пар ip:port", edit: editServer, preview: previewText, view: viewServer, validate: validateNone },//OK
         "application/x-server2": { title: "Список портов для ip", edit: editServer, preview: previewText, view: viewServer, validate: validateNone }
     };
+
+    CodeMirror.defineMode("template", function () {
+        return {
+            startState: function () {
+                return {
+                    variable: false,
+                };
+            },
+            token: function (stream, state) {
+                if (state.variable && stream.skipTo('}')) {
+                    stream.next();
+                    state.variable = false;
+                    return 'variable-2';
+                } else if (!state.variable && stream.skipTo('${')) {
+                    state.variable = true;
+                    return null;
+                } else {
+                    stream.skipToEnd();
+                    return null;
+                }
+            }
+        };
+    });
+    CodeMirror.defineMIME("application/x-template", "template");
 
     CodeMirror.on(window, "resize", function() {
         $('.CodeMirror-fullscreen').height($(window).height());

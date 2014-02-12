@@ -54,6 +54,7 @@ has value => (
     is  => 'ro',
     isa => 'Maybe[Str|HashRef|ArrayRef]',
     lazy    => 1,
+    writer  => 'set_value',
     clearer => 'clear_value',
     default => sub {
         my ($self) = @_;
@@ -97,6 +98,14 @@ has is_null => (
     clearer => 'clear_is_null',
 );
 
+has is_template => (
+    is  => 'ro',
+    isa => 'Bool',
+    lazy   => 1,
+    default => sub { $_[0]->content_type eq 'application/x-template' || $_[0]->is_case && $_[0]->_case_content_type && $_[0]->_case_content_type eq 'application/x-template' },
+    clearer => 'clear_is_template',
+);
+
 has is_symlink => (
     is  => 'ro',
     isa => 'Bool',
@@ -117,7 +126,7 @@ has requires => (
     isa => 'ArrayRef[Str]',
     lazy    => 1,
     clearer => '_clear_requires',
-    default => sub { [ $_[0]->is_symlink ? ($_[0]->value) : () ] },
+    default => sub { [ $_[0]->is_symlink ? ($_[0]->value) : $_[0]->is_template ? ( $_[0]->value =~ /\$\{(\/.*?)\}/g ) : () ] },
 );
 
 has dirty => (
@@ -163,6 +172,12 @@ has requires_group => (
     clearer => '_clear_requires_group',
 );
 
+has deleted => (
+    is  => 'rw',
+    isa => 'Bool',
+    default => 0,
+);
+
 sub child {
     my ($self, $name) = @_;
     return $self->children->{$name};
@@ -181,6 +196,7 @@ sub delete_child {
     delete $self->children->{$child->name};
     $self->_dirty_children(1);
     $child->dirty(1);
+    $child->deleted(1);
     return;
 }
 
@@ -207,6 +223,7 @@ sub real_node {
         $seen{$node->id} = 1;
         $node = $node->symlink_target;
         return unless $node;
+        return if $node->deleted;
     }
     return $node;
 }
@@ -224,6 +241,7 @@ sub clear {
     $self->clear_value();
     $self->clear_is_case();
     $self->clear_is_null();
+    $self->clear_is_template();
     $self->clear_is_symlink();
     $self->clear_symlink_target();
     $self->_clear_requires();

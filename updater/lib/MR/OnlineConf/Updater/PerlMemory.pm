@@ -159,6 +159,7 @@ sub get {
                 }
                 $node = $node->symlink_target;
                 return unless $node;
+                return if $node->deleted;
             }
         } else {
             return;
@@ -172,6 +173,7 @@ sub finalize {
     $transaction ||= MR::OnlineConf::Updater::Transaction->new();
     $self->_resolve_cases();
     $self->_resolve_symlinks();
+    $self->_resolve_templates();
     undef $transaction;
     return;
 }
@@ -185,6 +187,65 @@ sub _has_dirty_deep {
         return 1 if $self->_has_dirty_deep($child->path);
     }
     return 0;
+}
+
+sub _resolve_templates {
+    my ($self) = @_;
+    $self->_mark_dirty_templates();
+    foreach my $node (MR::OnlineConf::Updater::Transaction->dirty_templates()) {
+        local $self->{seen} = {};
+        $self->_resolve_template($node);
+    }
+    return;
+}
+
+sub _mark_dirty_templates {
+    my ($self) = @_;
+    foreach my $node (MR::OnlineConf::Updater::Transaction->dirty()) {
+        my $path = $node->path;
+        my $target = $self->_required_by;
+        foreach my $node (exists $target->{$path} ? (grep defined, values %{$target->{$path}}) : ()) {
+            $node->dirty(1);
+        }
+    }
+    return;
+}
+
+sub _resolve_template {
+    my ($self, $template) = @_;
+    $template->clear_value();
+    if ($self->{seen}->{$template->id}) {
+        $self->log->warning("Recursive template variable " . $template->path);
+        return;
+    }
+    $self->{seen}->{$template->id} = 1;
+    my $value = $template->value;
+    $value =~ s#\$\{(.*?)\}#
+        my $var = $1;
+        my $replace = '';
+        if ($var =~ /^\//) {
+            if (my $node = $self->get($var)) {
+                if (!ref $node->value) {
+                    $self->log->debug(sprintf "Template variable resolved: %s: %s", $template->path, $node->path);
+                    $replace = $node->value;
+                    push @{$template->requires}, $node->path if $node->path ne $var && !grep { $_ eq $node->path } @{$template->requires};
+                } else {
+                    $self->log->warning(sprintf "Value of template variable is not text: %s: %s", $template->path, $var);
+                }
+            } else {
+                $self->log->warning(sprintf "Template variable not resolved: %s: %s", $template->path, $var);
+            }
+        } elsif (defined (my $r = expand_template_macro($var))) {
+            $replace = $r;
+        } else {
+            $self->log->warning(sprintf "Unknown template macro: %s: %s", $template->path, $var);
+        }
+        $replace;
+    #eg;
+    $self->log->debug(sprintf "Template expanded: %s: %s -> %s", $template->path, $template->value, $value);
+    $template->set_value($value);
+    $self->_add_to_requires($template);
+    return;
 }
 
 sub _resolve_symlinks {

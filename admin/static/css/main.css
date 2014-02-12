@@ -43,7 +43,9 @@ span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
 
 .ui-tooltip { max-width: 40em }
+span.template, .jstree span.template, a.template, .jstree a.template { color: #0055aa; text-decoration: none; padding: 0 }
 a.symlink, .jstree a.symlink { color: #000088; text-decoration: none; padding: 0 }
+ul.note { color: #666666; margin: 0; padding: 0 }
 
 span.case-preview, div.case-view { color: gray }
 span.case-key { color: #005500 }
