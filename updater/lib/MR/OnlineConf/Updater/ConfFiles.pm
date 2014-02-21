@@ -69,7 +69,7 @@ sub _walk_tree {
             }
         }
         my $child_data = $self->_walk_tree($child);
-        $data{"$name:$_"} = $child_data->{$_} foreach keys %$child_data;
+        $data{"$name/$_"} = $child_data->{$_} foreach keys %$child_data;
     }
     return \%data;
 }
@@ -85,12 +85,12 @@ sub _dump_module {
         my $p = $k;
         my $v = $data->{$k};
 
-        $p =~ s/\:/\//g;
         $p = "/$p";
 
         if ($module eq 'TREE') {
             $k = $p;
         } else {
+            $k =~ s/\//./g;
             $p = "/onlineconf/module/$module$p";
         }
 
