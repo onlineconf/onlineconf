@@ -321,6 +321,8 @@ sub _updater_restore {
                 $self->_say(-1,"cant parse json variable $k => $v\n: $@")
                     and return undef if $@;
                 $v = $p;
+            } else {
+                utf8::decode($v);
             }
             $data->{Data}{$k} = $v;
         }
