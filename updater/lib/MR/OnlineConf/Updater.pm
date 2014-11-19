@@ -134,6 +134,7 @@ sub initialize {
     return unless $mtime;
     my $list = $self->admin->get_config();
     return unless $list;
+    return unless @$list;
     my $count = @$list;
     $self->_clear_tree();
     my $tree = $self->_tree;
