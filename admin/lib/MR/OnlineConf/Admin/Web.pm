@@ -32,6 +32,10 @@ sub startup {
     $r->route('/access/(*path)')->via('POST')->to('access#set', path => '');
     $r->route('/access/(*path)')->via('DELETE')->to('access#delete', path => '');
     $r->route('/monitoring')->via('GET')->to('monitoring#list');
+    $r->route('/updater/mtime')->via('GET')->to('updater#mtime');
+    $r->route('/updater/config')->via('GET')->to('updater#config');
+    $r->route('/updater/config/(:mtime)/(:reselect)')->via('GET')->to('updater#config');
+    $r->route('/updater/activity')->via('POST')->to('updater#activity');
     return;
 }
 
