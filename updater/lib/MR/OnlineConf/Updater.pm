@@ -3,7 +3,7 @@ package MR::OnlineConf::Updater;
 use Mouse;
 use Scalar::Util 'weaken';
 use Sys::Hostname ();
-use MR::OnlineConf::Updater::Storage;
+use MR::OnlineConf::Updater::Admin;
 use MR::OnlineConf::Updater::PerlMemory;
 use MR::OnlineConf::Updater::Parameter;
 use MR::OnlineConf::Updater::ConfFiles;
@@ -25,7 +25,7 @@ has log => (
 has _signals => (
     is  => 'ro',
     isa => 'ArrayRef',
-    lazy    => 1,
+        lazy    => 1,
     default => sub {
         my ($self) = @_;
         my $el = $self->_eventloop;
@@ -105,11 +105,18 @@ has _update_time => (
     default => 0,
 );
 
-sub BUILD {
-    my ($self) = @_;
-    MR::OnlineConf::Updater::Storage->new(%{$_[0]->config->{database}}, log => $self->log);
-    return;
-}
+has admin => (
+    is => 'ro',
+    isa => 'MR::OnlineConf::Updater::Admin',
+    lazy => 1,
+    default => sub {
+        my ($self) = @_;
+
+        return MR::OnlineConf::Updater::Admin->new(
+            %{$self->config->{admin}}
+        );
+    }
+);
 
 sub run {
     my ($self) = @_;
@@ -123,9 +130,10 @@ sub run {
 sub initialize {
     my ($self) = @_;
     $self->log->debug("Initializing config tree");
-    my $mtime = MR::OnlineConf::Updater::Storage->select("SELECT MAX(`MTime`) AS `MTime` FROM `my_config_tree_log`")->[0]->{MTime};
+    my $mtime = $self->admin->get_mtime();
     return unless $mtime;
-    my $list = MR::OnlineConf::Updater::Storage->select("SELECT `ID`, `Name`, `Path`, `Version`, `Value`, `ContentType` FROM `my_config_tree` WHERE NOT `Deleted` ORDER BY `Path`");
+    my $list = $self->admin->get_config();
+    return unless $list;
     my $count = @$list;
     $self->_clear_tree();
     my $tree = $self->_tree;
@@ -156,13 +164,8 @@ sub update {
     my $reselect = $self->config->{reselect_interval} || $self->config->{update_interval} * 2;
     if ((my $mtime = $self->_mtime) && $self->_update_time > time() - $reselect) {
         my $tree = $self->_tree;
-        my $list = MR::OnlineConf::Updater::Storage->select("
-            SELECT t.`ID`, t.`Name`, t.`Path`, l.`Version`, l.`Value`, l.`ContentType`, l.`MTime`, l.`Deleted`
-            FROM `my_config_tree_log` l JOIN `my_config_tree` t ON l.`NodeID` = t.`ID`
-            WHERE l.`MTime` > LEAST(?, DATE_SUB(NOW(), INTERVAL ? SECOND))
-            ORDER BY l.`ID`
-        ", $mtime, $reselect);
-        if (@$list) {
+        my $list = $self->admin->get_config($mtime, $reselect);
+        if ($list && @$list) {
             my $count = 0;
             foreach my $row (@$list) {
                 my $param = MR::OnlineConf::Updater::Parameter->new(
@@ -203,7 +206,9 @@ sub update {
 
 sub _update_activity {
     my ($self) = @_;
-    MR::OnlineConf::Updater::Storage->do('REPLACE INTO `my_config_activity` (`Host`, `Time`, `Online`, `Package`) VALUES (?, ?, now(), ?)', Sys::Hostname::hostname(), $self->_mtime || 0, $VERSION);
+    $self->admin->post_activity(
+        Sys::Hostname::hostname(), $self->_mtime || 0, $VERSION
+    );
     return;
 }
 

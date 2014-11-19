@@ -1,3 +1,8 @@
+admin:
+    host: xxx
+    port: xxx
+    username: xxx
+    password: xxx
 database:
   host: xxx
   user: xxx
@@ -10,3 +15,8 @@ pidfile: /var/run/onlineconf_updater.pid
 reload_local: 10
 update_interval: 60
 debug: 1 
+notification_database:
+  host: xxx
+  user: xxx
+  password: xxx
+  base: xxx
