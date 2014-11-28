@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# chkconfig: - 99 99
+# description: onlineconf admin
+#
+
+. /etc/init.d/functions
+. /etc/init.d/mailru-functions
+
+wrapped_daemon_initd $1 --user=mail /usr/local/bin/onlineconf-admin
