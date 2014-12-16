@@ -3,17 +3,14 @@ package MR::OnlineConf::Admin::PerlMemory;
 use Mouse;
 
 # External modules
-use Scalar::Util;
+use JSON::XS;
+use Text::Glob;
 use List::MoreUtils;
 use Net::IP::CMatch;
-use IO::Interface::Simple;
 
 # Internal modules
-use MR::OnlineConf::Admin::PerlMemory::Util;
+use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
-use MR::OnlineConf::Admin::PerlMemory::Transaction;
-
-my $transaction;
 
 has log => (
     is  => 'ro',
@@ -21,120 +18,203 @@ has log => (
     required => 1,
 );
 
-has _root => (
-    is  => 'rw',
+has list => (
+    is => 'ro',
+    isa => 'ArrayRef',
+    lazy => 1,
+    default => sub {
+        return MR::OnlineConf::Admin::Storage->select(qq[
+            SELECT
+                `ID`, `Name`, `Path`, `Deleted`, `Version`, `Value`, `ContentType`
+            FROM
+                `my_config_tree`
+            WHERE NOT
+                `Deleted`
+            ORDER BY
+                `Path`
+        ]);
+    }
+);
+
+has root => (
+    is => 'ro',
     isa => 'MR::OnlineConf::Admin::PerlMemory::Parameter',
+    lazy => 1,
+    default => sub {
+        return MR::OnlineConf::Admin::PerlMemory::Parameter->new(%{$_[0]->list->[0]});
+    }
 );
 
-has _index => (
-    is  => 'rw',
-    isa => 'HashRef',
-    default => sub { {} },
+has host => (
+    is => 'rw',
+    isa => 'Str',
 );
 
-has _required_by => (
-    is  => 'ro',
-    isa => 'HashRef[HashRef[MR::OnlineConf::Admin::PerlMemory::Parameter]]',
-    default => sub { {} },
+has addr => (
+    is => 'rw',
+    isa => 'ArrayRef',
 );
 
-has _require_datacenter => (
-    is  => 'ro',
-    isa => 'HashRef',
-    default => sub { {} },
-);
-
-has _require_group => (
+has index => (
     is  => 'ro',
     isa => 'HashRef',
+    lazy => 1,
     default => sub { {} },
 );
+
+has cases => (
+    is => 'ro',
+    isa => 'HashRef',
+    lazy => 1,
+    default => sub { {} },
+);
+
+has symlinks => (
+    is => 'ro',
+    isa => 'HashRef',
+    lazy => 1,
+    default => sub { {} },
+);
+
+has templates => (
+    is => 'ro',
+    isa => 'HashRef',
+    lazy => 1,
+    default => sub { {} },
+);
+
+has JSONParser => (
+    is => 'ro',
+    isa => 'JSON::XS',
+    lazy => 1,
+    default => sub {
+        return JSON::XS->new->utf8(0);
+    }
+);
+
+sub BUILD {
+    my ($self) = @_;
+    my $list = $self->list;
+
+    foreach my $item (@$list) {
+        $self->put(
+            MR::OnlineConf::Admin::PerlMemory::Parameter->new(%$item)
+        );
+    }
+}
 
 sub put {
-    my ($self, $param) = @_;
-    $transaction ||= MR::OnlineConf::Admin::PerlMemory::Transaction->new();
-    if (my $node = $self->_index->{$param->id}) {
-        if ($node->version < $param->version) {
-            $self->_remove_from_requires($node);
-            if ($node->path eq $param->path) {
-                my $old_version = $node->version;
-                $node->update($param);
-                $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                $self->_add_to_requires($node);
-            } else {
-                if (my $old_p = $self->get($node->parent_path)) {
-                    $old_p->delete_child($node);
-                }
-                if (my $new_p = $self->get($param->parent_path)) {
-                    my $old_version = $node->version;
-                    my $old_path = $node->path;
-                    $node->update($param);
-                    $new_p->add_child($node);
-                    $self->log->debug(sprintf "Parameter %s was updated from version %s to %s and moved from %s", $node->path, $old_version, $node->version, $old_path);
-                    $self->_add_to_requires($node);
-                }
-            }
-        }
+    my ($self, $node) = @_;
+
+    if ($node->Deleted) {
+        return $self->delete($node);
+    }
+
+    if ($node->Path eq '/') {
         return 1;
-    } elsif ($node = $self->_root) {
-        my @path = split /\//, $param->path;
-        shift @path;
-        my $parent;
-        while (defined(my $name = shift @path)) {
-            if (my $next = $node->child($name)) {
-                $parent = $node;
-                $node = $next;
-            } elsif (@path == 0) {
-                $node->add_child($param);
-                $self->_index->{$param->id} = $param;
-                $self->_add_to_requires($param);
-                return 1;
-            } else {
-                die sprintf "Failed to put parameter %s: no parent node found", $param->path;
+    }
+
+    # Update
+    if (my $indexed = $self->index->{$node->Path}) {
+        unless ($indexed->Version < $node->Version) {
+            return 1;
+        }
+
+        $indexed->clear();
+
+        $indexed->_Value($node->Value);
+        $indexed->_Version($node->Version);
+        $indexed->_ContentType($node->ContentType);
+
+        return 1;
+    } 
+
+    # Create
+    if (my $root = $self->root) {
+        my @path = grep $_, split /\//, $node->Path;
+
+        pop @path;
+
+        while (my $name = shift @path) {
+            unless ($root = $root->children->{$name}) {
+                die sprintf "Failed to put parameter %s: no parent node found", $node->Path;
             }
         }
-        if ($node->path eq $param->path) {
-            if ($node->version < $param->version) {
-                $self->_remove_from_requires($node);
-                my $old_version = $node->version;
-                $node->update($param);
-                $self->log->debug(sprintf "Parameter %s was updated from version %s to %s", $node->path, $old_version, $node->version);
-                $self->_add_to_requires($node);
-                return 1;
+
+        $root->add_child($node);
+
+        $self->index->{$node->Path} = $node;
+        $self->cases->{$node->Path} = $node if $node->is_case;
+        $self->symlinks->{$node->Path} = $node if $node->is_symlink;
+        $self->templates->{$node->Path} = $node if $node->is_template;
+
+        return 1;
+    }
+
+    die sprintf "Failed to put parameter %s: no root node found", $node->Path;
+}
+
+sub get {
+    my ($self, $path) = @_;
+
+    if (exists $self->index->{$path}) {
+        my $indexed = $self->index->{$path};
+
+        if ($indexed->is_symlink) {
+            if (!$indexed->symlink_target) {
+                $self->_resolve_symlink($indexed);
             }
-        } elsif ($param->path eq $parent->path . '/' . $param->name) {
-            if ($param->is_symlink && $node->path eq $param->value) {
-                return 0;
-            } else {
-                $parent->add_child($param);
-                $self->_index->{$param->id} = $param;
-                $self->_add_to_requires($param);
-                return 1;
+
+            return $indexed->symlink_target;
+
+        }
+
+        return $indexed unless $indexed->is_symlink;
+    }
+
+    my $node = $self->root;
+    my @path = grep $_, split /\//, $path;
+
+    while (defined(my $name = shift @path)) {
+        if ($node = $node->children->{$name}) {
+            my %seen;
+
+            while ($node->is_symlink) {
+                my $ID = $node->ID;
+
+                die "Recursion in symlink" if $seen{$ID};
+
+                $seen{$ID} = 1;
+
+                if (!$node->symlink_target && exists $self->{seen}) {
+                    $self->_resolve_symlink($node);
+                }
+
+                $node = $node->symlink_target;
+
+                return unless $node;
             }
         } else {
-            die sprintf "Failed to put parameter %s: no valid path found", $param->path;
+            return;
         }
-        return 0;
-    } elsif ($param->path eq '/') {
-        $self->_root($param);
-        $self->_index->{$param->id} = $param;
-        return 1;
-    } else {
-        die sprintf "Failed to put parameter %s: no root node found", $param->path;
     }
+
+    return $node;
 }
 
 sub delete {
     my ($self, $param) = @_;
-    $transaction ||= MR::OnlineConf::Admin::PerlMemory::Transaction->new();
-    $self->_remove_from_requires($param);
-    delete $self->_index->{$param->id};
-    my @path = split /\//, $param->path;
-    shift @path;
-    my $node = $self->_root;
+    my $node = $self->root;
+    my @path = grep $_, split /\//, $param->path;
+
+    delete $self->index->{$param->Path};
+
     while (defined(my $name = shift @path)) {
-        if (my $child = $node->child($name)) {
+        if (my $child = $node->children->{$name}) {
             if (@path == 0) {
+                delete $self->cases->{$child->Path};
+                delete $self->symlinks->{$child->Path};
+                delete $self->templates->{$child->Path};
                 $node->delete_child($child);
                 return 1;
             } else {
@@ -144,254 +224,260 @@ sub delete {
             return 0;
         }
     }
-    return 0;
-}
 
-sub get {
-    my ($self, $path, $no_resolve) = @_;
-    my @path = split /\//, $path;
-    shift @path;
-    my $node = $self->_root;
-    while (defined(my $name = shift @path)) {
-        if ($node = $node->child($name)) {
-            return $node if $no_resolve && @path == 0;
-            my %seen;
-            while ($node->is_symlink) {
-                die "Recursion in symlink" if $seen{$node->id};
-                $seen{$node->id} = 1;
-                if (!$node->symlink_target && exists $self->{seen}) {
-                    $self->_resolve_symlink($node);
-                }
-                $node = $node->symlink_target;
-                return unless $node;
-                return if $node->deleted;
-            }
-        } else {
-            return;
-        }
-    }
-    return $node;
+    return 0;
 }
 
 sub finalize {
-    my ($self, $host) = @_;
-    $transaction ||= MR::OnlineConf::Admin::PerlMemory::Transaction->new();
-    $self->_resolve_cases($host);
+    my ($self) = @_;
+
+    $self->_resolve_cases();
     $self->_resolve_symlinks();
     $self->_resolve_templates();
-    undef $transaction;
-    return;
+}
+
+sub serialize {
+    my ($self) = @_;
+
+    local $self->{seen_node} = {};
+
+    return (
+        join "\n", map {
+            "$_->[0] $_->[1]"
+        } sort {
+            $a->[0] cmp $b->[0]
+        } $self->_serialize(
+            $self->root, ''
+        )
+    );
+}
+
+sub _serialize {
+    my ($self, $node, $Path) = @_;
+    my $children = $node->children;
+    my @data;
+
+    local $self->{seen_node}->{$node->ID} = 1;
+
+    while (my ($name, $child) = each %$children) {
+        next unless $child;
+        next if $self->{seen_node}->{$child->ID};
+
+        if ($child->is_symlink) {
+            next unless $child = $self->get($child->value);
+            next if $self->{seen_node}->{$child->ID};
+        }
+
+        if (defined (my $value = $child->value)) {
+            if (ref $value) {
+                push @data, [
+                    "$Path/$name:JSON", eval {
+                        $self->JSONParser->encode($value)
+                    }
+                ];
+            } else {
+                $value =~ s/\n/\\n/g;
+                $value =~ s/\r/\\r/g;
+
+                push @data, ["$Path/$name", $value];
+            }
+        }
+
+        push @data, $self->_serialize($child, "$Path/$name");
+    }
+
+    return @data;
 }
 
 sub _resolve_cases {
-    my ($self, $host) = @_;
-    $self->_mark_dirty_cases();
-    my $datacenter = $self->_which_datacenter();
-    $self->log->debug(sprintf "Datacenter is %s", $datacenter ? $datacenter->name : 'unknown');
+    my ($self) = @_;
+    my $host = $self->host;
+    my $addr = $self->addr;
+    my $cases = $self->cases;
     my $groups = $self->_which_groups();
-    $self->log->debug(sprintf "Groups are [%s]", join ', ', @$groups);
-    foreach my $case (sort { length($a->path) <=> length($b->path) } MR::OnlineConf::Admin::PerlMemory::Transaction->dirty_cases()) {
-        $case->resolve_case($datacenter, $groups, $host);
-        $self->_add_to_requires($case);
-        $self->log->debug(sprintf "Case %s resolved", $case->path);
-    }
-    return;
-}
+    my $datacenter = $self->_which_datacenter();
 
-sub _mark_dirty_cases {
-    my ($self) = @_;
-    local $self->{seen} = {};
-    if ($self->_has_dirty_deep('/onlineconf/datacenter')) {
-        foreach my $node (values %{$self->_require_datacenter}) {
-            $node->dirty(1);
+    foreach my $case (values %$cases) {
+        $case->host($host);
+        $case->addr($addr);
+        $case->groups($groups);
+        $case->datacenter($datacenter);
+
+        $case->clear_case_before_resolve();
+        $case->resolve_case();
+
+        if ($case->is_symlink) {
+            local $self->{seen} = {};
+            $case->clear_symlink_before_resolve();
+            $self->_resolve_symlink($case);
+        }
+
+        if ($case->is_template) {
+            $case->clear_template_before_resolve();
+            $self->_resolve_template($case);
         }
     }
-    if ($self->_has_dirty_deep('/onlineconf/group')) {
-        foreach my $node (values %{$self->_require_group}) {
-            $node->dirty(1);
-        }
-    }
-    return;
-}
-
-sub _has_dirty_deep {
-    my ($self, $path) = @_;
-    my $node = $self->get($path);
-    return 0 unless $node;
-    return 1 if $node->is_dirty();
-    foreach my $child (values %{$node->children}) {
-        return 1 if $self->_has_dirty_deep($child->path);
-    }
-    return 0;
-}
-
-sub _which_datacenter {
-    my ($self) = @_;
-    my @addrs = map $_->address, grep { $_->is_running && !$_->is_loopback } IO::Interface::Simple->interfaces();
-    local $self->{seen} = {};
-    if (my $datacenters = $self->get('/onlineconf/datacenter')) {
-        foreach my $dc (values %{$datacenters->children}) {
-            my @masks = ref $dc->value eq 'ARRAY' ? @{$dc->value} : grep $_, split /(?:,|\s+)/, $dc->value;
-            foreach my $addr (@addrs) {
-                return $dc if match_ip($addr, @masks);
-            }
-        }
-    }
-    return;
 }
 
 sub _which_groups {
     my ($self) = @_;
     my @groups;
+
     local $self->{seen} = {};
+
     if (my $groups = $self->get('/onlineconf/group')) {
+        my $host = $self->host;
         my @all_groups = grep { $_ ne 'priority' } sort keys %{$groups->children};
         my @ordered_groups;
+
         if (my $priority = $self->get('/onlineconf/group/priority')) {
-            push @ordered_groups, map { $_ eq '*' ? @all_groups : $_ }
-                split /\s*,\s*/, $priority->value if $priority->value;
+            if ($priority->value) {
+                @ordered_groups = map {
+                    $_ eq '*' ? @all_groups : $_
+                } grep {
+                    exists $groups->children->{$_}
+                } split /\s*,\s*/, $priority->value;
+            }
         }
-        push @ordered_groups, @all_groups;
-        @ordered_groups = grep exists($groups->children->{$_}), List::MoreUtils::uniq @ordered_groups;
-        my @list;
-        foreach my $name (@ordered_groups) {
-            push @list, $name => $groups->children->{$name};
-        }
-        while (my ($name, $node) = splice(@list, 0, 2)) {
-            $node = $self->get($node->path) or next;
-            my $glob = $node->value;
-            push @groups, $name if defined $glob && hostname_match_glob($glob);
-            foreach my $subname (sort keys %{$node->children}) {
+
+        my @list = map {
+            $_ => $groups->children->{$_}
+        } List::MoreUtils::uniq(
+            @ordered_groups, @all_groups
+        );
+
+        for (my $i = 0; $i <= $#list; $i += 2) {
+            my $name = $list[$i];
+            my $node = $list[$i+1];
+
+            unless ($node = $self->get($node->Path)) {
+                next;
+            }
+
+            if (my $glob = $node->value) {
+                if (hostname_match_glob($glob, $host)) {
+                    push @groups, $name;
+                }
+            }
+
+            my $children = $node->children;
+
+            foreach my $subname (sort keys %$children) {
                 push @list, $name => $node->children->{$subname};
             }
         }
     }
+
     return [ List::MoreUtils::uniq @groups ];
+}
+
+
+sub _which_datacenter {
+    my ($self) = @_;
+
+    local $self->{seen} = {};
+
+    if (my $datacenters = $self->get('/onlineconf/datacenter')) {
+        my $children = $datacenters->children;
+        foreach my $dc (values %$children) {
+            my @masks = ref $dc->value eq 'ARRAY' ? @{$dc->value} : grep $_, split /(?:,|\s+)/, $dc->value;
+            foreach my $addr (@{$self->addr}) {
+                return $dc if Net::IP::CMatch::match_ip($addr, @masks);
+            }
+        }
+    }
+
+    return;
 }
 
 sub _resolve_symlinks {
     my ($self) = @_;
-    $self->_mark_dirty_symlinks();
-    foreach my $symlink (sort { length($a->path) <=> length($b->path) } MR::OnlineConf::Admin::PerlMemory::Transaction->dirty_symlinks()) {
+    my $symlinks = $self->symlinks;
+
+    foreach my $symlink (values %$symlinks) {
         local $self->{seen} = {};
+        $symlink->clear_symlink_before_resolve();
         $self->_resolve_symlink($symlink);
     }
-    return;
-}
 
-sub _mark_dirty_symlinks {
-    my ($self) = @_;
-    foreach my $node (MR::OnlineConf::Admin::PerlMemory::Transaction->dirty()) {
-        my $path = $node->path;
-        my $target = $self->_required_by;
-        foreach my $node (grep defined, map values %{$target->{$_}}, grep { index($_, "$path/") == 0 } keys %$target) {
-            $node->dirty(1);
-        }
-    }
     return;
 }
 
 sub _resolve_symlink {
     my ($self, $symlink) = @_;
-    if ($self->{seen}->{$symlink->id}) {
-        $self->log->warn("Recursive symlink " . $symlink->path);
+    my $ID = $symlink->ID;
+
+    if ($self->{seen}->{$ID}) {
         return;
     }
-    $self->{seen}->{$symlink->id} = 1;
-    if (my $node = $self->get($symlink->value, 1)) {
-        $self->log->debug(sprintf "Symlink resolved: %s -> %s", $symlink->path, $node->path);
+
+    $self->{seen}->{$ID} = 1;
+
+    if (my $node = $self->get($symlink->value)) {
         $symlink->symlink_target($node);
-        return;
     }
-    $self->log->warn(sprintf "Symlink not resolved: %s -> %s", $symlink->path, $symlink->value);
+
     return;
 }
 
 sub _resolve_templates {
     my ($self) = @_;
-    $self->_mark_dirty_templates();
-    foreach my $node (MR::OnlineConf::Admin::PerlMemory::Transaction->dirty_templates()) {
-        local $self->{seen} = {};
-        $self->_resolve_template($node);
-    }
-    return;
-}
+    my $host = $self->host;
+    my $addr = $self->addr;
+    my $templates = $self->templates;
 
-sub _mark_dirty_templates {
-    my ($self) = @_;
-    foreach my $node (MR::OnlineConf::Admin::PerlMemory::Transaction->dirty()) {
-        my $path = $node->path;
-        my $target = $self->_required_by;
-        foreach my $node (exists $target->{$path} ? (grep defined, values %{$target->{$path}}) : ()) {
-            $node->dirty(1);
-        }
+    foreach my $template (values %$templates) {
+        $template->host($host);
+        $template->addr($addr);
+        $template->clear_template_before_resolve();
+        $self->_resolve_template($template);
     }
+
     return;
 }
 
 sub _resolve_template {
     my ($self, $template) = @_;
-    $template->clear_value();
-    if ($self->{seen}->{$template->id}) {
-        $self->log->warn("Recursive template variable " . $template->path);
-        return;
-    }
-    $self->{seen}->{$template->id} = 1;
     my $value = $template->value;
-    $value =~ s#\$\{(.*?)\}#
-        my $var = $1;
+
+    $value =~ s#\$\{(\/.*?)\}#
         my $replace = '';
-        if ($var =~ /^\//) {
-            if (my $node = $self->get($var)) {
-                if (!ref $node->value) {
-                    $self->log->debug(sprintf "Template variable resolved: %s: %s", $template->path, $node->path);
-                    $replace = $node->value;
-                    push @{$template->requires}, $node->path if $node->path ne $var && !grep { $_ eq $node->path } @{$template->requires};
-                } else {
-                    $self->log->warn(sprintf "Value of template variable is not text: %s: %s", $template->path, $var);
-                }
-            } else {
-                $self->log->warn(sprintf "Template variable not resolved: %s: %s", $template->path, $var);
-            }
-        } elsif (defined (my $r = expand_template_macro($var))) {
-            $replace = $r;
-        } else {
-            $self->log->warn(sprintf "Unknown template macro: %s: %s", $template->path, $var);
+
+        if (my $node = $self->get($1)) {
+            $node->clear_value();
+            $node->host($self->host);
+            $node->addr($self->addr);
+            $replace = $node->value;
         }
+
         $replace;
     #eg;
-    $self->log->debug(sprintf "Template expanded: %s: %s -> %s", $template->path, $template->value, $value);
+
     $template->set_value($value);
-    $self->_add_to_requires($template);
+
     return;
 }
 
-sub _add_to_requires {
-    my ($self, $node) = @_;
-    my $requires = $node->requires;
-    foreach my $reqpath (@$requires) {
-        my $req = $self->_required_by->{$reqpath} ||= {};
-        $req->{$node->id} = $node;
-        Scalar::Util::weaken($req->{$node->id});
-    }
-    $self->_require_datacenter->{$node->path} = $node if $node->requires_datacenter;
-    $self->_require_group->{$node->path} = $node if $node->requires_group;
-    return;
-}
+my %glob_to_regex_cache;
 
-sub _remove_from_requires {
-    my ($self, $node) = @_;
-    my $requires = $node->requires;
-    foreach my $reqpath (@$requires) {
-        my $req = $self->_required_by->{$reqpath} ||= {};
-        delete $req->{$node->id};
+sub hostname_match_glob {
+    my $glob = shift;
+    my $re;
+
+    local $Text::Glob::strict_leading_dot = 0;
+    local $Text::Glob::strict_wildcard_slash = 1;
+
+    unless ($re = $glob_to_regex_cache{$glob}) {
+        my $re_str = Text::Glob::glob_to_regex_string($glob);
+        $re_str =~ s/\Q[^\/]\E/[^\\.]/g;
+        $glob_to_regex_cache{$glob} = $re = qr/^$re_str$/;
     }
-    delete $self->_require_datacenter->{$node->path};
-    delete $self->_require_group->{$node->path};
-    return;
+
+    return $_[0] =~ $re;
 }
 
 no Mouse;
+
 __PACKAGE__->meta->make_immutable();
 
 1;
