@@ -30,12 +30,35 @@ sub validate {
         return 0;
     }
 
-    my $host = $self->param('host');
+    my $host = $self->req->headers->header('X-OnlineConf-Client-Host');
+    my $mtime = $self->req->headers->header('X-OnlineConf-Client-Mtime');
+    my $version = $self->req->headers->header('X-OnlineConf-Client-Version');
+
+    unless ($host) {
+        $self->app->log->warn("Unknow client host $ip");
+        $self->render(text => '', status => 400);
+        return 0;
+    }
+
+    unless ($mtime) {
+        $self->app->log->warn("Unknow client mtime $ip");
+        $self->render(text => '', status => 400);
+        return 0;
+    }
+
+    unless ($version) {
+        $self->app->log->warn("Unknow client version $ip");
+        $self->render(text => '', status => 400);
+        return 0;
+    }
 
     $aliases  ||= '';
     $hostname ||= '';
 
     $self->stash(ip => $ip);
+    $self->stash(host => $host);
+    $self->stash(mtime => $mtime);
+    $self->stash(version => $version);
 
     return 1 if $host eq $hostname;
     return 1 if grep { $host eq $_ } split ' ', $aliases;
@@ -46,43 +69,36 @@ sub validate {
     return 0;
 }
 
-sub mtime {
-    my ($self) = @_;
-    my $list = MR::OnlineConf::Admin::Storage->select(qq[
-        SELECT
-            MAX(`MTime`) AS `MTime`
-        FROM
-            `my_config_tree_log`
-    ]);
-
-    $list ||= [{}];
-
-    $self->render(json => $list->[0]);
-}
-
 sub config {
     my ($self) = @_;
     my $ip = $self->stash('ip');
-    my $host = $self->param('host');
-    my $mtime = $self->param('mtime');
-    my $reselect = $self->param('reselect');
+    my $host = $self->stash('host');
+    my $mtime = $self->stash('mtime');
 
     $tree->refresh();
+
+    if ($mtime ge $tree->mtime) {
+        return $self->render(
+            text => '',
+            status => 304,
+        );
+    }
+
     $tree->host($host);
     $tree->addr([$ip]);
 
     $self->render(
         data => CBOR::XS::encode_cbor(
-            $tree->serialize()
+            $tree->serialize($mtime)
         )
     );
 }
 
 sub activity {
     my ($self) = @_;
-    my $host = $self->param('host');
-    my $mtime = $self->param('mtime');
-    my $version = $self->param('version');
+    my $host = $self->stash('host');
+    my $mtime = $self->stash('mtime');
+    my $version = $self->stash('version');
 
     MR::OnlineConf::Admin::Storage->do(qq[
             REPLACE INTO

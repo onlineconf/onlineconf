@@ -6,11 +6,13 @@ use MR::ChangeBot::Database;
 
 sub startup {
     my ($self) = @_;
-    my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml');
+    # my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml');
+    my $config = YAML::LoadFile('/home/t.nurutdinov/bin/conf/onlineconf.yaml');
     MR::OnlineConf::Admin::Storage->new(%{$config->{database}}, log => $self->log);
-    $config->{notification_database}->{database} ||= $config->{notification_database}->{base};
-    MR::ChangeBot::Database->new(%{$config->{notification_database}}, log => $self->log);
-    my $web_config = YAML::LoadFile('/usr/local/etc/onlineconf-admin.yaml');
+    # $config->{notification_database}->{database} ||= $config->{notification_database}->{base};
+    # MR::ChangeBot::Database->new(%{$config->{notification_database}}, log => $self->log);
+    # my $web_config = YAML::LoadFile('/usr/local/etc/onlineconf-admin.yaml');
+    my $web_config = YAML::LoadFile('/home/t.nurutdinov/bin/conf/onlineconf-admin.yaml');
     $self->plugin('mysql_basic_auth', %{$web_config->{auth}});
     my $r = $self->authenticate('/');
     $r->route('/config/(*path)')->via('GET')->to('config#get', path => '');
@@ -32,10 +34,8 @@ sub startup {
     $r->route('/access/(*path)')->via('POST')->to('access#set', path => '');
     $r->route('/access/(*path)')->via('DELETE')->to('access#delete', path => '');
     $r->route('/monitoring')->via('GET')->to('monitoring#list');
-    my $validate = $r->bridge('/client/(.host)')->to('updater#validate');
-    $validate->route('/mtime')->via('GET')->to('updater#mtime');
+    my $validate = $r->bridge('/client')->to('updater#validate');
     $validate->route('/config')->via('GET')->to('updater#config');
-    $validate->route('/config/(:mtime)/(:reselect)')->via('GET')->to('updater#config');
     $validate->route('/activity')->via('POST')->to('updater#activity');
     return;
 }

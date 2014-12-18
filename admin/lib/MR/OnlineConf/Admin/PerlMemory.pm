@@ -51,7 +51,16 @@ has addr => (
 has mtime => (
     is => 'rw',
     isa => 'Str',
-    default => sub { '' },
+    default => sub {
+        my $list = MR::OnlineConf::Admin::Storage->select(qq[
+            SELECT
+                MAX(`MTime`) AS `MTime`
+            FROM
+                `my_config_tree_log`
+        ]);
+
+        return $list->[0]->{MTime};
+    },
 );
 
 has index => (
@@ -102,16 +111,16 @@ sub BUILD {
 sub put {
     my ($self, $node) = @_;
 
+    if ($node->MTime gt $self->mtime) {
+        $self->mtime($node->MTime);
+    }
+
     if ($node->Deleted) {
         return $self->delete($node);
     }
 
     if ($node->Path eq '/') {
         return 1;
-    }
-
-    if ($node->MTime gt $self->mtime) {
-        $self->mtime($node->MTime);
     }
 
     # Update
@@ -257,7 +266,7 @@ sub refresh {
 }
 
 sub serialize {
-    my ($self) = @_;
+    my ($self, $MTime) = @_;
     my $host = $self->host;
 
     $self->_resolve_cases();
@@ -292,7 +301,7 @@ sub serialize {
     foreach my $path (@paths) {
         if (my $node = $self->get($path)) {
             $path =~ s/\/+$//;
-            push @result, $self->_serialize($node, $path);
+            push @result, $self->_serialize($node, $path, $MTime || '');
         }
     }
 
@@ -300,7 +309,7 @@ sub serialize {
 }
 
 sub _serialize {
-    my ($self, $node, $Path) = @_;
+    my ($self, $node, $Path, $MTime) = @_;
     my $children = $node->children;
     my @data;
 
@@ -316,22 +325,25 @@ sub _serialize {
         }
 
         my $nPath = "$Path/$name";
+        my $nMTime = $child->MTime;
 
-        if (defined (my $value = $child->value)) {
-            my $ContentType = $child->ContentType;
+        if ($MTime lt $nMTime) {
+            if (defined (my $value = $child->value)) {
+                my $ContentType = $child->ContentType;
 
-            if ($child->is_json) {
-                $ContentType = 'application/json';
+                if ($child->is_json) {
+                    $ContentType = 'application/json';
+                }
+
+                if ($child->is_yaml) {
+                    $ContentType = 'application/x-yaml';
+                }
+
+                push @data, [$nPath, $value, $ContentType, $nMTime];
             }
-
-            if ($child->is_yaml) {
-                $ContentType = 'application/x-yaml';
-            }
-
-            push @data, [$nPath, $value, $ContentType];
         }
 
-        push @data, $self->_serialize($child, $nPath);
+        push @data, $self->_serialize($child, $nPath, $MTime);
     }
 
     return @data;
