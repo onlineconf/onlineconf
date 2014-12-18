@@ -6,13 +6,11 @@ use MR::ChangeBot::Database;
 
 sub startup {
     my ($self) = @_;
-    # my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml');
-    my $config = YAML::LoadFile('/home/t.nurutdinov/bin/conf/onlineconf.yaml');
+    my $config = YAML::LoadFile('/usr/local/etc/onlineconf.yaml');
     MR::OnlineConf::Admin::Storage->new(%{$config->{database}}, log => $self->log);
-    # $config->{notification_database}->{database} ||= $config->{notification_database}->{base};
-    # MR::ChangeBot::Database->new(%{$config->{notification_database}}, log => $self->log);
-    # my $web_config = YAML::LoadFile('/usr/local/etc/onlineconf-admin.yaml');
-    my $web_config = YAML::LoadFile('/home/t.nurutdinov/bin/conf/onlineconf-admin.yaml');
+    $config->{notification_database}->{database} ||= $config->{notification_database}->{base};
+    MR::ChangeBot::Database->new(%{$config->{notification_database}}, log => $self->log);
+    my $web_config = YAML::LoadFile('/usr/local/etc/onlineconf-admin.yaml');
     $self->plugin('mysql_basic_auth', %{$web_config->{auth}});
     my $r = $self->authenticate('/');
     $r->route('/config/(*path)')->via('GET')->to('config#get', path => '');
