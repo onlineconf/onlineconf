@@ -3,7 +3,6 @@ package MR::OnlineConf::Admin::PerlMemory;
 use Mouse;
 
 # External modules
-use JSON::XS;
 use Text::Glob;
 use List::MoreUtils;
 use Net::IP::CMatch;
@@ -12,12 +11,6 @@ use Net::IP::CMatch;
 use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
-has log => (
-    is  => 'ro',
-    isa => 'Mojo::Log',
-    required => 1,
-);
-
 has list => (
     is => 'ro',
     isa => 'ArrayRef',
@@ -25,7 +18,7 @@ has list => (
     default => sub {
         return MR::OnlineConf::Admin::Storage->select(qq[
             SELECT
-                `ID`, `Name`, `Path`, `Deleted`, `Version`, `Value`, `ContentType`
+                `ID`, `Name`, `Path`, `MTime`, `Deleted`, `Version`, `Value`, `ContentType`
             FROM
                 `my_config_tree`
             WHERE NOT
@@ -53,6 +46,12 @@ has host => (
 has addr => (
     is => 'rw',
     isa => 'ArrayRef',
+);
+
+has mtime => (
+    is => 'rw',
+    isa => 'Str',
+    default => sub { '' },
 );
 
 has index => (
@@ -83,13 +82,10 @@ has templates => (
     default => sub { {} },
 );
 
-has JSONParser => (
-    is => 'ro',
-    isa => 'JSON::XS',
-    lazy => 1,
-    default => sub {
-        return JSON::XS->new->utf8(0);
-    }
+has lastupdate => (
+    is => 'rw',
+    isa => 'Int',
+    default => sub { 0 },
 );
 
 sub BUILD {
@@ -114,6 +110,10 @@ sub put {
         return 1;
     }
 
+    if ($node->MTime gt $self->mtime) {
+        $self->mtime($node->MTime);
+    }
+
     # Update
     if (my $indexed = $self->index->{$node->Path}) {
         unless ($indexed->Version < $node->Version) {
@@ -122,6 +122,7 @@ sub put {
 
         $indexed->clear();
 
+        $indexed->_MTime($node->MTime);
         $indexed->_Value($node->Value);
         $indexed->_Version($node->Version);
         $indexed->_ContentType($node->ContentType);
@@ -205,7 +206,7 @@ sub get {
 sub delete {
     my ($self, $param) = @_;
     my $node = $self->root;
-    my @path = grep $_, split /\//, $param->path;
+    my @path = grep $_, split /\//, $param->Path;
 
     delete $self->index->{$param->Path};
 
@@ -228,28 +229,74 @@ sub delete {
     return 0;
 }
 
-sub finalize {
+sub refresh {
     my ($self) = @_;
 
-    $self->_resolve_cases();
-    $self->_resolve_symlinks();
-    $self->_resolve_templates();
+    return if $self->lastupdate + 30 > time;
+
+    my $list = MR::OnlineConf::Admin::Storage->select(qq[
+            SELECT
+                t.`ID`, t.`Name`, t.`Path`, l.`Version`, l.`Value`, l.`ContentType`, l.`MTime`, l.`Deleted`
+            FROM
+                `my_config_tree_log` l JOIN `my_config_tree` t ON l.`NodeID` = t.`ID`
+            WHERE
+                l.`MTime` > LEAST(?, DATE_SUB(NOW(), INTERVAL 60 SECOND))
+            ORDER BY
+                l.`ID`
+        ],
+        $self->mtime,
+    );
+
+    foreach my $item (@$list) {
+        $self->put(
+            MR::OnlineConf::Admin::PerlMemory::Parameter->new(%$item)
+        );
+    }
+
+    $self->lastupdate(time);
 }
 
 sub serialize {
     my ($self) = @_;
+    my $host = $self->host;
+
+    $self->_resolve_cases();
+    $self->_resolve_symlinks();
+    $self->_resolve_templates();
+
+    my @paths;
+
+    if (my $node = $self->get('/onlineconf/restriction')) {
+        my $children = $node->children;
+
+        foreach my $glob (keys %$children) {
+            if (hostname_match_glob($glob, $host)) {
+                my $node;
+
+                next unless $node = $children->{$glob};
+                next unless $node = $self->get($node->Path);
+
+                if (defined (my $value = $node->value)) {
+                    push @paths, split ',', $value;
+                }
+            }
+        }
+    }
 
     local $self->{seen_node} = {};
 
-    return (
-        join "\n", map {
-            "$_->[0] $_->[1]"
-        } sort {
-            $a->[0] cmp $b->[0]
-        } $self->_serialize(
-            $self->root, ''
-        )
-    );
+    my @result;
+
+    @paths = ('/');
+
+    foreach my $path (@paths) {
+        if (my $node = $self->get($path)) {
+            $path =~ s/\/+$//;
+            push @result, $self->_serialize($node, $path);
+        }
+    }
+
+    return \@result;
 }
 
 sub _serialize {
@@ -268,22 +315,23 @@ sub _serialize {
             next if $self->{seen_node}->{$child->ID};
         }
 
-        if (defined (my $value = $child->value)) {
-            if (ref $value) {
-                push @data, [
-                    "$Path/$name:JSON", eval {
-                        $self->JSONParser->encode($value)
-                    }
-                ];
-            } else {
-                $value =~ s/\n/\\n/g;
-                $value =~ s/\r/\\r/g;
+        my $nPath = "$Path/$name";
 
-                push @data, ["$Path/$name", $value];
+        if (defined (my $value = $child->value)) {
+            my $ContentType = $child->ContentType;
+
+            if ($child->is_json) {
+                $ContentType = 'application/json';
             }
+
+            if ($child->is_yaml) {
+                $ContentType = 'application/x-yaml';
+            }
+
+            push @data, [$nPath, $value, $ContentType];
         }
 
-        push @data, $self->_serialize($child, "$Path/$name");
+        push @data, $self->_serialize($child, $nPath);
     }
 
     return @data;

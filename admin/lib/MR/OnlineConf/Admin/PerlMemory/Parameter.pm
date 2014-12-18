@@ -3,10 +3,10 @@ package MR::OnlineConf::Admin::PerlMemory::Parameter;
 use Mouse;
 
 # External modules
-use YAML;
 use JSON::XS;
 use Text::Glob;
 
+my $clear;
 my %types = (
     'text/plain' => 'is_plain',
     'application/json' => 'is_json',
@@ -18,8 +18,6 @@ my %types = (
     'application/x-symlink' => 'is_symlink',
     'application/x-template' => 'is_template', #imgsmail.${hostname}
 );
-
-my $clear;
 
 while (my ($type, $attribute) = each %types) {
     $clear .= '$self->' . "clear_$attribute();\n";
@@ -58,6 +56,13 @@ has Path => (
     is  => 'ro',
     isa => 'Str',
     required => 1,
+);
+
+has MTime => (
+    is => 'ro',
+    isa => 'Str',
+    writer => '_MTime',
+    required => 1
 );
 
 has Value => (
@@ -113,9 +118,9 @@ has value => (
         return unless defined $data;
 
         if ($self->is_json) {
-            return $self->JSONParser->decode($data);
+            return $data;
         } elsif ($self->is_yaml) {
-            return YAML::Load($data);
+            return $data;
         } elsif ($self->is_template) {
             my $host = $self->host;
             my $addr = $self->addr;
@@ -140,9 +145,10 @@ has value => (
 
                 $str;
             #eg;
-
-            return $data;
         }
+
+        $data =~ s/\n/\\n/g;
+        $data =~ s/\r/\\r/g;
 
         return $data;
     },

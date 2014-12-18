@@ -2,8 +2,49 @@ package MR::OnlineConf::Admin::Web::Updater;
 
 use Mojo::Base 'MR::OnlineConf::Admin::Web::Controller';
 
+# External modules
+use Socket;
+use CBOR::XS;
+
 # Internal modules
 use MR::OnlineConf::Admin::Storage;
+use MR::OnlineConf::Admin::PerlMemory;
+
+my $tree = MR::OnlineConf::Admin::PerlMemory->new();
+
+sub validate {
+    my ($self) = @_;
+    my $ip = $self->req->env->{HTTP_X_REAL_IP} || $self->req->env->{REMOTE_ADDR};
+
+    unless ($ip) {
+        $self->app->log->warn('Remote ip not found');
+        $self->render(text => '', status => 400);
+        return 0;
+    }
+
+    my ($hostname, $aliases) = gethostbyaddr(inet_aton($ip), AF_INET);
+
+    unless ($hostname || $aliases) {
+        $self->app->log->warn("Cant lookup hostname for $ip");
+        $self->render(text => '', status => 400);
+        return 0;
+    }
+
+    my $host = $self->param('host');
+
+    $aliases  ||= '';
+    $hostname ||= '';
+
+    $self->stash(ip => $ip);
+
+    return 1 if $host eq $hostname;
+    return 1 if grep { $host eq $_ } split ' ', $aliases;
+
+    $self->render(text => '', status => 400);
+    $self->app->log->warn("Hacker $ip $host $hostname $aliases");
+
+    return 0;
+}
 
 sub mtime {
     my ($self) = @_;
@@ -21,40 +62,20 @@ sub mtime {
 
 sub config {
     my ($self) = @_;
+    my $ip = $self->stash('ip');
+    my $host = $self->param('host');
     my $mtime = $self->param('mtime');
     my $reselect = $self->param('reselect');
-    my $list;
 
-    if ($mtime && $reselect) {
-        $list = MR::OnlineConf::Admin::Storage->select(qq[
-                SELECT
-                    t.`ID`, t.`Name`, t.`Path`, l.`Version`, l.`Value`, l.`ContentType`, l.`MTime`, l.`Deleted`
-                FROM
-                    `my_config_tree_log` l JOIN `my_config_tree` t ON l.`NodeID` = t.`ID`
-                WHERE
-                    l.`MTime` > LEAST(?, DATE_SUB(NOW(), INTERVAL ? SECOND))
-                ORDER BY
-                    l.`ID`
-            ],
-            $mtime,
-            $reselect
-        );
-    } else {
-        $list = MR::OnlineConf::Admin::Storage->select(qq[
-            SELECT
-                `ID`, `Name`, `Path`, `Version`, `Value`, `ContentType`
-            FROM
-                `my_config_tree`
-            WHERE NOT
-                `Deleted`
-            ORDER BY
-                `Path`
-        ]);
-    }
+    $tree->refresh();
+    $tree->host($host);
+    $tree->addr([$ip]);
 
-    $list ||= [];
-
-    $self->render(json => $list);
+    $self->render(
+        data => CBOR::XS::encode_cbor(
+            $tree->serialize()
+        )
+    );
 }
 
 sub activity {
