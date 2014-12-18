@@ -1,0 +1,68 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use utf8;
+
+# External modules
+use JSON::XS;
+use Test::More;
+
+unless (@ARGV >= 2) {
+    die "Arguments not enough"
+}
+
+open my $FH1, '<', shift @ARGV;
+open my $FH2, '<', shift @ARGV;
+
+my $i = 0;
+my $p = 0;
+
+while ((my $line1 = _read_line($FH1)) && (my $line2 = _read_line($FH2))) {
+    _real_equal($line1, $line2, ++$i, \$p);
+}
+
+plan tests => $p;
+
+sub _read_line {
+    my ($fh) = @_;
+    my $line;
+
+    BLOCK: {
+        $line = <$fh>;
+        last unless defined $line;
+        goto BLOCK if $line =~ /^#/;
+        goto BLOCK if $line =~ /^\s+$/;
+    }
+
+    if ($line) {
+        chomp($line);
+    }
+
+    return $line;
+}
+
+sub _real_equal {
+    my ($line1, $line2, $line, $plan) = @_;
+
+    return if $line1 eq $line2;
+
+    my ($path1, $data1) = split /\s+/, $line1, 2;
+    my ($path2, $data2) = split /\s+/, $line2, 2;
+
+    unless ($path1 eq $path2) {
+        print "Line $line \n\t$path1 \n\t$path2\n";
+        return;
+    }
+
+    if ($path1 =~ /:JSON$/ && $path2 =~ /:JSON$/) {
+        my $json1 = JSON::XS::decode_json($data1);
+        my $json2 = JSON::XS::decode_json($data2);
+
+        $$plan++;
+
+        return is_deeply($json1, $json2, "Line $line \n\t$path1 \n\t$path2\n");
+    }
+
+    die "FUCK strange lines \n\t$line1 \n\t$line2\n";
+}
