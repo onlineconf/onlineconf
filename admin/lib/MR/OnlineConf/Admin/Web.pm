@@ -32,9 +32,9 @@ sub startup {
     $r->route('/access/(*path)')->via('POST')->to('access#set', path => '');
     $r->route('/access/(*path)')->via('DELETE')->to('access#delete', path => '');
     $r->route('/monitoring')->via('GET')->to('monitoring#list');
-    my $validate = $r->bridge('/client')->to('updater#validate');
-    $validate->route('/config')->via('GET')->to('updater#config');
-    $validate->route('/activity')->via('POST')->to('updater#activity');
+    my $validate = $r->bridge('/client')->to('client#validate');
+    $validate->route('/config')->via('GET')->to('client#config');
+    $validate->route('/activity')->via('POST')->to('client#activity');
     return;
 }
 

@@ -1,4 +1,4 @@
-package MR::OnlineConf::Admin::Web::Updater;
+package MR::OnlineConf::Admin::Web::Client;
 
 use Mojo::Base 'MR::OnlineConf::Admin::Web::Controller';
 
