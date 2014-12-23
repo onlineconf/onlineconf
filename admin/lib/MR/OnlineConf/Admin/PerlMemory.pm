@@ -337,7 +337,7 @@ sub _serialize {
                     $ContentType = 'application/x-yaml';
                 }
 
-                push @data, [$nPath, $value, $ContentType, $MTime];
+                push @data, [$nPath, $value, $ContentType, $nMTime];
             }
         }
 
