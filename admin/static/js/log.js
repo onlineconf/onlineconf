@@ -21,7 +21,7 @@ $(function() {
                         .append($data)
                         .append('<td class="log-mtime">' + log.mtime + '</td>')
                         .append('<td class="log-author">' + log.author + '</td>')
-                        .append('<td class="log-comment">' + (log.comment != null ? log.comment : '') + '</td>')
+                        .append('<td class="log-comment">' + (log.comment != null ? log.comment.replace(/&/g, '&amp;') : '') + '</td>')
                         .appendTo($log);
                     if (log.deleted) {
                         $data.addClass('log-deleted').text('удален');
