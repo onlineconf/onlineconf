@@ -47,7 +47,7 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
 %{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
-%{__cp} -r static/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/static/ 
+%{__cp} -r static/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/static/
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 %_fixperms %{buildroot}/*
@@ -55,7 +55,6 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 %files
 %defattr(-,root,root,-)
 %{perl_vendorlib}/MR/OnlineConf/Admin
-%{perl_vendorlib}/MR/OnlineConf/Storage.pm
 %{_localbindir}/onlineconf-admin
 %{_localbindir}/onlineconf-import
 %{_initrddir}/%{name}
