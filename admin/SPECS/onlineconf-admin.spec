@@ -11,6 +11,7 @@ BuildArch:      noarch
 AutoReq:        0
 BuildRequires:  mr-rpm-macros
 BuildRequires:  perl(ExtUtils::MakeMaker)
+Requires:       perl-CBOR-XS
 Requires:       perl-List-MoreUtils
 Requires:       perl-Log-Dispatch
 Requires:       perl-Mojolicious
