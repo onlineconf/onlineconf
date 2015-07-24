@@ -51,6 +51,7 @@ has addr => (
 has mtime => (
     is => 'rw',
     isa => 'Str',
+    lazy => 1,
     default => sub {
         my $list = MR::OnlineConf::Admin::Storage->select(qq[
             SELECT
@@ -166,6 +167,8 @@ sub put {
 
 sub get {
     my ($self, $path) = @_;
+
+    return unless $path;
 
     if (exists $self->index->{$path}) {
         my $indexed = $self->index->{$path};
@@ -356,12 +359,15 @@ sub _resolve_cases {
     my $datacenter = $self->_which_datacenter();
 
     foreach my $case (values %$cases) {
+        $case->clear_case_before_resolve();
+    }
+
+    foreach my $case (values %$cases) {
         $case->host($host);
         $case->addr($addr);
         $case->groups($groups);
         $case->datacenter($datacenter);
 
-        $case->clear_case_before_resolve();
         $case->resolve_case();
 
         if ($case->is_symlink) {
@@ -453,8 +459,11 @@ sub _resolve_symlinks {
     my $symlinks = $self->symlinks;
 
     foreach my $symlink (values %$symlinks) {
-        local $self->{seen} = {};
         $symlink->clear_symlink_before_resolve();
+    }
+
+    foreach my $symlink (values %$symlinks) {
+        local $self->{seen} = {};
         $self->_resolve_symlink($symlink);
     }
 
@@ -485,9 +494,12 @@ sub _resolve_templates {
     my $templates = $self->templates;
 
     foreach my $template (values %$templates) {
+        $template->clear_template_before_resolve();
+    }
+
+    foreach my $template (values %$templates) {
         $template->host($host);
         $template->addr($addr);
-        $template->clear_template_before_resolve();
         $self->_resolve_template($template);
     }
 

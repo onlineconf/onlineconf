@@ -141,6 +141,8 @@ has value => (
                     unless ($str = join ' ', @$addr) {
                         $str = '${' . $org . '}';
                     }
+                } else {
+                    $str = '${' . $org . '}';
                 }
 
                 $str;
@@ -187,7 +189,7 @@ has case_data => (
 
 has datacenter => (
     is => 'rw',
-    isa => 'MR::OnlineConf::Admin::PerlMemory::Parameter',
+    isa => 'Maybe[MR::OnlineConf::Admin::PerlMemory::Parameter]',
 );
 
 has groups_hash => (
