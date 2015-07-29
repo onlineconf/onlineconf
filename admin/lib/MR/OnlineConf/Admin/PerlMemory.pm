@@ -64,6 +64,13 @@ has mtime => (
     },
 );
 
+has byid => (
+    is => 'ro',
+    isa => 'HashRef',
+    lazy => 1,
+    default => sub { {} },
+);
+
 has index => (
     is  => 'ro',
     isa => 'HashRef',
@@ -124,6 +131,17 @@ sub put {
         return 1;
     }
 
+    # Check move
+    if (my $byid = $self->byid->{$node->ID}) {
+        if ($byid->Path ne $node->Path) {
+            # Remove from index and parents for recreate
+            $self->delete($byid);
+
+            # Replace Path. Patch childs
+            $self->move($byid, $byid->Path, $node->Path);
+        }
+    }
+
     # Update
     if (my $indexed = $self->index->{$node->Path}) {
         unless ($indexed->Version < $node->Version) {
@@ -154,6 +172,7 @@ sub put {
 
         $root->add_child($node);
 
+        $self->byid->{$node->ID} = $node;
         $self->index->{$node->Path} = $node;
         $self->cases->{$node->Path} = $node if $node->is_case;
         $self->symlinks->{$node->Path} = $node if $node->is_symlink;
@@ -215,11 +234,26 @@ sub get {
     return $node;
 }
 
+sub move {
+    my ($self, $node, $from, $to) = @_;
+    my $Path = $node->Path;
+
+    delete $self->index->{$Path};
+    $Path =~ s/$from/$to/;
+    $node->_Path($Path);
+    $self->index->{$Path} = $node;
+
+    foreach my $child (values %{$node->children}) {
+        $self->move($child, $from, $to);
+    }
+}
+
 sub delete {
     my ($self, $param) = @_;
     my $node = $self->root;
     my @path = grep $_, split /\//, $param->Path;
 
+    delete $self->byid->{$param->ID};
     delete $self->index->{$param->Path};
 
     while (defined(my $name = shift @path)) {

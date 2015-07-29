@@ -55,6 +55,7 @@ has Name => (
 has Path => (
     is  => 'ro',
     isa => 'Str',
+    writer => '_Path',
     required => 1,
 );
 
