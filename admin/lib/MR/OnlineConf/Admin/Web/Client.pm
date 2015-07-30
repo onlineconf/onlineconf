@@ -10,14 +10,7 @@ use CBOR::XS;
 use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::PerlMemory;
 
-has tree => (
-    is => 'ro',
-    isa => 'MR::OnlineConf::Admin::PerlMemory',
-    lazy => 1,
-    default => sub {
-        return MR::OnlineConf::Admin::PerlMemory->new();
-    }
-);
+my $tree;
 
 sub validate {
     my ($self) = @_;
@@ -82,21 +75,22 @@ sub config {
     my $host = $self->stash('host');
     my $mtime = $self->stash('mtime');
 
-    $self->tree->refresh();
+    $tree ||= MR::OnlineConf::Admin::PerlMemory->new();
+    $tree->refresh();
 
-    if ($mtime ge $self->tree->mtime) {
+    if ($mtime ge $tree->mtime) {
         return $self->render(
             text => '',
             status => 304,
         );
     }
 
-    $self->tree->host($host);
-    $self->tree->addr([$ip]);
+    $tree->host($host);
+    $tree->addr([$ip]);
 
     $self->render(
         data => CBOR::XS::encode_cbor(
-            $self->tree->serialize($mtime)
+            $tree->serialize($mtime)
         )
     );
 }
