@@ -391,7 +391,7 @@ sub _serialize {
                     Value => $value,
                     MTime => $nMTime,
                     Version => $child->Version,
-                    ContentType => $row->ContentType,
+                    ContentType => $child->ContentType,
                 };
             }
         # }
