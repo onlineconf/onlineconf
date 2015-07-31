@@ -78,6 +78,10 @@ sub config {
     $tree ||= MR::OnlineConf::Admin::PerlMemory->new();
     $tree->refresh();
 
+    $self->res->headers->header(
+        'X-OnlineConf-Admin-Last-Modified' => $tree->mtime
+    );
+
     if ($mtime ge $tree->mtime) {
         return $self->render(
             text => '',
