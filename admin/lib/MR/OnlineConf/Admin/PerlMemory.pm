@@ -360,10 +360,9 @@ sub serialize {
     }
 
     foreach my $path (@paths) {
-        $path =~ s/\/+$//;
-
         # Serialize all childs nodes
         if (my $node = $self->get($path)) {
+            $path =~ s/\/+$//;
             push @result, $self->_serialize($node, $path, $MTime || '');
         }
 
