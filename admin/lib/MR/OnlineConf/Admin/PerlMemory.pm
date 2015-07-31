@@ -347,6 +347,16 @@ sub serialize {
 
     unless (@paths) {
         @paths = ('/');
+    } elsif (my $root = $self->root) {
+        push @result, {
+            ID => $root->ID,
+            Name => $root->Name,
+            Path => $root->Path,
+            Value => $root->Value,
+            MTime => $root->MTime,
+            Version => $root->Version,
+            ContentType => $root->ContentType,
+        };
     }
 
     foreach my $path (@paths) {
