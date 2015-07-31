@@ -11,12 +11,19 @@ use Net::IP::CMatch;
 use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
+# For test
+has list => (
+    is => 'ro',
+    isa => 'ArrayRef[HashRef]',
+);
+
 has root => (
     is => 'ro',
     isa => 'MR::OnlineConf::Admin::PerlMemory::Parameter',
     lazy => 1,
     default => sub {
-        my $list = MR::OnlineConf::Admin::Storage->select(qq[
+        my ($self) = @_;
+        my $list = $self->list || MR::OnlineConf::Admin::Storage->select(qq[
             SELECT
                 `ID`, `Name`, `Path`, `MTime`, `Deleted`, `Version`, `Value`, `ContentType`
             FROM
@@ -48,7 +55,8 @@ has mtime => (
     isa => 'Str',
     lazy => 1,
     default => sub {
-        my $list = MR::OnlineConf::Admin::Storage->select(qq[
+        my ($self) = @_;
+        my $list = $self->list || MR::OnlineConf::Admin::Storage->select(qq[
             SELECT
                 MAX(`MTime`) AS `MTime`
             FROM
@@ -102,7 +110,7 @@ has lastupdate => (
 
 sub BUILD {
     my ($self) = @_;
-    my $list = MR::OnlineConf::Admin::Storage->select(qq[
+    my $list = $self->list || MR::OnlineConf::Admin::Storage->select(qq[
         SELECT
             `ID`, `Name`, `Path`, `MTime`, `Deleted`, `Version`, `Value`, `ContentType`
         FROM
