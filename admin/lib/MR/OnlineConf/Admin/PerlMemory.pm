@@ -11,12 +11,12 @@ use Net::IP::CMatch;
 use MR::OnlineConf::Admin::Storage;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
-has list => (
+has root => (
     is => 'ro',
-    isa => 'ArrayRef',
+    isa => 'MR::OnlineConf::Admin::PerlMemory::Parameter',
     lazy => 1,
     default => sub {
-        return MR::OnlineConf::Admin::Storage->select(qq[
+        my $list = MR::OnlineConf::Admin::Storage->select(qq[
             SELECT
                 `ID`, `Name`, `Path`, `MTime`, `Deleted`, `Version`, `Value`, `ContentType`
             FROM
@@ -25,16 +25,11 @@ has list => (
                 `Deleted`
             ORDER BY
                 `Path`
+            LIMIT
+                1
         ]);
-    }
-);
 
-has root => (
-    is => 'ro',
-    isa => 'MR::OnlineConf::Admin::PerlMemory::Parameter',
-    lazy => 1,
-    default => sub {
-        return MR::OnlineConf::Admin::PerlMemory::Parameter->new(%{$_[0]->list->[0]});
+        return MR::OnlineConf::Admin::PerlMemory::Parameter->new(%{$list->[0]});
     }
 );
 
@@ -107,7 +102,16 @@ has lastupdate => (
 
 sub BUILD {
     my ($self) = @_;
-    my $list = $self->list;
+    my $list = MR::OnlineConf::Admin::Storage->select(qq[
+        SELECT
+            `ID`, `Name`, `Path`, `MTime`, `Deleted`, `Version`, `Value`, `ContentType`
+        FROM
+            `my_config_tree`
+        WHERE NOT
+            `Deleted`
+        ORDER BY
+            `Path`
+    ]);
 
     foreach my $item (@$list) {
         $self->put(
@@ -366,7 +370,9 @@ sub _serialize {
         my $nPath = "$Path/$name";
         my $nMTime = $child->MTime;
 
-        if ($MTime lt $nMTime) {
+        # Надо придумать как доносить удаленные ноды, тогда можно будет гонять
+        # только кусок апдейта а не весь конфиг целиком
+        # if ($MTime lt $nMTime) {
             if (defined (my $value = $child->value)) {
                 my $ContentType = $child->ContentType;
 
@@ -378,9 +384,17 @@ sub _serialize {
                     $ContentType = 'application/x-yaml';
                 }
 
-                push @data, [$nPath, $value, $ContentType, $nMTime];
+                push @data, {
+                    ID => $child->ID,
+                    Name => $child->Name,
+                    Path => $nPath,
+                    Value => $value,
+                    MTime => $nMTime,
+                    Version => $child->Version,
+                    ContentType => $row->ContentType,
+                };
             }
-        }
+        # }
 
         push @data, $self->_serialize($child, $nPath, $MTime);
     }
