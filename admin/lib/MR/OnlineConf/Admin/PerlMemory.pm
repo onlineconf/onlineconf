@@ -352,8 +352,8 @@ sub serialize {
             ID => $root->ID,
             Name => $root->Name,
             Path => $root->Path,
-            Value => $root->Value,
             MTime => $root->MTime,
+            Value => $root->Value,
             Version => $root->Version,
             ContentType => $root->ContentType,
         };
@@ -362,11 +362,12 @@ sub serialize {
     foreach my $path (@paths) {
         $path =~ s/\/+$//;
 
+        # Serialize all childs nodes
         if (my $node = $self->get($path)) {
             push @result, $self->_serialize($node, $path, $MTime || '');
         }
 
-        # Serialize parents nodes
+        # Serialize current and parents nodes
         while (length($path)) {
             if (my $node = $self->get($path)) {
                 my $ContentType = $node->ContentType;
@@ -383,8 +384,8 @@ sub serialize {
                     ID => $node->ID,
                     Name => $node->Name,
                     Path => $node->Path,
-                    Value => $node->value,
                     MTime => $node->MTime,
+                    Value => $node->value,
                     Version => $node->Version,
                     ContentType => $ContentType,
                 };
@@ -419,27 +420,25 @@ sub _serialize {
         # Надо придумать как доносить удаленные ноды, тогда можно будет гонять
         # только кусок апдейта а не весь конфиг целиком
         # if ($MTime lt $nMTime) {
-            if (defined (my $value = $child->value)) {
-                my $ContentType = $child->ContentType;
+            my $ContentType = $child->ContentType;
 
-                if ($child->is_json) {
-                    $ContentType = 'application/json';
-                }
-
-                if ($child->is_yaml) {
-                    $ContentType = 'application/x-yaml';
-                }
-
-                push @data, {
-                    ID => $child->ID,
-                    Name => $child->Name,
-                    Path => $nPath,
-                    Value => $value,
-                    MTime => $nMTime,
-                    Version => $child->Version,
-                    ContentType => $ContentType,
-                };
+            if ($child->is_json) {
+                $ContentType = 'application/json';
             }
+
+            if ($child->is_yaml) {
+                $ContentType = 'application/x-yaml';
+            }
+
+            push @data, {
+                ID => $child->ID,
+                Name => $child->Name,
+                Path => $nPath,
+                MTime => $nMTime,
+                Value => $child->value,
+                Version => $child->Version,
+                ContentType => $ContentType,
+            };
         # }
 
         push @data, $self->_serialize($child, $nPath, $MTime);
