@@ -422,25 +422,27 @@ sub _serialize {
         # Надо придумать как доносить удаленные ноды, тогда можно будет гонять
         # только кусок апдейта а не весь конфиг целиком
         # if ($MTime lt $nMTime) {
-            my $ContentType = $child->ContentType;
+            if (defined(my $value = $child->value) || $child->is_null) {
+                my $ContentType = $child->ContentType;
 
-            if ($child->is_json) {
-                $ContentType = 'application/json';
+                if ($child->is_json) {
+                    $ContentType = 'application/json';
+                }
+
+                if ($child->is_yaml) {
+                    $ContentType = 'application/x-yaml';
+                }
+
+                push @data, {
+                    ID => $child->ID,
+                    Name => $child->Name,
+                    Path => $nPath,
+                    MTime => $nMTime,
+                    Value => $value,
+                    Version => $child->Version,
+                    ContentType => $ContentType,
+                };
             }
-
-            if ($child->is_yaml) {
-                $ContentType = 'application/x-yaml';
-            }
-
-            push @data, {
-                ID => $child->ID,
-                Name => $child->Name,
-                Path => $nPath,
-                MTime => $nMTime,
-                Value => $child->value,
-                Version => $child->Version,
-                ContentType => $ContentType,
-            };
         # }
 
         push @data, $self->_serialize($child, $nPath, $MTime);
