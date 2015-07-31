@@ -8,13 +8,13 @@ use MR::OnlineConf::Updater::PerlMemory;
 use MR::OnlineConf::Updater::Parameter;
 use MR::OnlineConf::Updater::ConfFiles;
 
-our $VERSION = '1.0';
+our $VERSION;
 
-has config => (
-    is  => 'ro',
-    isa => 'HashRef',
-    required => 1,
-);
+if (my $str = `rpm -q onlineconf-updater`) {
+    if ($str =~ s/onlineconf-updater-//) {
+        ($VERSION, undef) = split '-', $str, 2;
+    }
+}
 
 has log => (
     is  => 'ro',
@@ -22,13 +22,25 @@ has log => (
     required => 1,
 );
 
+has config => (
+    is  => 'ro',
+    isa => 'HashRef',
+    required => 1,
+);
+
+has _loop => (
+    is  => 'ro',
+    lazy    => 1,
+    default => sub { AnyEvent->condvar() },
+);
+
 has _signals => (
     is  => 'ro',
     isa => 'ArrayRef',
-        lazy    => 1,
+    lazy    => 1,
     default => sub {
         my ($self) = @_;
-        my $el = $self->_eventloop;
+        my $el = $self->_loop;
         my $log = $self->log;
         return [
             map {
@@ -46,13 +58,7 @@ has _signals => (
     }
 );
 
-has _eventloop => (
-    is  => 'ro',
-    lazy    => 1,
-    default => sub { AnyEvent->condvar() },
-);
-
-has _timer => (
+has _update_timer => (
     is  => 'ro',
     lazy    => 1,
     default => sub {
@@ -60,7 +66,7 @@ has _timer => (
         weaken($self);
         AnyEvent->timer(
             interval => $self->config->{update_interval} || 5,
-            cb       => sub { $self->update() },
+            cb       => sub { $self->_update_config() },
         );
     },
 );
@@ -73,30 +79,44 @@ has _online_timer => (
         weaken($self);
         AnyEvent->timer(
             interval => $self->config->{online_interval} || 60,
-            cb       => sub { $self->_update_activity() },
+            cb       => sub { $self->_update_online() },
         );
     },
+);
+
+has _admin => (
+    is => 'ro',
+    isa => 'MR::OnlineConf::Updater::Admin',
+    lazy => 1,
+    default => sub {
+        my ($self) = @_;
+
+        return MR::OnlineConf::Updater::Admin->new(
+            %{$self->config->{admin}}, version => $VERSION
+        );
+    }
+);
+
+has _reselect => (
+    is => 'ro',
+    isa => 'Int',
+    lazy => 1,
+    default => sub {
+        my ($self) = @_;
+        return $self->config->{reselect_interval} || $self->config->{update_interval} * 2;
+    }
 );
 
 has conf_files => (
     is  => 'ro',
     isa => 'MR::OnlineConf::Updater::ConfFiles',
     lazy    => 1,
-    default => sub { MR::OnlineConf::Updater::ConfFiles->new(dir => $_[0]->config->{data_dir}, log => $_[0]->log) },
-);
-
-has _tree => (
-    is  => 'ro',
-    isa => 'MR::OnlineConf::Updater::PerlMemory',
-    lazy    => 1,
-    default => sub { MR::OnlineConf::Updater::PerlMemory->new(log => $_[0]->log) },
-    clearer => '_clear_tree',
-);
-
-has _mtime => (
-    is  => 'rw',
-    isa => 'Str',
-    trigger => sub { $_[0]->_update_activity() },
+    default => sub {
+        return MR::OnlineConf::Updater::ConfFiles->new(
+            log => $_[0]->log,
+            dir => $_[0]->config->{data_dir}
+        )
+    },
 );
 
 has _update_time => (
@@ -105,70 +125,29 @@ has _update_time => (
     default => 0,
 );
 
-has admin => (
-    is => 'ro',
-    isa => 'MR::OnlineConf::Updater::Admin',
-    lazy => 1,
-    default => sub {
-        my ($self) = @_;
-
-        return MR::OnlineConf::Updater::Admin->new(
-            %{$self->config->{admin}}
-        );
-    }
-);
-
 sub run {
     my ($self) = @_;
     $self->_signals;
-    $self->_timer;
+    $self->_update_timer;
     $self->_online_timer;
-    $self->_eventloop->recv();
+    $self->_loop->recv();
     return;
 }
 
-sub initialize {
+sub _update_config {
     my ($self) = @_;
-    $self->log->debug("Initializing config tree");
-    my $mtime = $self->admin->get_mtime();
-    return unless $mtime;
-    my $list = $self->admin->get_config();
-    return unless $list;
-    return unless @$list;
-    my $count = @$list;
-    $self->_clear_tree();
-    my $tree = $self->_tree;
-    foreach my $row (@$list) {
-        my $param = MR::OnlineConf::Updater::Parameter->new(
-            id           => $row->{ID},
-            name         => $row->{Name},
-            path         => $row->{Path},
-            version      => $row->{Version},
-            data         => $row->{Value},
-            content_type => $row->{ContentType},
-        );
-        $tree->put($param);
-    }
-    $tree->finalize();
-    if (eval { $self->conf_files->update($tree); 1 }) {
-        $self->_mtime($mtime);
-        $self->log->info("Config tree was initialized with $count parameters, last modification was at $mtime");
-    } else {
-        $self->log->error("Failed to initialize config: $@");
-    }
-    return;
-}
 
-sub update {
-    my ($self) = @_;
-    my $update_time = time();
-    my $reselect = $self->config->{reselect_interval} || $self->config->{update_interval} * 2;
-    if ((my $mtime = $self->_mtime) && $self->_update_time > time() - $reselect) {
-        my $tree = $self->_tree;
-        my $list = $self->admin->get_config($mtime, $reselect);
+    $self->_update_time(time);
+
+    if ($self->_is_need_update) {
+        my $list = $self->_admin->get_config();
+        my $tree = MR::OnlineConf::Updater::PerlMemory->new(log => $_[0]->log);
+
         if ($list && @$list) {
             my $count = 0;
-            foreach my $row (@$list) {
+            my @slist = sort {$a->{Path} cmp $b->{Path}} @$list;
+
+            foreach my $row (@slist) {
                 my $param = MR::OnlineConf::Updater::Parameter->new(
                     id           => $row->{ID},
                     name         => $row->{Name},
@@ -177,18 +156,15 @@ sub update {
                     data         => $row->{Value},
                     content_type => $row->{ContentType},
                 );
-                if ($row->{Deleted}) {
-                    $count++ if $tree->delete($param);
-                } else {
+
+                if (defined $param->value || $param->is_null || $param->is_case) {
                     $count++ if $tree->put($param);
                 }
             }
+
             if ($count) {
-                $tree->finalize();
                 if (eval { $self->conf_files->update($tree); 1 }) {
-                    my $mtime = $list->[-1]->{MTime};
-                    $self->_mtime($mtime);
-                    $self->log->info("Updated $count versions, last modification was at $mtime");
+                    $self->log->info("Updated $count versions, last modification was at " . $self->_admin->mtime);
                 } else {
                     $self->log->error("Failed to update config: $@");
                 }
@@ -198,19 +174,23 @@ sub update {
         } else {
             $self->log->debug("Nothing to update");
         }
-    } else {
-        $self->initialize();
     }
-    $self->_update_time($update_time);
+
     return;
 }
 
-sub _update_activity {
+sub _update_online {
     my ($self) = @_;
-    $self->admin->post_activity(
-        Sys::Hostname::hostname(), $self->_mtime || 0, $VERSION
-    );
-    return;
+    return $self->_admin->post_activity();
+}
+
+sub _is_need_update {
+    my ($self) = @_;
+
+    return 0 unless $self->_admin->mtime;
+    return 0 unless $self->_update_time > time() - $self->_reselect;
+
+    return 1;
 }
 
 no Mouse;
