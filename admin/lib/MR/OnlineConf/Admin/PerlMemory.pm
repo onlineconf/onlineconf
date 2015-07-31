@@ -437,7 +437,7 @@ sub _serialize {
                 Name => $child->Name,
                 Path => $nPath,
                 MTime => $nMTime,
-                Value => $value,
+                Value => $child->value,
                 Version => $child->Version,
                 ContentType => $ContentType,
             };
