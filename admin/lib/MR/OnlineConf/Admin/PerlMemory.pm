@@ -360,9 +360,37 @@ sub serialize {
     }
 
     foreach my $path (@paths) {
+        $path =~ s/\/+$//;
+
         if (my $node = $self->get($path)) {
-            $path =~ s/\/+$//;
             push @result, $self->_serialize($node, $path, $MTime || '');
+        }
+
+        # Serialize parents nodes
+        while (length($path)) {
+            if (my $node = $self->get($path)) {
+                my $ContentType = $node->ContentType;
+
+                if ($node->is_json) {
+                    $ContentType = 'application/json';
+                }
+
+                if ($node->is_yaml) {
+                    $ContentType = 'application/x-yaml';
+                }
+
+                push @result, {
+                    ID => $node->ID,
+                    Name => $node->Name,
+                    Path => $node->Path,
+                    Value => $node->value,
+                    MTime => $node->MTime,
+                    Version => $node->Version,
+                    ContentType => $ContentType,
+                };
+            }
+
+            $path =~ s/\/.*?$//;
         }
     }
 
@@ -409,7 +437,7 @@ sub _serialize {
                     Value => $value,
                     MTime => $nMTime,
                     Version => $child->Version,
-                    ContentType => $child->ContentType,
+                    ContentType => $ContentType,
                 };
             }
         # }
