@@ -333,6 +333,10 @@ sub serialize {
 
     my @result;
 
+    unless (@paths) {
+        @paths = ('/');
+    }
+
     foreach my $path (@paths) {
         if (my $node = $self->get($path)) {
             $path =~ s/\/+$//;
