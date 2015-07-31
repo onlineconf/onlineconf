@@ -347,16 +347,6 @@ sub serialize {
 
     unless (@paths) {
         @paths = ('/');
-    } elsif (my $root = $self->root) {
-        push @result, {
-            ID => $root->ID,
-            Name => $root->Name,
-            Path => $root->Path,
-            MTime => $root->MTime,
-            Value => $root->Value,
-            Version => $root->Version,
-            ContentType => $root->ContentType,
-        };
     }
 
     foreach my $path (@paths) {
@@ -391,6 +381,19 @@ sub serialize {
             }
 
             $path =~ s/^(.*)\/.*?$/$1/;
+        }
+
+        # Serialize root
+        if (my $root = $self->root) {
+            push @result, {
+                ID => $root->ID,
+                Name => $root->Name,
+                Path => $root->Path,
+                MTime => $root->MTime,
+                Value => $root->Value,
+                Version => $root->Version,
+                ContentType => $root->ContentType,
+            };
         }
     }
 
