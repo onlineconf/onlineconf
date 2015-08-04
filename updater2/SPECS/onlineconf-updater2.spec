@@ -11,6 +11,7 @@ BuildArch:      noarch
 AutoReq:        0
 BuildRequires:  git
 BuildRequires:  mr-rpm-macros
+BuildRequires:  perl(ExtUtils::MakeMaker)
 Requires:       perl-AnyEvent >= 5.31
 Requires:       perl-EV >= 4.02
 Requires:       perl-JSON
