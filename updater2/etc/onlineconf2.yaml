@@ -9,12 +9,6 @@ database:
   password: xxx
   base: xxx
   timeout: 15
-notification_database:
-  host: xxx
-  user: xxx
-  password: xxx
-  base: xxx
-  timeout: 2
 data_dir: /usr/local/etc/onlineconf2/
 logfile: /var/log/onlineconf_updater2.log
 pidfile: /var/run/onlineconf_updater2.pid
