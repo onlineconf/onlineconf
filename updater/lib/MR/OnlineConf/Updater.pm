@@ -8,13 +8,7 @@ use MR::OnlineConf::Updater::PerlMemory;
 use MR::OnlineConf::Updater::Parameter;
 use MR::OnlineConf::Updater::ConfFiles;
 
-our $VERSION;
-
-if (my $str = `rpm -q onlineconf-updater`) {
-    if ($str =~ s/onlineconf-updater-//) {
-        ($VERSION, undef) = split '-', $str, 2;
-    }
-}
+our $VERSION = '2.0';
 
 has log => (
     is  => 'ro',
@@ -48,7 +42,7 @@ has _signals => (
                 AnyEvent->signal(
                     signal => $signal,
                     cb     => sub {
-                        $log->info("SIG$signal received, terminating...\n");
+                        $log->info("SIG $signal received, terminating...\n");
                         $el->send();
                         return;
                     }
