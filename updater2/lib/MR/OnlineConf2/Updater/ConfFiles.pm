@@ -1,12 +1,10 @@
-package MR::OnlineConf::Updater::ConfFiles;
+package MR::OnlineConf2::Updater::ConfFiles;
 
 use Mouse;
-use File::Spec;
+
 use JSON;
+use File::Spec;
 use POSIX qw/strftime/;
-use Text::Glob qw/match_glob glob_to_regex_string/;
-use Sys::Hostname;
-use MR::OnlineConf::Updater::Util;
 
 has dir => (
     is  => 'ro',

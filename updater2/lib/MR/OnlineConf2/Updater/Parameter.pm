@@ -1,4 +1,4 @@
-package MR::OnlineConf::Updater::Parameter;
+package MR::OnlineConf2::Updater::Parameter;
 
 use Mouse;
 use YAML;
@@ -6,7 +6,7 @@ use JSON;
 use File::Spec::Unix;
 use Sys::Hostname ();
 use Text::Glob;
-use MR::OnlineConf::Updater::Transaction;
+use MR::OnlineConf2::Updater::Transaction;
 
 has id => (
     is  => 'ro',

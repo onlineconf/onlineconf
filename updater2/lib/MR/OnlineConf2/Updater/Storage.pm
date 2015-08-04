@@ -1,4 +1,4 @@
-package MR::OnlineConf::Updater::Storage;
+package MR::OnlineConf2::Updater::Storage;
 
 use Mouse;
 

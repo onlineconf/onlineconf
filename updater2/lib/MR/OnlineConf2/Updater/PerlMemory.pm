@@ -1,4 +1,4 @@
-package MR::OnlineConf::Updater::PerlMemory;
+package MR::OnlineConf2::Updater::PerlMemory;
 
 use Mouse;
 
@@ -10,7 +10,7 @@ has log => (
 
 has _root => (
     is  => 'rw',
-    isa => 'MR::OnlineConf::Updater::Parameter',
+    isa => 'MR::OnlineConf2::Updater::Parameter',
 );
 
 sub put {

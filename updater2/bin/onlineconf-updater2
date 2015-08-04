@@ -8,7 +8,7 @@ use Getopt::Long;
 use Log::Dispatch;
 use POSIX qw/strftime/;
 use YAML;
-use MR::OnlineConf::Updater;
+use MR::OnlineConf2::Updater;
 
 my %options = (
     config => '/usr/local/etc/onlineconf2.yaml',
@@ -35,7 +35,7 @@ my $log = Log::Dispatch->new(
 
 $log->info("onlineconf-updater2 started\n");
 
-my $updater = MR::OnlineConf::Updater->new(
+my $updater = MR::OnlineConf2::Updater->new(
     config => $config,
     log    => $log,
 );
