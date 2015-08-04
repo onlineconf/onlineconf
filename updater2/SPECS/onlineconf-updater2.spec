@@ -32,7 +32,7 @@ onlineconf-updater2 script. Built from revision %{__revision}.
 
 %prep
 %setup -n onlineconf/updater2
-sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf/Updater.pm
+sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf2/Updater.pm
 
 %build
 %__perl Makefile.PL INSTALLDIRS=vendor
