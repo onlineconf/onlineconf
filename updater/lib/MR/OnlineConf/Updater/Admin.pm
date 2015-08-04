@@ -55,15 +55,6 @@ has password => (
     required => 1,
 );
 
-has hostname => (
-    is => 'ro',
-    isa => 'Str',
-    lazy => 1,
-    default => sub {
-        Sys::Hostname::hostname()
-    },
-);
-
 has lwp => (
     is => 'ro',
     isa => 'LWP::UserAgent',
@@ -72,9 +63,7 @@ has lwp => (
         my ($self) = @_;
         my $ua = LWP::UserAgent->new();
 
-        $ua->default_header("X-OnlineConf-Client-Host" => $self->hostname);
         $ua->default_header("X-OnlineConf-Client-Version" => $self->version);
-
         $ua->default_header("Authorization" => "Basic " . MIME::Base64::encode_base64(
             $self->username . ':' . $self->password
         ));
@@ -82,6 +71,7 @@ has lwp => (
         $ua->add_handler(
             request_prepare => sub {
                 my ($req, $ua, $h) = @_;
+                $req->header("X-OnlineConf-Client-Host" => Sys::Hostname::hostname());
                 $req->header('X-OnlineConf-Client-Mtime' => $self->mtime);
             }
         );
@@ -128,7 +118,7 @@ sub post_activity {
 
     return $self->lwp->post(
         $self->address . 'client/activity', {
-            host => $self->hostname,
+            host => Sys::Hostname::hostname(),
             mtime => $self->mtime,
             version => $self->version,
         }
