@@ -354,7 +354,13 @@ sub _sort_case {
 sub _unpack_case {
     my ($self, $data) = @_;
 
-    $data = $self->JSONParser->decode($data);
+    eval {
+        $data = $self->JSONParser->decode($data);
+    };
+
+    if ($@) {
+        die "_unpack_case error: $data " . $self->Path;
+    }
 
     foreach my $case (@$data) {
         if ($case->{mime} eq 'application/x-case') {
