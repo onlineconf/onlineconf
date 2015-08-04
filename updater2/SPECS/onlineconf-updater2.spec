@@ -34,7 +34,7 @@ onlineconf-updater2 script. Built from revision %{__revision}.
 sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf/Updater.pm
 
 %build
-%__perl Makefile2.PL INSTALLDIRS=vendor
+%__perl Makefile.PL INSTALLDIRS=vendor
 %__make %{?_smp_mflags}
 
 %install
