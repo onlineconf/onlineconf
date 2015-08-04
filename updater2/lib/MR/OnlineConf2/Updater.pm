@@ -2,7 +2,6 @@ package MR::OnlineConf2::Updater;
 
 use Mouse;
 use Scalar::Util 'weaken';
-use Sys::Hostname ();
 use MR::OnlineConf2::Updater::Admin;
 use MR::OnlineConf2::Updater::PerlMemory;
 use MR::OnlineConf2::Updater::Parameter;
