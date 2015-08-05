@@ -61,6 +61,7 @@ echo "@daily root %{_initrddir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}/c
 %config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf2.yaml
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf2
 %{_sysconfdir}/cron.d/%{name}
+%{_sysconfdir}/cron.d/onlineconf-diff
 
 %post
 chkconfig --add onlineconf2
