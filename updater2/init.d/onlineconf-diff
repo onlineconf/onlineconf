@@ -3,5 +3,5 @@
 echo "Start diff" >> /var/log/onlineconf-diff.log
 
 for i in $(ls /usr/local/etc/onlineconf/); do
-    diff -I '#.*' /usr/local/etc/onlineconf/$i /usr/local/etc/onlineconf2/$i >> /var/log/onlineconf-diff.log
+    diff -I '#.*' /usr/local/etc/onlineconf/$i /usr/local/etc/onlineconf2/$i 1>> /var/log/onlineconf-diff.log 2>> /var/log/onlineconf-diff.log
 done
