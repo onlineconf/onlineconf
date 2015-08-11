@@ -22,23 +22,16 @@ sub validate {
         return 0;
     }
 
-    my ($hostname, $aliases) = gethostbyaddr(inet_aton($ip), AF_INET);
+    my ($host, undef) = gethostbyaddr(inet_aton($ip), AF_INET);
 
-    unless ($hostname || $aliases) {
+    unless ($host) {
         $self->app->log->warn("Cant lookup hostname for $ip");
         $self->render(text => '', status => 400);
         return 0;
     }
 
-    my $host = $self->req->headers->header('X-OnlineConf-Client-Host');
     my $mtime = $self->req->headers->header('X-OnlineConf-Client-Mtime');
     my $version = $self->req->headers->header('X-OnlineConf-Client-Version');
-
-    unless ($host) {
-        $self->app->log->warn("Unknow client host $ip");
-        $self->render(text => '', status => 400);
-        return 0;
-    }
 
     unless ($mtime) {
         $self->app->log->warn("Unknow client mtime $ip");
@@ -52,21 +45,12 @@ sub validate {
         return 0;
     }
 
-    $aliases  ||= '';
-    $hostname ||= '';
-
     $self->stash(ip => $ip);
     $self->stash(host => $host);
     $self->stash(mtime => $mtime);
     $self->stash(version => $version);
 
-    return 1 if $host eq $hostname;
-    return 1 if grep { $host eq $_ } split ' ', $aliases;
-
-    $self->render(text => '', status => 400);
-    $self->app->log->warn("Hacker $ip $host $hostname $aliases");
-
-    return 0;
+    return 1;
 }
 
 sub config {
