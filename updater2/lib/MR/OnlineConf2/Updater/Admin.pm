@@ -5,7 +5,6 @@ use Mouse;
 # External modules
 use CBOR::XS;
 use MIME::Base64;
-use Sys::Hostname;
 use LWP::UserAgent;
 
 has host => (
@@ -71,7 +70,6 @@ has lwp => (
         $ua->add_handler(
             request_prepare => sub {
                 my ($req, $ua, $h) = @_;
-                $req->header("X-OnlineConf-Client-Host" => Sys::Hostname::hostname());
                 $req->header('X-OnlineConf-Client-Mtime' => $self->mtime);
             }
         );
@@ -118,7 +116,6 @@ sub post_activity {
 
     return $self->lwp->post(
         $self->address . 'client/activity', {
-            host => Sys::Hostname::hostname(),
             mtime => $self->mtime,
             version => $self->version,
         }
