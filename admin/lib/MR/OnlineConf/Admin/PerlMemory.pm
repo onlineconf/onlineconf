@@ -172,11 +172,11 @@ sub put {
 
     # Create
     if (my $root = $self->root) {
-        my @path = grep $_, split /\//, $node->Path;
+        my @path = grep length($_), split /\//, $node->Path;
 
         pop @path;
 
-        while (my $name = shift @path) {
+        while (defined(my $name = shift @path)) {
             unless ($root = $root->children->{$name}) {
                 die sprintf "Failed to put parameter %s: no parent node found", $node->Path;
             }
@@ -217,7 +217,7 @@ sub get {
     }
 
     my $node = $self->root;
-    my @path = grep $_, split /\//, $path;
+    my @path = grep length($_), split /\//, $path;
 
     while (defined(my $name = shift @path)) {
         if ($node = $node->children->{$name}) {
@@ -263,7 +263,7 @@ sub move {
 sub delete {
     my ($self, $param) = @_;
     my $node = $self->root;
-    my @path = grep $_, split /\//, $param->Path;
+    my @path = grep length($_), split /\//, $param->Path;
 
     delete $self->byid->{$param->ID};
     delete $self->index->{$param->Path};
