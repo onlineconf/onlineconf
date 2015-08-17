@@ -1,7 +1,4 @@
 #!/bin/bash
 
 echo "Start diff" >> /var/log/mailru/onlineconf-diff.log
-
-for i in $(ls /usr/local/etc/onlineconf/); do
-    diff -I '#.*' /usr/local/etc/onlineconf/$i /usr/local/etc/onlineconf2/$i >> /var/log/mailru/onlineconf-diff.log 2>&1
-done
+diff -I '#.*' /usr/local/etc/onlineconf/ /usr/local/etc/onlineconf2/ >> /var/log/mailru/onlineconf-diff.log 2>&1
