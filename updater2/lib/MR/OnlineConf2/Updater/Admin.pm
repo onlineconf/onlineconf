@@ -32,6 +32,10 @@ has address => (
     default => sub {
         my ($self) = @_;
 
+        if ($self->port == 443) {
+            return 'https://' . $self->host . ':' . $self->port . '/';
+        }
+
         return 'http://' . $self->host . ':' . $self->port . '/';
     }
 );
