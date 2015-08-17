@@ -17,7 +17,7 @@ sub put {
     my ($self, $param) = @_;
 
     if (my $node = $self->_root) {
-        my @path = grep $_, split /\//, $param->path;
+        my @path = grep length($_), split /\//, $param->path;
 
         while (defined(my $name = shift @path)) {
             if (@path == 0) {

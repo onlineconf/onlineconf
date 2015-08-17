@@ -25,27 +25,23 @@ has _data => (
 );
 
 sub update {
-    my ($self, $tree) = @_;
+    my ($self, $tree, $modules) = @_;
     my @failed;
 
     # Dump modules
-    if (my $map = $tree->get('/onlineconf/module')) {
-        foreach my $module (keys %{$map->children}) {
-            local $self->{seen_node} = {};
+    foreach my $module (@$modules) {
+        my $data = {};
 
-            my $child = $map->child($module);
-
-            next if !$child;
-
-            my $data = $self->_walk_tree($child);
-
-            eval {
-                $self->_dump_module($module, $data); 1;
-            } or do {
-                $self->log->error($@);
-                push @failed, $module;
-            };
+        if (my $node = $tree->get("/onlineconf/module/$module")) {
+            $data = $self->_walk_tree($node);
         }
+
+        eval {
+            $self->_dump_module($module, $data); 1;
+        } or do {
+            $self->log->error($@);
+            push @failed, $module;
+        };
     }
 
     # Dump TREE.conf

@@ -109,10 +109,10 @@ sub get_config {
             warn "WebAPI CBOR ERROR: $@";
         }
 
-        return $data || [];
+        return $data || {};
     }
 
-    return [];
+    return {};
 }
 
 sub post_activity {

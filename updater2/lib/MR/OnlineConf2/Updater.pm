@@ -136,33 +136,38 @@ sub _update_config {
         my $list = $self->_admin->get_config();
         my $tree = MR::OnlineConf2::Updater::PerlMemory->new(log => $_[0]->log);
 
-        if ($list && @$list) {
-            my $count = 0;
-            my @slist = sort {$a->{Path} cmp $b->{Path}} @$list;
+        if ($list) {
+            $list->{nodes} ||= [];
+            $list->{modules} ||= [];
 
-            foreach my $row (@slist) {
-                my $param = MR::OnlineConf2::Updater::Parameter->new(
-                    id           => $row->{ID},
-                    name         => $row->{Name},
-                    path         => $row->{Path},
-                    version      => $row->{Version},
-                    data         => $row->{Value},
-                    content_type => $row->{ContentType},
-                );
+            if (@{$list->{nodes}}) {
+                my $count = 0;
+                my @slist = sort {$a->{Path} cmp $b->{Path}} @{$list->{nodes}};
 
-                if (defined $param->value || $param->is_null || $param->is_case) {
-                    $count++ if $tree->put($param);
+                foreach my $row (@slist) {
+                    my $param = MR::OnlineConf2::Updater::Parameter->new(
+                        id           => $row->{ID},
+                        name         => $row->{Name},
+                        path         => $row->{Path},
+                        version      => $row->{Version},
+                        data         => $row->{Value},
+                        content_type => $row->{ContentType},
+                    );
+
+                    if (defined $param->value || $param->is_null || $param->is_case) {
+                        $count++ if $tree->put($param);
+                    }
                 }
-            }
 
-            if ($count) {
-                if (eval { $self->conf_files->update($tree); 1 }) {
-                    $self->log->info("Updated $count versions, last modification was at " . $self->_admin->mtime);
+                if ($count) {
+                    if (eval { $self->conf_files->update($tree, $list->{modules}); 1 }) {
+                        $self->log->info("Updated $count versions, last modification was at " . $self->_admin->mtime);
+                    } else {
+                        $self->log->error("Failed to update config: $@");
+                    }
                 } else {
-                    $self->log->error("Failed to update config: $@");
+                    $self->log->debug("Nothing to update");
                 }
-            } else {
-                $self->log->debug("Nothing to update");
             }
         } else {
             $self->log->debug("Nothing to update");
