@@ -373,7 +373,7 @@ sub serialize {
                 push @result, {
                     ID => $node->ID,
                     Name => $node->Name,
-                    Path => $node->Path,
+                    Path => $path,
                     MTime => $node->MTime,
                     Value => $node->value,
                     Version => $node->Version,
