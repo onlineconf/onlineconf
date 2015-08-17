@@ -398,7 +398,7 @@ sub serialize {
         }
     }
 
-    my @modules
+    my @modules;
 
     # Serialize modules
     if (my $modules = $self->get('/onlineconf/module')) {
