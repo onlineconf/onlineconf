@@ -46,10 +46,9 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %__mkdir -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir}/onlineconf2 %{buildroot}/%{_sysconfdir}/cron.d
 %__install -m 644 etc/onlineconf2.yaml %{buildroot}/%{_localetcdir}/onlineconf2.yaml
 %__install -m 755 init.d/onlineconf2 %{buildroot}/%{_initrddir}/onlineconf2
-%__install -m 755 init.d/onlineconf-diff %{buildroot}/%{_initrddir}/onlineconf-diff
 %__mv %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
 echo "@daily root %{_initrddir}/onlineconf2 remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
-echo "@daily root %{_initrddir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}/cron.d/onlineconf-diff
+echo "@daily root %{_localbindir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}/cron.d/onlineconf-diff
 %_fixperms %{buildroot}/*
 
 %files
@@ -57,7 +56,6 @@ echo "@daily root %{_initrddir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}/c
 %{perl_vendorlib}/*
 %{_localbindir}/*
 %{_initrddir}/onlineconf2
-%{_initrddir}/onlineconf-diff
 %config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf2.yaml
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf2
 %{_sysconfdir}/cron.d/%{name}
