@@ -54,7 +54,8 @@ echo "@daily root %{_localbindir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}
 %files
 %defattr(-,root,root,-)
 %{perl_vendorlib}/*
-%{_localbindir}/*
+%{_localbindir}/onlineconf2-diff
+%{_localbindir}/onlineconf2-updater
 %{_initrddir}/onlineconf2
 %config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf2.yaml
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf2
