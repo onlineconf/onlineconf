@@ -23,7 +23,7 @@ my $sort = MR::OnlineConf::Admin::PerlMemory::Parameter->new(
     groups => ['test', 'my'],
 );
 
-my @sorted = $sort->_sort_case([
+my $sorted = $sort->_sort_case([
     {},
     { server => '*' },
     { group => 'my' },
@@ -36,15 +36,15 @@ my @sorted = $sort->_sort_case([
 ]);
 
 ok(
-    $sorted[0]->{server} eq 'test.{mail.ru,mydev.mail.ru}'
-    && $sorted[1]->{server} eq 'test*.{mail.ru,mydev.mail.ru}'
-    && $sorted[2]->{server} eq '*'
-    && $sorted[3]->{group} eq 'test'
-    && $sorted[4]->{group} eq 'my'
-    && $sorted[5]->{group} eq 'alpha'
-    && $sorted[6]->{datacenter} eq 'korovinka'
-    && $sorted[7]->{datacenter} eq 'varshavka'
-    && $sorted[8], "case: correct order"
+    $sorted->[0]->{server} eq 'test.{mail.ru,mydev.mail.ru}'
+    && $sorted->[1]->{server} eq 'test*.{mail.ru,mydev.mail.ru}'
+    && $sorted->[2]->{server} eq '*'
+    && $sorted->[3]->{group} eq 'test'
+    && $sorted->[4]->{group} eq 'my'
+    && $sorted->[5]->{group} eq 'alpha'
+    && $sorted->[6]->{datacenter} eq 'korovinka'
+    && $sorted->[7]->{datacenter} eq 'varshavka'
+    && $sorted->[8], "case: correct order"
 );
 
 my $tree = MR::OnlineConf::Admin::PerlMemory->new(

@@ -272,8 +272,12 @@ sub clear_template_before_resolve {
 
 sub resolve_case {
     my ($self) = @_;
-    $self->_resolve_case($self->unpacked_cases);
-    return;
+
+    $self->_resolve_case(
+        $self->_sort_case(
+            $self->unpacked_cases
+        )
+    );
 }
 
 sub _resolve_case {
@@ -329,7 +333,7 @@ sub _sort_case {
     my ($self, $data) = @_;
     my $groups = $self->groups;
     my %group_idx = map { $groups->[$_] => $_ } (0 .. $#$groups);
-    return sort {
+    return [sort {
         if (exists $a->{server} && exists $b->{server}) {
             my $as = $a->{server};
             my $bs = $b->{server};
@@ -348,7 +352,7 @@ sub _sort_case {
                 : exists $a->{datacenter} ? -1 : exists $b->{datacenter} ? 1
                 : 0;
         }
-    } @$data;
+    } @$data];
 }
 
 sub _unpack_case {
@@ -370,7 +374,7 @@ sub _unpack_case {
         }
     }
 
-    return [ $self->_sort_case($data) ];
+    return $data;
 }
 
 my %glob_to_regex_cache;
