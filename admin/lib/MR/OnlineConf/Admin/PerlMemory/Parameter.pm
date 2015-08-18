@@ -310,7 +310,11 @@ sub _resolve_case {
             my $mime = $case->{mime};
 
             if ($mime eq 'application/x-case') {
-                $self->_resolve_case($case->{value});
+                $self->_resolve_case(
+                    $self->_sort_case(
+                        $case->{value}
+                    )
+                );
             } else {
                 if (my $attribute = $types{$mime}) {
                     $self->$attribute(1);
