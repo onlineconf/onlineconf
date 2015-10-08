@@ -21,6 +21,7 @@ WriteMakefile(
         'Sys::Hostname'   => 0,
         'Text::Glob'      => 0,
         'YAML'            => 0,
+	'CBOR::XS'	  => 0,
     },
     EXE_FILES => [
         'bin/onlineconf-updater2',

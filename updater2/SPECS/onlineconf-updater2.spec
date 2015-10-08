@@ -24,6 +24,8 @@ Requires:       perl-MR-DBI >= 20120606.1301
 Requires:       perl-Net-IP-CMatch
 Requires:       perl-Text-Glob
 Requires:       perl-YAML
+Requires:	perl-CBOR-XS >= 1.25
+Requires:	perl-libwww-perl
 Requires:       mailru-initd-functions >= 1.11
 Conflicts:      perl-MR-Onlineconf < 20120328.1753
 
