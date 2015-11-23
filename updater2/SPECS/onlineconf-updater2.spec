@@ -24,8 +24,8 @@ Requires:       perl-MR-DBI >= 20120606.1301
 Requires:       perl-Net-IP-CMatch
 Requires:       perl-Text-Glob
 Requires:       perl-YAML
-Requires:	perl-CBOR-XS >= 1.25
-Requires:	perl-libwww-perl
+Requires:       perl-CBOR-XS >= 1.25
+Requires:       perl-libwww-perl
 Requires:       mailru-initd-functions >= 1.11
 Conflicts:      perl-MR-Onlineconf < 20120328.1753
 
@@ -34,7 +34,7 @@ onlineconf-updater2 script. Built from revision %{__revision}.
 
 %prep
 %setup -n onlineconf/updater2
-sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf2/Updater.pm
+sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf2/Updater.pm
 
 %build
 %__perl Makefile.PL INSTALLDIRS=vendor
