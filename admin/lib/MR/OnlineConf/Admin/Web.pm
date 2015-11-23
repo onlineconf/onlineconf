@@ -6,7 +6,7 @@ use MR::ChangeBot::Database;
 
 sub startup {
     my ($self) = @_;
-    my $path = '/usr/local/etc/';
+    my $path = $ENV{ONLINECONF_CONFIG_PATH} || '/usr/local/etc/';
     my $config = YAML::LoadFile($path . 'onlineconf.yaml');
     MR::OnlineConf::Admin::Storage->new(%{$config->{database}}, log => $self->log);
     $config->{notification_database}->{database} ||= $config->{notification_database}->{base};

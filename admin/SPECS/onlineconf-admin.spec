@@ -56,6 +56,7 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 %files
 %defattr(-,root,root,-)
 %{perl_vendorlib}/MR/OnlineConf/Admin
+%{perl_vendorlib}/Plack/Handler/OnlineConf.pm
 %{_localbindir}/onlineconf-admin
 %{_localbindir}/onlineconf-import
 %{_initrddir}/%{name}
