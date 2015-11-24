@@ -1,11 +1,11 @@
-package MR::OnlineConf2::Updater;
+package MR::OnlineConf::Updater;
 
 use Mouse;
 use Scalar::Util 'weaken';
-use MR::OnlineConf2::Updater::Admin;
-use MR::OnlineConf2::Updater::PerlMemory;
-use MR::OnlineConf2::Updater::Parameter;
-use MR::OnlineConf2::Updater::ConfFiles;
+use MR::OnlineConf::Updater::Admin;
+use MR::OnlineConf::Updater::PerlMemory;
+use MR::OnlineConf::Updater::Parameter;
+use MR::OnlineConf::Updater::ConfFiles;
 
 our $VERSION = '2.0';
 
@@ -79,12 +79,12 @@ has _online_timer => (
 
 has _admin => (
     is => 'ro',
-    isa => 'MR::OnlineConf2::Updater::Admin',
+    isa => 'MR::OnlineConf::Updater::Admin',
     lazy => 1,
     default => sub {
         my ($self) = @_;
 
-        return MR::OnlineConf2::Updater::Admin->new(
+        return MR::OnlineConf::Updater::Admin->new(
             %{$self->config->{admin}}, version => $VERSION
         );
     }
@@ -102,10 +102,10 @@ has _reselect => (
 
 has conf_files => (
     is  => 'ro',
-    isa => 'MR::OnlineConf2::Updater::ConfFiles',
+    isa => 'MR::OnlineConf::Updater::ConfFiles',
     lazy    => 1,
     default => sub {
-        return MR::OnlineConf2::Updater::ConfFiles->new(
+        return MR::OnlineConf::Updater::ConfFiles->new(
             log => $_[0]->log,
             dir => $_[0]->config->{data_dir}
         )
@@ -134,7 +134,7 @@ sub _update_config {
 
     if ($self->_is_need_update) {
         my $list = $self->_admin->get_config();
-        my $tree = MR::OnlineConf2::Updater::PerlMemory->new(log => $_[0]->log);
+        my $tree = MR::OnlineConf::Updater::PerlMemory->new(log => $_[0]->log);
 
         if ($list) {
             $list->{nodes} ||= [];
@@ -145,7 +145,7 @@ sub _update_config {
                 my @slist = sort {$a->{Path} cmp $b->{Path}} @{$list->{nodes}};
 
                 foreach my $row (@slist) {
-                    my $param = MR::OnlineConf2::Updater::Parameter->new(
+                    my $param = MR::OnlineConf::Updater::Parameter->new(
                         id           => $row->{ID},
                         name         => $row->{Name},
                         path         => $row->{Path},

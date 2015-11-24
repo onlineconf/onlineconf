@@ -1,4 +1,4 @@
-package MR::OnlineConf2::Updater::ConfFiles;
+package MR::OnlineConf::Updater::ConfFiles;
 
 use Mouse;
 

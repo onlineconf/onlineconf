@@ -1,8 +1,8 @@
-Name:           onlineconf-updater2
+Name:           onlineconf-updater
 Version:        %{__version}
 Release:        %{__release}%{?dist}
 
-Summary:        onlineconf-updater2 script
+Summary:        onlineconf-updater script
 License:        BSD
 Group:          MAILRU
 
@@ -30,11 +30,11 @@ Requires:       mailru-initd-functions >= 1.11
 Conflicts:      perl-MR-Onlineconf < 20120328.1753
 
 %description
-onlineconf-updater2 script. Built from revision %{__revision}.
+onlineconf-updater script. Built from revision %{__revision}.
 
 %prep
 %setup -n onlineconf/updater2
-sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf2/Updater.pm
+sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf/Updater.pm
 
 %build
 %__perl Makefile.PL INSTALLDIRS=vendor
@@ -45,33 +45,30 @@ sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineCo
 %__make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
-%__mkdir -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir}/onlineconf2 %{buildroot}/%{_sysconfdir}/cron.d
-%__install -m 644 etc/onlineconf2.yaml %{buildroot}/%{_localetcdir}/onlineconf2.yaml
-%__install -m 755 init.d/onlineconf2 %{buildroot}/%{_initrddir}/onlineconf2
-%__install -m 755 bin/onlineconf-diff %{buildroot}/%{_bindir}/onlineconf-diff
+%__mkdir -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir}/onlineconf %{buildroot}/%{_sysconfdir}/cron.d
+%__install -m 644 etc/onlineconf.yaml %{buildroot}/%{_localetcdir}/onlineconf.yaml
+%__install -m 755 init.d/onlineconf %{buildroot}/%{_initrddir}/onlineconf
 %__mv %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
-echo "@daily root %{_initrddir}/onlineconf2 remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
-echo "@daily root %{_localbindir}/onlineconf-diff" > %{buildroot}/%{_sysconfdir}/cron.d/onlineconf-diff
+echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 %_fixperms %{buildroot}/*
 
 %files
 %defattr(-,root,root,-)
 %{perl_vendorlib}/*
 %{_localbindir}/*
-%{_initrddir}/onlineconf2
-%config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf2.yaml
-%dir %attr(755,root,mail) %{_localetcdir}/onlineconf2
+%{_initrddir}/onlineconf
+%config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf.yaml
+%dir %attr(755,root,mail) %{_localetcdir}/onlineconf
 %{_sysconfdir}/cron.d/%{name}
-%{_sysconfdir}/cron.d/onlineconf-diff
 
 %post
-chkconfig --add onlineconf2
-chkconfig onlineconf2 on
+chkconfig --add onlineconf
+chkconfig onlineconf on
 
 %preun
 if [ $1 -eq 0 ]; then
-    service onlineconf2 stop > /dev/null
-    chkconfig --del onlineconf2
+    service onlineconf stop > /dev/null
+    chkconfig --del onlineconf
 fi
 
 %changelog

@@ -3,12 +3,6 @@ admin:
   port: xxx
   username: xxx
   password: xxx
-database:
-  host: xxx
-  user: xxx
-  password: xxx
-  base: xxx
-  timeout: 15
 notification_database:
   host: xxx
   user: xxx
@@ -16,9 +10,9 @@ notification_database:
   base: xxx
   database: xxx
   timeout: 15
-data_dir: /usr/local/etc/onlineconf2/
-logfile: /var/log/onlineconf_updater2.log
-pidfile: /var/run/onlineconf_updater2.pid
+data_dir: /usr/local/etc/onlineconf/
+logfile: /var/log/onlineconf_updater.log
+pidfile: /var/run/onlineconf_updater.pid
 reload_local: 10
 update_interval: 60
 debug: 1 

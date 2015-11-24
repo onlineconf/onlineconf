@@ -8,10 +8,10 @@ use Getopt::Long;
 use Log::Dispatch;
 use POSIX qw/strftime/;
 use YAML;
-use MR::OnlineConf2::Updater;
+use MR::OnlineConf::Updater;
 
 my %options = (
-    config => '/usr/local/etc/onlineconf2.yaml',
+    config => '/usr/local/etc/onlineconf.yaml',
 );
 
 GetOptions(\%options, qw/
@@ -33,12 +33,12 @@ my $log = Log::Dispatch->new(
     },
 );
 
-$log->info("onlineconf-updater2 started\n");
+$log->info("onlineconf-updater started\n");
 
-my $updater = MR::OnlineConf2::Updater->new(
+my $updater = MR::OnlineConf::Updater->new(
     config => $config,
     log    => $log,
 );
 $updater->run();
 
-$log->info("onlineconf-updater2 finished\n");
+$log->info("onlineconf-updater finished\n");

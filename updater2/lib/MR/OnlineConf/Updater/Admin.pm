@@ -1,4 +1,4 @@
-package MR::OnlineConf2::Updater::Admin;
+package MR::OnlineConf::Updater::Admin;
 
 use Mouse;
 

@@ -7,4 +7,4 @@
 . /etc/init.d/functions
 . /etc/init.d/mailru-functions
 
-wrapped_daemon_initd $1 /usr/local/bin/onlineconf-updater2
+wrapped_daemon_initd $1 /usr/local/bin/onlineconf-updater

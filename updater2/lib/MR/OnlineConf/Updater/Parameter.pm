@@ -1,4 +1,4 @@
-package MR::OnlineConf2::Updater::Parameter;
+package MR::OnlineConf::Updater::Parameter;
 
 use Mouse;
 use YAML;
