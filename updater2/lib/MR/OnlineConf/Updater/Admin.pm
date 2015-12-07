@@ -86,7 +86,7 @@ sub get_config {
     my ($self) = @_;
     my $res = $self->lwp->get($self->address . 'client/config');
 
-    return [] unless $res;
+    return {} unless $res;
 
     warn $res->status_line;
 
