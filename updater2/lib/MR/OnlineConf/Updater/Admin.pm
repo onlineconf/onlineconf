@@ -7,6 +7,12 @@ use CBOR::XS;
 use MIME::Base64;
 use LWP::UserAgent;
 
+has log => (
+    is  => 'ro',
+    isa => 'Log::Dispatch',
+    required => 1,
+);
+
 has host => (
     is => 'ro',
     isa => 'Str',
@@ -88,7 +94,7 @@ sub get_config {
 
     return {} unless $res;
 
-    warn $res->status_line;
+    $self->log->info($res->status_line);
 
     if ($res->headers->header('X-OnlineConf-Admin-Last-Modified') gt $self->mtime) {
         $self->mtime(
@@ -106,7 +112,7 @@ sub get_config {
         };
 
         if ($@) {
-            warn "WebAPI CBOR ERROR: $@";
+            $self->log->error("WebAPI CBOR ERROR: $@");
         }
 
         return $data || {};

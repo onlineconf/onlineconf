@@ -30,6 +30,8 @@ sub update {
 
     # Dump modules
     foreach my $module (@$modules) {
+        next if $module eq 'TREE';
+
         my $data = {};
 
         if (my $node = $tree->get("/onlineconf/module/$module")) {
@@ -114,6 +116,8 @@ sub _dump_module {
     open my $f, '>:utf8', "${filename}_tmp" or die "Can't open file ${filename}_tmp: $!\n";
     print $f $s;
     close $f;
+    $self->log->warn("Diff $module ");
+    $self->log->warn(`diff $filename ${filename}_tmp`);
     rename "${filename}_tmp", $filename or die "Can't rename ${filename}_tmp to $filename: $!";
     return;
 }

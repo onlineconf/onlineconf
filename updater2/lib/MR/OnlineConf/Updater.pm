@@ -85,7 +85,9 @@ has _admin => (
         my ($self) = @_;
 
         return MR::OnlineConf::Updater::Admin->new(
-            %{$self->config->{admin}}, version => $VERSION
+            log => $_[0]->log, %{
+                $self->config->{admin}
+            }, version => $VERSION
         );
     }
 );
