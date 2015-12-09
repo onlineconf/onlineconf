@@ -46,7 +46,6 @@ sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineCo
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %__mkdir -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir}/onlineconf %{buildroot}/%{_sysconfdir}/cron.d
-%__install -m 644 etc/onlineconf.yaml %{buildroot}/%{_localetcdir}/onlineconf.yaml
 %__install -m 755 init.d/onlineconf %{buildroot}/%{_initrddir}/onlineconf
 %__mv %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
@@ -57,7 +56,6 @@ echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sy
 %{perl_vendorlib}/*
 %{_localbindir}/*
 %{_initrddir}/onlineconf
-%config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf.yaml
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf
 %{_sysconfdir}/cron.d/%{name}
 
