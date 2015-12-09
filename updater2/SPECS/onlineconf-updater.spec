@@ -15,14 +15,8 @@ BuildRequires:  perl(ExtUtils::MakeMaker)
 Requires:       perl-AnyEvent >= 5.31
 Requires:       perl-EV >= 4.02
 Requires:       perl-JSON
-Requires:       perl-JSON-XS
-Requires:       perl-IO-Interface
-Requires:       perl-List-MoreUtils
 Requires:       perl-Log-Dispatch
 Requires:       perl-Mouse
-Requires:       perl-MR-DBI >= 20120606.1301
-Requires:       perl-Net-IP-CMatch
-Requires:       perl-Text-Glob
 Requires:       perl-YAML
 Requires:       perl-CBOR-XS >= 1.25
 Requires:       perl-libwww-perl
