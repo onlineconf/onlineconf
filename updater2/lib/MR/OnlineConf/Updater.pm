@@ -60,6 +60,7 @@ has _update_timer => (
         AnyEvent->timer(
             interval => $self->config->{update_interval} || 5,
             cb       => sub { $self->_update_config() },
+            after    => int(rand(30)) + 1,
         );
     },
 );
@@ -73,6 +74,7 @@ has _online_timer => (
         AnyEvent->timer(
             interval => $self->config->{online_interval} || 60,
             cb       => sub { $self->_update_online() },
+            after    => int(rand(30)) + 1,
         );
     },
 );
