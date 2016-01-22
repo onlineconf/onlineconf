@@ -111,7 +111,8 @@ has conf_files => (
     default => sub {
         return MR::OnlineConf::Updater::ConfFiles->new(
             log => $_[0]->log,
-            dir => $_[0]->config->{data_dir}
+            dir => $_[0]->config->{data_dir},
+            cdb => $_[0]->config->{enable_cdb},
         )
     },
 );

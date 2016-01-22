@@ -19,6 +19,7 @@ Requires:       perl-Log-Dispatch
 Requires:       perl-Mouse
 Requires:       perl-YAML
 Requires:       perl-CBOR-XS >= 1.25
+Requires:       perl-CDB_File >= 0.98
 Requires:       perl-libwww-perl
 Requires:       mailru-initd-functions >= 1.11
 Conflicts:      perl-MR-Onlineconf < 20120328.1753

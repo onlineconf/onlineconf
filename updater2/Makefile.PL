@@ -15,6 +15,7 @@ WriteMakefile(
         'Getopt::Long'    => 0,
         'POSIX'           => 0,
         'Scalar::Util'    => 0,
+        'CDB_File'        => 0,
     },
     EXE_FILES => [
         'bin/onlineconf-updater',
