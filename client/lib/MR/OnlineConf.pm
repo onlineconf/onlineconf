@@ -1,18 +1,19 @@
 package MR::OnlineConf;
 
 use strict;
+
+use base qw/Class::Singleton Exporter MR::OnlineConf::Preload/;
+
+use YAML;
+use CDB_File;
+use Data::Dumper;
+use Sys::Hostname ();
+use POSIX qw/strftime/;
+use Carp qw/carp confess/;
+
 use MR::OnlineConf::Const qw/:all/;
 use MR::OnlineConf::Util qw/from_json to_json/;
-use Class::Singleton;
-use Exporter;
-use Data::Dumper;
-use YAML;
-use Carp qw/carp confess/;
-use POSIX qw/strftime/;
-use Sys::Hostname ();
-use base qw/Class::Singleton Exporter/;
 
-sub PRELOAD()   {'_ALL_'}
 sub ERRORLOG()  {'/var/tmp/onlineconf_error.txt'}
 
 my $DEFAULT_CONFIG = {
@@ -26,10 +27,10 @@ my $DEFAULT_CONFIG = {
     data_dir => '/usr/local/etc/onlineconf/',
     logfile  => '/var/log/onlineconf_updater.log', 
     pidfile  => '/var/run/onlineconf_updater.pid',
-    reload_local => 10,
     update_interval => 60,
     test_interval   => 60,
     debug => 0,
+    enable_cdb_client => 0,
 };
 
 {
@@ -37,7 +38,6 @@ my $DEFAULT_CONFIG = {
     my $cache = {};
     my $checks = {};
     my $load = {};
-    my $local = {};
 
     sub _read_config {
         my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
@@ -60,14 +60,13 @@ my $DEFAULT_CONFIG = {
             %opts);
         _read_config() unless $config;
         my $self = {
+            cache_cdb => {},
             cache     => $cache,
-            check_all => 0,
             checks    => $checks,
             load      => $load,
             cfg       => \%opts,
             logstatus => undef,
             hostname  => Sys::Hostname::hostname(),
-            local     => $local,
             config    => $config,
             test_expires => 0,
         };
@@ -102,43 +101,66 @@ sub _reseterr {
 
 sub get {
     my ($self,$module,$key,$default) = @_;
+
     $self->_test();
+
     if ($module && $module =~ /^\//) {
         $default = $key;
         $key = $module;
         $module = 'TREE';
     }
+
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
-    warn "found local overloaded value for $module:$key. i hope that we are not on production server\n" 
-        and return $self->{local}{$module}{$key} if exists $self->{local}{$module}{$key};
+
     $self->reload($module) if $self->{cfg}{reload};
+
+    if ($self->{config}{enable_cdb_client}) {
+        if (exists $self->{cache_cdb}{$module}{$key}) {
+            return $self->{cache_cdb}{$module}{$key};
+        }
+    }
+
     $self->{cfg}{debug} < 2 || $self->_say(2,"cant find key $key in module $module: use default value\n") 
         and return $default unless exists $self->{cache}{$module} && exists $self->{cache}{$module}{$key};
-    return $self->{cache}{$module}{$key};
+
+    unless ($self->{config}{enable_cdb_client}) {
+        return $self->{cache}{$module}{$key};
+    }
+
+    my $val = $self->{cache}{$module}{$key};
+    my $typ = substr $val, 0, 1, '';
+
+    if ($typ eq 's') {
+        utf8::decode($val);
+    }
+
+    if ($typ eq 'j') {
+        $val = eval {
+            from_json($val);
+        };
+
+        if ($@) {
+            $self->_say(-1,"cant parse json variable $key => $val\n: $@");
+            return undef;
+        }
+    }
+
+    return $self->{cache_cdb}{$module}{$key} = $val;
 }
 
 sub getModule {
     my ($self, $module) = @_;
     $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
     $self->reload($module) if $self->{cfg}{reload};
-    my $local = exists $self->{local}{$module} ? $self->{local}{$module} : undef;
     my $cache = $self->{cache}{$module};
-    return $cache unless $local;
-    return { map { $_ => exists $local->{$_} ? $local->{$_} : $cache->{$_} } keys %$cache };
+    return { map { $_ => $cache->{$_} } keys %$cache };
 }
 
-sub preload {
-    my ($self) = @_;
-    my $preload = $self->PRELOAD();
-    unless (ref $preload eq 'ARRAY'){
-        $self->_say(-1,"unknown constant $preload") and return undef unless $preload eq '_ALL_';
-        return $self->reloadAll();
-    }
-    foreach my $i (@$preload){
-        $self->reload($i);
-    }
-    return 1;
+sub reload {
+    my ($self,$module,%opts) = @_;
+    return unless $opts{force} || $self->_check($module);
+    return $self->_reload($module);
 }
 
 sub _check {
@@ -164,55 +186,47 @@ sub _check {
     return $r;
 }
 
-sub _check_all {
-    my ($self) = @_;
-    my $m = $self->_updater_localList() || return [];
-    return [ grep {$self->_check($_)} keys %$m ];
-}
-
 sub _reload {
     my ($self,$module) = @_;
-    my $data = $self->_updater_readFile($module,md5_check=>1);
-    unless ($data){
-        $self->_say(-1,"cant reload config $module\n");
-        $self->{checks}{$module} = time;
-        return undef;
+
+    if ($self->{config}{enable_cdb_client}) {
+        if (-e (my $file = $self->LOCAL_CFG_PATH().$module.'.cdb')) {
+            $self->{cache_cdb}{$module} = {};
+
+            if ($self->{cache}{$module}) {
+                untie $self->{cache}{$module};
+            }
+
+            delete $self->{cache}{$module};
+
+            tie %{
+                $self->{cache}{$module}
+            }, 'CDB_File', $file or die "tie failed: $!\n";;
+        }
+    } else {
+        my $data = $self->_updater_readFile($module,md5_check=>1);
+        unless ($data){
+            $self->_say(-1,"cant reload config $module\n");
+            $self->{checks}{$module} = time;
+            return undef;
+        }
+        $self->_say(3,"read: " , $data);
+        $self->{cache}{$module} = $data->{Data};
     }
-    $self->_say(3,"read: " , $data);
-    $self->{cache}{$module} = $data->{Data};
-    $self->{checks}{$module} = time;
+
     $self->{load}{$module} = time;
+    $self->{checks}{$module} = time;
+    
     $self->_say(1,"reload config $module ok\n");
+
     return 1;
-}
-
-sub _reload_all {
-    my ($self) = @_;
-    my $m = $self->_updater_localList() || return undef;
-    $self->_reload($_) for keys %$m;
-}
-
-sub reload {
-    my ($self,$module,%opts) = @_;
-    return unless $opts{force} || $self->_check($module);
-    return $self->_reload($module);
-}
-
-sub reloadAll {
-    my ($self,%opts) = @_;
-    %opts = (force=>0,%opts);
-    unless ($opts{force}){
-        my $m = $self->_check_all() || return undef;
-        $self->_reload($_) for @$m;
-    }else{
-        $self->_reload_all();
-    }
 }
 
 sub _test {
     my ($self) = @_;
 
     return if time() < $self->{test_expires};
+
     $self->{test_expires} = time() + ($self->{config}->{test_interval} || 60);
 
     $self->reload(MY_CONFIG_SELFTEST_MODULE_NAME);
@@ -225,21 +239,11 @@ sub _test {
     my $delay       = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_DELAY_KEY()} || 0;
     my $diff        = time - $last_update;
 
-    if($diff > $delay) {
+    if ($diff > $delay) {
         $self->_logerr(1,"$self->{hostname}: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
-    }else{
+    } else {
         $self->_reseterr();
     }
-}
-
-sub setLocal {
-    my ($self,$module,$key,$value) = @_;
-    $self->{local}{$module}{$key} = $value;
-}
-
-sub deleteLocal {
-    my ($self,$module,$key) = @_;
-    delete $self->{local}{$module}{$key};
 }
 
 sub LOCAL_CFG_PATH () { $_[0]->{config}{data_dir} }
@@ -248,29 +252,6 @@ sub _updater_statFile {
     my ($self,$mod) = @_;
     my $name = $self->LOCAL_CFG_PATH().$mod.'.conf';
     return stat $name;
-}
-
-sub _updater_localList {
-    my ($self) = @_;
-    unless (-d $self->LOCAL_CFG_PATH()){
-        $self->_say(-1,"try to create catalog ".$self->LOCAL_CFG_PATH()."\n");
-        unless (mkdir $self->LOCAL_CFG_PATH()){
-            $self->_say(-1,"cant create config catalog ".$self->LOCAL_CFG_PATH().": $!\n");
-            return undef;
-        }
-    }
-    unless (opendir (DIR, $self->LOCAL_CFG_PATH())){
-        $self->_say(-1,"cant open local catalog `".$self->LOCAL_CFG_PATH()." for reading.\n");
-        return undef;
-    }
-    my %files;
-    while (my $f = readdir DIR){
-        next unless $f=~/^(.+?)\.conf$/;
-        next if $1 eq 'ALL';
-        $files{$1} = $self->LOCAL_CFG_PATH().$f;
-    }
-    closedir DIR;
-    return \%files;
 }
 
 sub _updater_readFile {
