@@ -5,15 +5,19 @@ use warnings;
 
 use Test::More tests => 16;
 
+use Socket;
+use Sys::Hostname;
 use MR::OnlineConf::Admin::PerlMemory;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
-my ($hostname, $short_hostname, $ip) = map {
+my ($short_hostname, $ip) = map {
     my $h = `$_`; chomp $h; $h
 } (
-    'hostname', 'hostname -s', 'hostname -i'
+    'hostname -s', 'hostname -i'
 );
 
+my $host = hostname();
+my $addr = Socket::inet_ntoa(scalar(gethostbyname($host)));
 my $tree = MR::OnlineConf::Admin::PerlMemory->new(
     list => [{
         ID => 1,
@@ -25,8 +29,8 @@ my $tree = MR::OnlineConf::Admin::PerlMemory->new(
         MTime => '',
         Deleted => 0,
     }],
-    host => $hostname,
-    addr => ['188.93.61.150'],
+    host => $host,
+    addr => [$addr],
     mtime => ''
 );
 
@@ -48,37 +52,37 @@ $tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
 );
 
 $tree->serialize();
-is($tree->get('/test/template1')->value, "$hostname#$short_hostname#$ip#3", "insert template: correct value 1");
-is($tree->get('/test/template2')->value, "$hostname#$short_hostname#$ip#3", "insert template: correct value 2");
-is($tree->get('/test/template3')->value, "$hostname#$short_hostname#$ip#3", "insert template: correct value 3");
-is($tree->get('/test/template4')->value, "$hostname#$short_hostname#$ip#3", "insert template: correct value 4");
+is($tree->get('/test/template1')->value, "$host#$short_hostname#$ip#3", "insert template: correct value 1");
+is($tree->get('/test/template2')->value, "$host#$short_hostname#$ip#3", "insert template: correct value 2");
+is($tree->get('/test/template3')->value, "$host#$short_hostname#$ip#3", "insert template: correct value 3");
+is($tree->get('/test/template4')->value, "$host#$short_hostname#$ip#3", "insert template: correct value 4");
 
 $tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
     { Deleted => 0, MTime => '', ID => 3, Name => 'value', Path => '/test/value', ContentType => 'text/plain', Value => 4, Version => 2 },
 );
 
 $tree->serialize();
-is($tree->get('/test/template1')->value, "$hostname#$short_hostname#$ip#4", "update value: template is updated too 1");
-is($tree->get('/test/template2')->value, "$hostname#$short_hostname#$ip#4", "update value: template is updated too 2");
-is($tree->get('/test/template3')->value, "$hostname#$short_hostname#$ip#4", "update value: template is updated too 3");
-is($tree->get('/test/template4')->value, "$hostname#$short_hostname#$ip#4", "update value: template is updated too 4");
+is($tree->get('/test/template1')->value, "$host#$short_hostname#$ip#4", "update value: template is updated too 1");
+is($tree->get('/test/template2')->value, "$host#$short_hostname#$ip#4", "update value: template is updated too 2");
+is($tree->get('/test/template3')->value, "$host#$short_hostname#$ip#4", "update value: template is updated too 3");
+is($tree->get('/test/template4')->value, "$host#$short_hostname#$ip#4", "update value: template is updated too 4");
 
 $tree->delete(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
     { Deleted => 1, MTime => '', ID => 3, Name => 'value', Path => '/test/value', ContentType => 'text/plain', Value => 4, Version => 3 },
 );
 
 $tree->serialize();
-is($tree->get('/test/template1')->value, "$hostname#$short_hostname#$ip#", "delete value: template is updated 1");
-is($tree->get('/test/template2')->value, "$hostname#$short_hostname#$ip#", "delete value: template is updated 2");
-is($tree->get('/test/template3')->value, "$hostname#$short_hostname#$ip#", "delete value: template is updated 3");
-is($tree->get('/test/template4')->value, "$hostname#$short_hostname#$ip#", "delete value: template is updated 4");
+is($tree->get('/test/template1')->value, "$host#$short_hostname#$ip#", "delete value: template is updated 1");
+is($tree->get('/test/template2')->value, "$host#$short_hostname#$ip#", "delete value: template is updated 2");
+is($tree->get('/test/template3')->value, "$host#$short_hostname#$ip#", "delete value: template is updated 3");
+is($tree->get('/test/template4')->value, "$host#$short_hostname#$ip#", "delete value: template is updated 4");
 
 $tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
     { Deleted => 0, MTime => '', ID => 3, Name => 'value', Path => '/test/value', ContentType => 'text/plain', Value => 5, Version => 4 },
 );
 
 $tree->serialize();
-is($tree->get('/test/template1')->value, "$hostname#$short_hostname#$ip#5", "add value: template is updated 1");
-is($tree->get('/test/template2')->value, "$hostname#$short_hostname#$ip#5", "add value: template is updated 2");
-is($tree->get('/test/template3')->value, "$hostname#$short_hostname#$ip#5", "add value: template is updated 3");
-is($tree->get('/test/template4')->value, "$hostname#$short_hostname#$ip#5", "add value: template is updated 4");
+is($tree->get('/test/template1')->value, "$host#$short_hostname#$ip#5", "add value: template is updated 1");
+is($tree->get('/test/template2')->value, "$host#$short_hostname#$ip#5", "add value: template is updated 2");
+is($tree->get('/test/template3')->value, "$host#$short_hostname#$ip#5", "add value: template is updated 3");
+is($tree->get('/test/template4')->value, "$host#$short_hostname#$ip#5", "add value: template is updated 4");

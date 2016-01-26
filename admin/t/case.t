@@ -5,11 +5,13 @@ use warnings;
 
 use Test::More tests => 35;
 
+use Socket;
 use Sys::Hostname;
 use MR::OnlineConf::Admin::PerlMemory;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
-my $hostname = hostname();
+my $host = hostname();
+my $addr = Socket::inet_ntoa(scalar(gethostbyname($host)));
 
 my $sort = MR::OnlineConf::Admin::PerlMemory::Parameter->new(
     ID => 1,
@@ -58,14 +60,14 @@ my $tree = MR::OnlineConf::Admin::PerlMemory->new(
         MTime => '',
         Deleted => 0,
     }],
-    host => $hostname,
-    addr => ['188.93.61.150'],
+    host => $host,
+    addr => [$addr],
     mtime => ''
 );
 
 my @init = (
     { ID => 2, Name => 'test', Path => '/test', ContentType => 'application/x-null', data => undef, version => 1 },
-    { ID => 3, Name => 'case1', Path => '/test/case1', ContentType => 'application/x-case', data => qq#[{"mime":"text/plain","value":5},{"server":"$hostname","mime":"text/plain","value":10}]#, version => 1 },
+    { ID => 3, Name => 'case1', Path => '/test/case1', ContentType => 'application/x-case', data => qq#[{"mime":"text/plain","value":5},{"server":"$host","mime":"text/plain","value":10}]#, version => 1 },
     { ID => 4, Name => 'case2', Path => '/test/case2', ContentType => 'application/x-case', data => qq#[{"mime":"text/plain","value":5},{"datacenter":"test-dc","mime":"text/plain","value":15}]#, version => 1 },
     { ID => 5, Name => 'case3', Path => '/test/case3', ContentType => 'application/x-case', data => qq#[{"mime":"text/plain","value":5},{"server":"xxx","mime":"text/plain","value":10}]#, version => 1 },
     { ID => 6, Name => 'value', Path => '/test/value', ContentType => 'text/plain', data => '6', version => 1 },
@@ -76,10 +78,10 @@ my @init = (
     { ID => 11, Name => 'branch2', Path => '/test/branch2', ContentType => 'application/x-null', data => undef, version => 1 },
     { ID => 12, Name => 'value', Path => '/test/branch2/value', ContentType => 'text/plain', data => '18', version => 1 },
     { ID => 13, Name => 'current', Path => '/test/current', ContentType => 'application/x-case', data => qq#[{"mime":"text/plain","value":5},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1"}]#, version => 1 },
-    { ID => 14, Name => 'mod', Path => '/test/mod', ContentType => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test/value"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1/value"},{"server":"$hostname","mime":"application/x-symlink","value":"/test/branch2/value"}]#, version => 1 },
-    { ID => 15, Name => 'curmod', Path => '/test/curmod', ContentType => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1"},{"server":"$hostname","mime":"application/x-symlink","value":"/test/branch2"}]#, version => 1 },
+    { ID => 14, Name => 'mod', Path => '/test/mod', ContentType => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test/value"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1/value"},{"server":"$host","mime":"application/x-symlink","value":"/test/branch2/value"}]#, version => 1 },
+    { ID => 15, Name => 'curmod', Path => '/test/curmod', ContentType => 'application/x-case', data => qq#[{"mime":"application/x-symlink","value":"/test"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1"},{"server":"$host","mime":"application/x-symlink","value":"/test/branch2"}]#, version => 1 },
     { ID => 16, Name => 'case6', Path => '/test/case6', ContentType => 'application/x-case', data => qq#[{"server":"xxx","mime":"text/plain","value":5},{"datacenter":"xxx","mime":"text/plain","value":6}]#, version => 1 },
-    { ID => 17, Name => 'case7', Path => '/test/case7', ContentType => 'application/x-case', data => qq#[{"server":"$hostname","mime":"application/x-case","value":"[{\\"datacenter\\":\\"test-dc\\",\\"mime\\":\\"text/plain\\",\\"value\\":\\"10\\"}]"}]#, version => 1 },
+    { ID => 17, Name => 'case7', Path => '/test/case7', ContentType => 'application/x-case', data => qq#[{"server":"$host","mime":"application/x-case","value":"[{\\"datacenter\\":\\"test-dc\\",\\"mime\\":\\"text/plain\\",\\"value\\":\\"10\\"}]"}]#, version => 1 },
     { ID => 18, Name => 'branch3', Path => '/test/branch3', ContentType => 'application/x-null', data => undef, version => 1 },
     { ID => 19, Name => 'value', Path => '/test/branch3/value', ContentType => 'text/plain', data => '20', version => 1 },
     { ID => 101, Name => 'onlineconf', Path => '/onlineconf', ContentType => 'application/x-null', data => undef, version => 1 },
@@ -182,7 +184,7 @@ $tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
 $tree->serialize();
 is($tree->get('/test/mod')->value, 16, "/test/mod use datacenter back");
 $tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
-    {Deleted => 0, MTime => '', ID => 14, Name => 'mod', Path => '/test/mod', ContentType => 'application/x-case', Value => qq#[{"mime":"application/x-symlink","value":"/test/value"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1/value"},{"server":"$hostname","mime":"application/x-symlink","value":"/test/branch2/value"}]#, Version => 5 },
+    {Deleted => 0, MTime => '', ID => 14, Name => 'mod', Path => '/test/mod', ContentType => 'application/x-case', Value => qq#[{"mime":"application/x-symlink","value":"/test/value"},{"datacenter":"test-dc","mime":"application/x-symlink","value":"/test/branch1/value"},{"server":"$host","mime":"application/x-symlink","value":"/test/branch2/value"}]#, Version => 5 },
 );
 $tree->serialize();
 is($tree->get('/test/mod')->value, 18, "/test/mod use server back");

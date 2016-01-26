@@ -160,6 +160,17 @@ sub put {
             return 1;
         }
 
+        # Rebuild in index if change ContentType
+        if ($indexed->ContentType ne $node->ContentType) {
+            delete $self->cases->{$indexed->Path};
+            delete $self->symlinks->{$indexed->Path};
+            delete $self->templates->{$indexed->Path};
+
+            $self->cases->{$indexed->Path} = $indexed if $node->is_case;
+            $self->symlinks->{$indexed->Path} = $indexed if $node->is_symlink;
+            $self->templates->{$indexed->Path} = $indexed if $node->is_template;
+        }
+
         $indexed->clear();
 
         $indexed->_MTime($node->MTime);

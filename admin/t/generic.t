@@ -3,11 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
+use Socket;
+use Sys::Hostname;
 use MR::OnlineConf::Admin::PerlMemory;
 use MR::OnlineConf::Admin::PerlMemory::Parameter;
 
+my $host = hostname();
+my $addr = Socket::inet_ntoa(scalar(gethostbyname($host)));
 my $tree = MR::OnlineConf::Admin::PerlMemory->new(
     list => [{
         ID => 1,
@@ -19,6 +23,8 @@ my $tree = MR::OnlineConf::Admin::PerlMemory->new(
         MTime => '',
         Deleted => 0,
     }],
+    host => $host,
+    addr => [$addr],
     mtime => ''
 );
 
@@ -53,3 +59,11 @@ $tree->delete(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
 );
 $tree->serialize();
 ok(!$tree->get('/test/value'), "delete: not exists");
+
+$tree->put(MR::OnlineConf::Admin::PerlMemory::Parameter->new($_)) foreach (
+    { Deleted => 0, MTime => '', ID => 3, Name => 'value', Path => '/test/value', ContentType => 'application/x-null', Value => '', Version => 5 },
+    { Deleted => 0, MTime => '', ID => 4, Name => '1', Path => '/test/value/1', ContentType => 'text/plain', Value => '1', Version => 1 },
+    { Deleted => 0, MTime => '', ID => 4, Name => '1', Path => '/test/value/1', ContentType => 'application/x-case', Value => qq#[{"mime":"text/plain","value":2},{"server":"$host","mime":"text/plain","value":3}]#, Version => 2 },
+);
+$tree->serialize();
+is($tree->get('/test/value/1')->value, 3, '/test/value/1 change type from text to case: value');
