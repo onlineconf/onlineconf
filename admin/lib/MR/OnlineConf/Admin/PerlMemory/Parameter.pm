@@ -290,15 +290,17 @@ sub _resolve_case {
     foreach my $case (@$data) {
         my $bingo;
 
-        if (exists $case->{server}) {
+        next unless $case;
+
+        if ($case->{server}) {
             if (hostname_match_glob($case->{server}, $host)) {
                 $bingo++;
             }
-        } elsif (exists $case->{group}) {
-            if (exists $groups_hash->{$case->{group}}) {
+        } elsif ($case->{group}) {
+            if ($groups_hash && exists $groups_hash->{$case->{group}}) {
                 $bingo++;
             }
-        } elsif (exists $case->{datacenter}) {
+        } elsif ($case->{datacenter}) {
             if ($datacenter && $case->{datacenter} eq $datacenter->Name) {
                 $bingo++;
             }
