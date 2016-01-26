@@ -297,7 +297,7 @@ sub _resolve_case {
                 $bingo++;
             }
         } elsif ($case->{group}) {
-            if ($groups_hash && exists $groups_hash->{$case->{group}}) {
+            if ($groups_hash && $groups_hash->{$case->{group}}) {
                 $bingo++;
             }
         } elsif ($case->{datacenter}) {
