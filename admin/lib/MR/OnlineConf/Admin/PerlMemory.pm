@@ -4,6 +4,7 @@ use Mouse;
 
 # External modules
 use Text::Glob;
+use Data::Dumper;
 use List::MoreUtils;
 use Net::IP::CMatch;
 
@@ -146,17 +147,19 @@ sub put {
     # Check move
     if (my $byid = $self->byid->{$node->ID}) {
         if ($byid->Path ne $node->Path) {
-            # Remove from index and parents for recreate
             $self->delete($byid);
+        }
+    }
 
-            # Replace Path. Patch childs
-            $self->move($byid, $byid->Path, $node->Path);
+    if (my $indexed = $self->index->{$node->Path}) {
+        if ($indexed->ID != $node->ID) {
+            $self->delete($indexed);
         }
     }
 
     # Update
     if (my $indexed = $self->index->{$node->Path}) {
-        unless ($indexed->Version < $node->Version) {
+        if ($indexed->Version >= $node->Version) {
             return 1;
         }
 
@@ -189,7 +192,7 @@ sub put {
 
         while (defined(my $name = shift @path)) {
             unless ($root = $root->children->{$name}) {
-                die sprintf "Failed to put parameter %s: no parent node found", $node->Path;
+                die sprintf "Failed to put parameter %s: no parent node found. %s", $node->Path, Dumper($node);
             }
         }
 
@@ -255,20 +258,6 @@ sub get {
     }
 
     return $node;
-}
-
-sub move {
-    my ($self, $node, $from, $to) = @_;
-    my $Path = $node->Path;
-
-    delete $self->index->{$Path};
-    $Path =~ s/$from/$to/;
-    $node->_Path($Path);
-    $self->index->{$Path} = $node;
-
-    foreach my $child (values %{$node->children}) {
-        $self->move($child, $from, $to);
-    }
 }
 
 sub delete {
