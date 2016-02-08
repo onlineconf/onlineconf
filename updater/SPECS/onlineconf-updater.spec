@@ -11,18 +11,16 @@ BuildArch:      noarch
 AutoReq:        0
 BuildRequires:  git
 BuildRequires:  mr-rpm-macros
+BuildRequires:  perl(ExtUtils::MakeMaker)
 Requires:       perl-AnyEvent >= 5.31
 Requires:       perl-EV >= 4.02
 Requires:       perl-JSON
-Requires:       perl-JSON-XS
-Requires:       perl-IO-Interface
-Requires:       perl-List-MoreUtils
 Requires:       perl-Log-Dispatch
 Requires:       perl-Mouse
-Requires:       perl-MR-DBI >= 20120606.1301
-Requires:       perl-Net-IP-CMatch
-Requires:       perl-Text-Glob
 Requires:       perl-YAML
+Requires:       perl-CBOR-XS >= 1.25
+Requires:       perl-CDB_File >= 0.98
+Requires:       perl-libwww-perl
 Requires:       mailru-initd-functions >= 1.11
 Conflicts:      perl-MR-Onlineconf < 20120328.1753
 
@@ -31,7 +29,7 @@ onlineconf-updater script. Built from revision %{__revision}.
 
 %prep
 %setup -n onlineconf/updater
-sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf/Updater.pm
+sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineConf/Updater.pm
 
 %build
 %__perl Makefile.PL INSTALLDIRS=vendor
@@ -43,7 +41,6 @@ sed -i "s/our \$VERSION = '1.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineCo
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %__mkdir -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir}/onlineconf %{buildroot}/%{_sysconfdir}/cron.d
-%__install -m 644 etc/onlineconf.yaml %{buildroot}/%{_localetcdir}/onlineconf.yaml
 %__install -m 755 init.d/onlineconf %{buildroot}/%{_initrddir}/onlineconf
 %__mv %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
@@ -54,7 +51,6 @@ echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sy
 %{perl_vendorlib}/*
 %{_localbindir}/*
 %{_initrddir}/onlineconf
-%config(noreplace) %attr(-,update,mail) %{_localetcdir}/onlineconf.yaml
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf
 %{_sysconfdir}/cron.d/%{name}
 

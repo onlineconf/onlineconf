@@ -5,8 +5,13 @@ use Mouse;
 # External modules
 use CBOR::XS;
 use MIME::Base64;
-use Sys::Hostname;
 use LWP::UserAgent;
+
+has log => (
+    is  => 'ro',
+    isa => 'Log::Dispatch',
+    required => 1,
+);
 
 has host => (
     is => 'ro',
@@ -32,6 +37,10 @@ has address => (
     lazy => 1,
     default => sub {
         my ($self) = @_;
+
+        if ($self->port == 443) {
+            return 'https://' . $self->host . ':' . $self->port . '/';
+        }
 
         return 'http://' . $self->host . ':' . $self->port . '/';
     }
@@ -71,7 +80,6 @@ has lwp => (
         $ua->add_handler(
             request_prepare => sub {
                 my ($req, $ua, $h) = @_;
-                $req->header("X-OnlineConf-Client-Host" => Sys::Hostname::hostname());
                 $req->header('X-OnlineConf-Client-Mtime' => $self->mtime);
             }
         );
@@ -84,9 +92,9 @@ sub get_config {
     my ($self) = @_;
     my $res = $self->lwp->get($self->address . 'client/config');
 
-    return [] unless $res;
+    return {} unless $res;
 
-    warn $res->status_line;
+    $self->log->info($res->status_line);
 
     if ($res->headers->header('X-OnlineConf-Admin-Last-Modified') gt $self->mtime) {
         $self->mtime(
@@ -104,13 +112,13 @@ sub get_config {
         };
 
         if ($@) {
-            warn "WebAPI CBOR ERROR: $@";
+            $self->log->error("WebAPI CBOR ERROR: $@");
         }
 
-        return $data || [];
+        return $data || {};
     }
 
-    return [];
+    return {};
 }
 
 sub post_activity {
@@ -118,7 +126,6 @@ sub post_activity {
 
     return $self->lwp->post(
         $self->address . 'client/activity', {
-            host => Sys::Hostname::hostname(),
             mtime => $self->mtime,
             version => $self->version,
         }

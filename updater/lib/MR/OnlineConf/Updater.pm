@@ -2,7 +2,6 @@ package MR::OnlineConf::Updater;
 
 use Mouse;
 use Scalar::Util 'weaken';
-use Sys::Hostname ();
 use MR::OnlineConf::Updater::Admin;
 use MR::OnlineConf::Updater::PerlMemory;
 use MR::OnlineConf::Updater::Parameter;
@@ -61,6 +60,7 @@ has _update_timer => (
         AnyEvent->timer(
             interval => $self->config->{update_interval} || 5,
             cb       => sub { $self->_update_config() },
+            after    => int(rand(30)) + 1,
         );
     },
 );
@@ -74,6 +74,7 @@ has _online_timer => (
         AnyEvent->timer(
             interval => $self->config->{online_interval} || 60,
             cb       => sub { $self->_update_online() },
+            after    => int(rand(30)) + 1,
         );
     },
 );
@@ -86,7 +87,9 @@ has _admin => (
         my ($self) = @_;
 
         return MR::OnlineConf::Updater::Admin->new(
-            %{$self->config->{admin}}, version => $VERSION
+            log => $_[0]->log, %{
+                $self->config->{admin}
+            }, version => $VERSION
         );
     }
 );
@@ -108,7 +111,8 @@ has conf_files => (
     default => sub {
         return MR::OnlineConf::Updater::ConfFiles->new(
             log => $_[0]->log,
-            dir => $_[0]->config->{data_dir}
+            dir => $_[0]->config->{data_dir},
+            cdb => $_[0]->config->{enable_cdb},
         )
     },
 );
@@ -137,33 +141,38 @@ sub _update_config {
         my $list = $self->_admin->get_config();
         my $tree = MR::OnlineConf::Updater::PerlMemory->new(log => $_[0]->log);
 
-        if ($list && @$list) {
-            my $count = 0;
-            my @slist = sort {$a->{Path} cmp $b->{Path}} @$list;
+        if ($list) {
+            $list->{nodes} ||= [];
+            $list->{modules} ||= [];
 
-            foreach my $row (@slist) {
-                my $param = MR::OnlineConf::Updater::Parameter->new(
-                    id           => $row->{ID},
-                    name         => $row->{Name},
-                    path         => $row->{Path},
-                    version      => $row->{Version},
-                    data         => $row->{Value},
-                    content_type => $row->{ContentType},
-                );
+            if (@{$list->{nodes}}) {
+                my $count = 0;
+                my @slist = sort {$a->{Path} cmp $b->{Path}} @{$list->{nodes}};
 
-                if (defined $param->value || $param->is_null || $param->is_case) {
-                    $count++ if $tree->put($param);
+                foreach my $row (@slist) {
+                    my $param = MR::OnlineConf::Updater::Parameter->new(
+                        id           => $row->{ID},
+                        name         => $row->{Name},
+                        path         => $row->{Path},
+                        version      => $row->{Version},
+                        data         => $row->{Value},
+                        content_type => $row->{ContentType},
+                    );
+
+                    if (defined $param->value || $param->is_null || $param->is_case) {
+                        $count++ if $tree->put($param);
+                    }
                 }
-            }
 
-            if ($count) {
-                if (eval { $self->conf_files->update($tree); 1 }) {
-                    $self->log->info("Updated $count versions, last modification was at " . $self->_admin->mtime);
+                if ($count) {
+                    if (eval { $self->conf_files->update($tree, $list->{modules}); 1 }) {
+                        $self->log->info("Updated $count versions, last modification was at " . $self->_admin->mtime);
+                    } else {
+                        $self->log->error("Failed to update config: $@");
+                    }
                 } else {
-                    $self->log->error("Failed to update config: $@");
+                    $self->log->debug("Nothing to update");
                 }
-            } else {
-                $self->log->debug("Nothing to update");
             }
         } else {
             $self->log->debug("Nothing to update");

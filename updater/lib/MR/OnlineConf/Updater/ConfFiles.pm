@@ -1,12 +1,11 @@
 package MR::OnlineConf::Updater::ConfFiles;
 
 use Mouse;
-use File::Spec;
+
 use JSON;
+use CDB_File;
+use File::Spec;
 use POSIX qw/strftime/;
-use Text::Glob qw/match_glob glob_to_regex_string/;
-use Sys::Hostname;
-use MR::OnlineConf::Updater::Util;
 
 has dir => (
     is  => 'ro',
@@ -20,6 +19,12 @@ has log => (
     required => 1,
 );
 
+has cdb => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+);
+
 has _data => (
     is  => 'ro',
     isa => 'HashRef',
@@ -27,27 +32,25 @@ has _data => (
 );
 
 sub update {
-    my ($self, $tree) = @_;
+    my ($self, $tree, $modules) = @_;
     my @failed;
 
     # Dump modules
-    if (my $map = $tree->get('/onlineconf/module')) {
-        foreach my $module (keys %{$map->children}) {
-            local $self->{seen_node} = {};
+    foreach my $module (@$modules) {
+        next if $module eq 'TREE';
 
-            my $child = $map->child($module);
+        my $data = {};
 
-            next if !$child;
-
-            my $data = $self->_walk_tree($child);
-
-            eval {
-                $self->_dump_module($module, $data); 1;
-            } or do {
-                $self->log->error($@);
-                push @failed, $module;
-            };
+        if (my $node = $tree->get("/onlineconf/module/$module")) {
+            $data = $self->_walk_tree($node);
         }
+
+        eval {
+            $self->_dump_module($module, $data); 1;
+        } or do {
+            $self->log->error($@);
+            push @failed, $module;
+        };
     }
 
     # Dump TREE.conf
@@ -68,15 +71,21 @@ sub update {
 sub _walk_tree {
     my ($self, $node) = @_;
     my %data;
+
     local $self->{seen_node}->{$node->id} = 1;
+
     foreach my $name (keys %{$node->children}) {
         my $child = $node->child($name);
+
         next if $self->{seen_node}->{$child->id};
         next if !$child || $self->{seen_node}->{$child->id};
+
         if (!$child->is_null) {
             if (defined(my $value = $child->value)) {
                 if (ref $value) {
-                    $data{"$name:JSON"} = eval { JSON::to_json($value) };
+                    $data{"$name:JSON"} = eval {
+                        JSON::to_json($value)
+                    };
                 } else {
                     $value = '' unless defined $value;
                     $value =~ s/\n/\\n/g;
@@ -85,9 +94,14 @@ sub _walk_tree {
                 }
             }
         }
+
         my $child_data = $self->_walk_tree($child);
-        $data{"$name/$_"} = $child_data->{$_} foreach keys %$child_data;
+
+        foreach (keys %$child_data) {
+            $data{"$name/$_"} = $child_data->{$_};
+        }
     }
+
     return \%data;
 }
 
@@ -98,7 +112,7 @@ sub _dump_module {
     $s .= "#! Name $module\n";
     $s .= "#! Version ".time()."\n\n";
 
-    foreach my $k (sort keys %$data){
+    foreach my $k (sort keys %$data) {
         my $p = $k;
         my $v = $data->{$k};
 
@@ -115,12 +129,25 @@ sub _dump_module {
     }
 
     $s .= "#EOF";
+
     return unless $self->_module_modified($module, $s);
+
     my $filename = File::Spec->catfile($self->dir, "$module.conf");
     open my $f, '>:utf8', "${filename}_tmp" or die "Can't open file ${filename}_tmp: $!\n";
     print $f $s;
     close $f;
     rename "${filename}_tmp", $filename or die "Can't rename ${filename}_tmp to $filename: $!";
+
+    if ($self->cdb) {
+        eval {
+            $self->_dump_module_cdb($module, $data);
+        };
+
+        if ($@) {
+            warn $@;
+        }
+    }
+
     return;
 }
 
@@ -135,6 +162,38 @@ sub _module_modified {
     close $f;
     $content =~ s/^#.*\n?//gm;
     return $content ne $current;
+}
+
+sub _dump_module_cdb {
+    my ($self, $module, $data) = @_;
+    my $f = File::Spec->catfile($self->dir, "$module");
+    my $t = CDB_File->new("${f}_tmp.cdb", "${f}.$$") or die "Can't open cdb file: $!";
+
+    foreach my $k (sort keys %$data) {
+        my $p = $k;
+        my $v = $data->{$k};
+
+        $p = "/$p";
+ 
+        if ($module eq 'TREE') {
+            $k = $p;
+        } else {
+            $k =~ s/\//./g;
+            $p = "/onlineconf/module/$module$p";
+        }
+
+        if ($k =~ /:JSON$/) {
+            $t->insert($k, "j$v");
+        } else {
+            $t->insert($k, "s$v");
+        }
+    }
+
+    $t->finish();
+
+    rename "${f}_tmp.cdb", "${f}.cdb" or die "Can't rename ${f}_tmp.cdb to ${f}.cdb: $!";
+
+    return;
 }
 
 no Mouse;

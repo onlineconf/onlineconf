@@ -1,21 +1,15 @@
 admin:
-    host: xxx
-    port: xxx
-    username: xxx
-    password: xxx
-database:
   host: xxx
-  user: onlineconf
+  port: 80
+  username: onlineconf.updater
   password: xxx
-  base: onlineconf
-  timeout: 15
 notification_database:
   host: xxx
-  user: changebot
+  user: xxx
   password: xxx
-  base: onlineconf
-  database: onlineconf
-  timeout: 2
+  base: xxx
+  database: xxx
+  timeout: 15
 data_dir: /usr/local/etc/onlineconf/
 logfile: /var/log/onlineconf_updater.log
 pidfile: /var/run/onlineconf_updater.pid
