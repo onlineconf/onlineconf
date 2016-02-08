@@ -1,4 +1,4 @@
-Name:           perl-MR-OnlineConf
+Name:           perl-MR-Onlineconf
 Version:        %{__version}
 Release:        %{__release}%{?dist}
 Summary:        onlineconf perl client
