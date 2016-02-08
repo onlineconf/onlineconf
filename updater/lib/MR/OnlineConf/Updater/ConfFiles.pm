@@ -182,7 +182,7 @@ sub _dump_module_cdb {
             $p = "/onlineconf/module/$module$p";
         }
 
-        if ($k =~ /:JSON$/) {
+        if ($k =~ s/:JSON$//) {
             $t->insert($k, "j$v");
         } else {
             $t->insert($k, "s$v");
