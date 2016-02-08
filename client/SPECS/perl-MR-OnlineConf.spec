@@ -12,8 +12,10 @@ BuildRoot:      %{_tmppath}/%{name}-%{?version}-%{?release}-buildroot
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires:       perl-Class-Singleton
 Requires:       perl-JSON-XS
+Requires:       perl-CBOR-XS >= 1.25
 Requires:       perl-YAML
-Requires:       onlineconf-updater >= 20120606.1252
+Requires:       perl-CDB_File >= 0.98
+Requires:       onlineconf-updater >= 20160122.1354
 Provides:       perl-MR-Onlineconf = %{__version}-%{__revision}%{?dist}
 Obsoletes:      onlineconf
 Obsoletes:      perl-MR-Onlineconf

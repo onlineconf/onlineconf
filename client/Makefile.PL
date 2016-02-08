@@ -9,9 +9,11 @@ WriteMakefile(
         'Data::Dumper'      => 0,
         'Exporter'          => 0,
         'JSON::XS'          => 0,
+        'CBOR::XS'          => 0,
         'List::Util'        => 0,
         'Digest::MD5'       => 0,
         'POSIX'             => 0,
-        'YAML'              => 0
+        'YAML'              => 0,
+        'CDB_File'          => 0,
     },
 );

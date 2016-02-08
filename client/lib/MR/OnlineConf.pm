@@ -6,6 +6,7 @@ use base qw/Class::Singleton Exporter MR::OnlineConf::Preload/;
 
 use YAML;
 use CDB_File;
+use CBOR::XS;
 use Data::Dumper;
 use Sys::Hostname ();
 use POSIX qw/strftime/;
@@ -142,6 +143,17 @@ sub get {
 
         if ($@) {
             $self->_say(-1,"cant parse json variable $key => $val\n: $@");
+            return undef;
+        }
+    }
+
+    if ($typ eq 'c') {
+        $val = eval {
+            CBOR::XS::decode_cbor($val);
+        };
+
+        if ($@) {
+            $self->_say(-1,"cant parse cbor variable $key => $val\n: $@");
             return undef;
         }
     }
