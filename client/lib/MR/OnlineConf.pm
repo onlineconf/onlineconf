@@ -165,8 +165,7 @@ sub getModule {
     my ($self, $module) = @_;
     $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
     $self->reload($module) if $self->{cfg}{reload};
-    my $cache = $self->{cache}{$module};
-    return { map { $_ => $cache->{$_} } keys %$cache };
+    return { %{$self->{cache}{$module}} };
 }
 
 sub reload {
