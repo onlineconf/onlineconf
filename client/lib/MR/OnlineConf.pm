@@ -129,42 +129,22 @@ sub get {
         return $self->{cache}{$module}{$key};
     }
 
-    my $val = $self->{cache}{$module}{$key};
-    my $typ = substr $val, 0, 1, '';
-
-    if ($typ eq 's') {
-        utf8::decode($val);
-    }
-
-    if ($typ eq 'j') {
-        $val = eval {
-            from_json($val);
-        };
-
-        if ($@) {
-            $self->_say(-1,"cant parse json variable $key => $val\n: $@");
-            return undef;
-        }
-    }
-
-    if ($typ eq 'c') {
-        $val = eval {
-            CBOR::XS::decode_cbor($val);
-        };
-
-        if ($@) {
-            $self->_say(-1,"cant parse cbor variable $key => $val\n: $@");
-            return undef;
-        }
-    }
-
-    return $self->{cache_cdb}{$module}{$key} = $val;
+    return $self->{cache_cdb}{$module}{$key} = $self->_get_cdb_value($module, $key);
 }
 
 sub getModule {
     my ($self, $module) = @_;
     $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
     $self->reload($module) if $self->{cfg}{reload};
+
+    if ($self->{config}{enable_cdb_client}) {
+        return {
+            map {
+                $_ => $self->_get_cdb_value($module, $_)
+            } keys %{$self->{cache}{$module}}
+        }
+    }
+
     return { %{$self->{cache}{$module}} };
 }
 
@@ -255,6 +235,40 @@ sub _test {
     } else {
         $self->_reseterr();
     }
+}
+
+sub _get_cdb_value {
+    my ($self, $module, $key) = @_;
+    my $val = $self->{cache}{$module}{$key};
+    my $typ = substr $val, 0, 1, '';
+
+    if ($typ eq 's') {
+        utf8::decode($val);
+    }
+
+    if ($typ eq 'j') {
+        $val = eval {
+            from_json($val);
+        };
+
+        if ($@) {
+            $self->_say(-1,"cant parse json variable $key => $val\n: $@");
+            return undef;
+        }
+    }
+
+    if ($typ eq 'c') {
+        $val = eval {
+            CBOR::XS::decode_cbor($val);
+        };
+
+        if ($@) {
+            $self->_say(-1,"cant parse cbor variable $key => $val\n: $@");
+            return undef;
+        }
+    }
+
+    return $val;
 }
 
 sub LOCAL_CFG_PATH () { $_[0]->{config}{data_dir} }
