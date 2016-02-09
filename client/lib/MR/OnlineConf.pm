@@ -1,38 +1,36 @@
 package MR::OnlineConf;
 
 use strict;
+use warnings;
 
-use base qw/Class::Singleton Exporter MR::OnlineConf::Preload/;
+use base qw/Class::Singleton MR::OnlineConf::Preload/;
 
 use YAML;
+use Carp;
+use POSIX;
 use CDB_File;
 use CBOR::XS;
+use JSON::XS;
 use Data::Dumper;
 use Sys::Hostname ();
-use POSIX qw/strftime/;
-use Carp qw/carp confess/;
-
-use MR::OnlineConf::Const qw/:all/;
-use MR::OnlineConf::Util qw/from_json to_json/;
-
-sub ERRORLOG()  {'/var/tmp/onlineconf_error.txt'}
 
 my $DEFAULT_CONFIG = {
-    database=> {
+    database => {
         host      => 'unknown', 
         user      => 'unknown',
         password  => 'unknown',
         base      => 'unknown',
         timeout   => 2,                                                                                                           
     },
-    data_dir => '/usr/local/etc/onlineconf/',
+    debug => 0,
     logfile  => '/var/log/onlineconf_updater.log', 
     pidfile  => '/var/run/onlineconf_updater.pid',
+    data_dir => '/usr/local/etc/onlineconf/',
     update_interval => 60,
-    test_interval   => 60,
-    debug => 0,
     enable_cdb_client => 0,
 };
+
+sub LOCAL_CFG_PATH () { $_[0]->{config}{data_dir} }
 
 {
     my $config;
@@ -44,7 +42,7 @@ my $DEFAULT_CONFIG = {
         my $file = $ENV{PERL_ONLINECONF_CONFIG} || '/usr/local/etc/onlineconf.yaml';
         if (-r $file) {
             $config = YAML::LoadFile($file) or
-                confess "cant load config file at $file";
+                Carp::confess "cant load config file at $file";
         } else {
             warn "WARNING: onlineconf can't load config file from `$file`. default config will be used.\n";
             $config = $DEFAULT_CONFIG;
@@ -66,10 +64,8 @@ my $DEFAULT_CONFIG = {
             checks    => $checks,
             load      => $load,
             cfg       => \%opts,
-            logstatus => undef,
             hostname  => Sys::Hostname::hostname(),
             config    => $config,
-            test_expires => 0,
         };
         return bless $self , $class;
     }
@@ -78,32 +74,12 @@ my $DEFAULT_CONFIG = {
 sub _say {
     my ($self,$level,@msg) = @_;
     return 1 if $level > $self->{cfg}{debug};
-    warn "[".strftime('%Y/%d/%m %H:%M:%S' , localtime)."] ".join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
-    return 1;
-}
-
-sub _logerr {
-    my ($self,$level,@msg) = @_;
-    $self->_say($level,@msg);
-
-    open(F,'>'.ERRORLOG());
-    print F "OnlineConf SelfTest: ".(join(" ", map {ref $_ ? Dumper $_ : $_} @msg))." [source: $0]\n";
-    close(F);
-    $self->{logstatus} = 1;
-}
-
-sub _reseterr {
-    my ($self) = @_;
-    $self->_say(3,"no reason to clear errorlog") && return if defined $self->{logstatus} && !$self->{logstatus};
-    truncate(ERRORLOG(),0) or $self->_say(-1,"can't truncate file: $!");
-    $self->{logstatus} = 0;
+    warn "[".POSIX::strftime('%Y/%d/%m %H:%M:%S' , localtime)."] ".join( ":" , (caller())[0,2]).' '.(join " " , map {ref $_ ? Dumper $_ : $_} @msg);
     return 1;
 }
 
 sub get {
     my ($self,$module,$key,$default) = @_;
-
-    $self->_test();
 
     if ($module && $module =~ /^\//) {
         $default = $key;
@@ -213,30 +189,6 @@ sub _reload {
     return 1;
 }
 
-sub _test {
-    my ($self) = @_;
-
-    return if time() < $self->{test_expires};
-
-    $self->{test_expires} = time() + ($self->{config}->{test_interval} || 60);
-
-    $self->reload(MY_CONFIG_SELFTEST_MODULE_NAME);
-    $self->_logerr(1,"cant read selftest module\n") 
-        and return unless exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()} && exists $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
-
-    $self->_reseterr() and return unless $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_ENABLED_KEY()};
-
-    my $last_update = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_TIME_KEY()};
-    my $delay       = $self->{cache}{MY_CONFIG_SELFTEST_MODULE_NAME()}{MY_CONFIG_SELFTEST_DELAY_KEY()} || 0;
-    my $diff        = time - $last_update;
-
-    if ($diff > $delay) {
-        $self->_logerr(1,"$self->{hostname}: selftest module hasnt updates for $diff secs (limit: $delay, last update: $last_update)");
-    } else {
-        $self->_reseterr();
-    }
-}
-
 sub _get_cdb_value {
     my ($self, $module, $key) = @_;
     my $val = $self->{cache}{$module}{$key};
@@ -248,7 +200,7 @@ sub _get_cdb_value {
 
     if ($typ eq 'j') {
         $val = eval {
-            from_json($val);
+            JSON::XS::decode_json($val);
         };
 
         if ($@) {
@@ -270,8 +222,6 @@ sub _get_cdb_value {
 
     return $val;
 }
-
-sub LOCAL_CFG_PATH () { $_[0]->{config}{data_dir} }
 
 sub _updater_statFile {
     my ($self,$mod) = @_;
@@ -323,7 +273,7 @@ sub _updater_restore {
             if ($k=~/^(.+?)\:JSON$/){
                 $self->_say(4,"var $k is JSON");
                 $k = $1;
-                my $p = eval {from_json($v)};
+                my $p = eval {JSON::XS::decode_json($v)};
                 $self->_say(-1,"cant parse json variable $k => $v\n: $@")
                     and return undef if $@;
                 $v = $p;

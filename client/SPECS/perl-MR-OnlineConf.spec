@@ -10,10 +10,10 @@ BuildArch:      noarch
 BuildRoot:      %{_tmppath}/%{name}-%{?version}-%{?release}-buildroot
 
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
-Requires:       perl-Class-Singleton
-Requires:       perl-JSON-XS
+Requires:       perl-YAML >= 0.70
+Requires:       perl-JSON-XS >= 2.29
 Requires:       perl-CBOR-XS >= 1.25
-Requires:       perl-YAML
+Requires:       perl-Class-Singleton
 Requires:       perl-CDB_File >= 0.98
 Requires:       onlineconf-updater >= 20160208.2139
 Provides:       perl-MR-Onlineconf = %{__version}-%{__revision}%{?dist}
@@ -37,15 +37,15 @@ find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 chmod -R u+w $RPM_BUILD_ROOT/*
 %__mkdir -p $RPM_BUILD_ROOT%{_tmppath}
-touch $RPM_BUILD_ROOT%{_tmppath}/onlineconf_error.txt
 %_fixperms $RPM_BUILD_ROOT/*
 
 %files
 %defattr(-,root,root,-)
 %{perl_vendorlib}/*
-%attr(664,mail,mail) %{_tmppath}/onlineconf_error.txt
 
 %changelog
+* Tue Feb  9 2016 Nurutdinov Timur <t.nurutdinov@corp.mail.ru>
+- move conf files to cdb
 * Mon Mar 19 2012 Aleksey Mashanov <a.mashanov@corp.mail.ru>
 - move updater to separate package
 * Wed Jul 04 2011 Sergey Panteleev <panteleev@corp.mail.ru>
