@@ -169,11 +169,12 @@ sub _module_modified {
 sub _dump_module_cdb {
     my ($self, $modified, $module, $data) = @_;
     my $f = File::Spec->catfile($self->dir, "$module");
-    my $t = CDB_File->new("${f}_tmp.cdb", "${f}.$$") or die "Can't open cdb file: $!";
 
     if (! $modified && -e "${f}.cdb") {
         return;
     }
+
+    my $t = CDB_File->new("${f}_tmp.cdb", "${f}.$$") or die "Can't open cdb file: $!";
 
     foreach my $k (sort keys %$data) {
         my $p = $k;
