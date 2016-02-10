@@ -130,17 +130,19 @@ sub _dump_module {
 
     $s .= "#EOF";
 
-    return unless $self->_module_modified($module, $s);
+    my $modified;
 
-    my $filename = File::Spec->catfile($self->dir, "$module.conf");
-    open my $f, '>:utf8', "${filename}_tmp" or die "Can't open file ${filename}_tmp: $!\n";
-    print $f $s;
-    close $f;
-    rename "${filename}_tmp", $filename or die "Can't rename ${filename}_tmp to $filename: $!";
+    if ($modified = $self->_module_modified($module, $s)) {
+        my $filename = File::Spec->catfile($self->dir, "$module.conf");
+        open my $f, '>:utf8', "${filename}_tmp" or die "Can't open file ${filename}_tmp: $!\n";
+        print $f $s;
+        close $f;
+        rename "${filename}_tmp", $filename or die "Can't rename ${filename}_tmp to $filename: $!";
+    }
 
     if ($self->cdb) {
         eval {
-            $self->_dump_module_cdb($module, $data);
+            $self->_dump_module_cdb($modified, $module, $data);
         };
 
         if ($@) {
@@ -165,9 +167,13 @@ sub _module_modified {
 }
 
 sub _dump_module_cdb {
-    my ($self, $module, $data) = @_;
+    my ($self, $modified, $module, $data) = @_;
     my $f = File::Spec->catfile($self->dir, "$module");
     my $t = CDB_File->new("${f}_tmp.cdb", "${f}.$$") or die "Can't open cdb file: $!";
+
+    if (! $modified && -e "${f}.cdb") {
+        return;
+    }
 
     foreach my $k (sort keys %$data) {
         my $p = $k;
