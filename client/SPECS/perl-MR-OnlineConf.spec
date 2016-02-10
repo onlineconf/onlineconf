@@ -15,7 +15,7 @@ Requires:       perl-JSON-XS >= 2.29
 Requires:       perl-CBOR-XS >= 1.25
 Requires:       perl-Class-Singleton
 Requires:       perl-CDB_File >= 0.98
-Requires:       onlineconf-updater >= 20160208.2139
+Requires:       onlineconf-updater >= 20160210.1820
 Provides:       perl-MR-Onlineconf = %{__version}-%{__revision}%{?dist}
 Obsoletes:      onlineconf
 Obsoletes:      perl-MR-Onlineconf
