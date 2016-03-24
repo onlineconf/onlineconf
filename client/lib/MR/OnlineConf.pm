@@ -160,15 +160,12 @@ sub _reload {
         if (-e (my $file = $self->LOCAL_CFG_PATH().$module.'.cdb')) {
             $self->{cache_cdb}{$module} = {};
 
-            if ($self->{cache}{$module}) {
-                untie $self->{cache}{$module};
-            }
-
+            untie $self->{cache}{$module};
             delete $self->{cache}{$module};
 
             tie %{
-                $self->{cache}{$module}
-            }, 'CDB_File', $file or die "tie failed: $!\n";;
+                $self->{cache}{$module} = {}
+            }, 'CDB_File', $file or die "tie failed: $!\n";
         }
     } else {
         my $data = $self->_updater_readFile($module,md5_check=>1);
