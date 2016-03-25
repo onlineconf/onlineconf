@@ -8,6 +8,7 @@ sub PRELOAD () {'_ALL_'}
 sub preload {
     my ($self) = @_;
     my $preload = $self->PRELOAD();
+    return if $self->{config}{enable_cdb_client};
     unless (ref $preload eq 'ARRAY'){
         $self->_say(-1,"unknown constant $preload") and return undef unless $preload eq '_ALL_';
         return $self->reloadAll();
@@ -20,6 +21,7 @@ sub preload {
 
 sub reloadAll {
     my ($self,%opts) = @_;
+    return if $self->{config}{enable_cdb_client};
     %opts = (force=>0,%opts);
     unless ($opts{force}){
         my $m = $self->_check_all() || return undef;
