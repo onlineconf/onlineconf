@@ -60,6 +60,7 @@ sub LOCAL_CFG_PATH () { $_[0]->{config}{data_dir} }
         _read_config() unless $config;
         my $self = {
             cache_cdb => {},
+            full_cache_cdb => {},
             cache     => $cache,
             checks    => $checks,
             load      => $load,
@@ -90,7 +91,7 @@ sub get {
     $self->_say(-1,"incorrect call. module and  key must be defined\n") 
         and return $default unless $module && $key;
 
-    $self->reload($module) if $self->{cfg}{reload};
+    $self->reload($module);
 
     if ($self->{config}{enable_cdb_client}) {
         if (exists $self->{cache_cdb}{$module}{$key}) {
@@ -111,14 +112,20 @@ sub get {
 sub getModule {
     my ($self, $module) = @_;
     $self->_say(-1,"incorrect call. module must be defined\n") and return unless $module;
-    $self->reload($module) if $self->{cfg}{reload};
+    $self->reload($module);
 
     if ($self->{config}{enable_cdb_client}) {
-        return {
-            map {
-                $_ => $self->_get_cdb_value($module, $_)
-            } keys %{$self->{cache}{$module}}
+        my $cache_cdb = $self->{cache_cdb}{$module};
+
+        unless ($self->{full_cache_cdb}{$module}) {
+            foreach my $key (keys %{$self->{cache}{$module}}) {
+                $cache_cdb->{$key} = $self->_get_cdb_value($module, $key);
+            }
+
+            $self->{full_cache_cdb}{$module} = 1;
         }
+
+        return { %$cache_cdb };
     }
 
     return { %{$self->{cache}{$module}} };
@@ -126,6 +133,15 @@ sub getModule {
 
 sub reload {
     my ($self,$module,%opts) = @_;
+
+    if ($self->{config}{enable_cdb_client}) {
+        if (exists $self->{cache}{$module}) {
+            return unless $self->{cfg}{reload};
+        }
+    } else {
+        return unless $self->{cfg}{reload};
+    }
+
     return unless $opts{force} || $self->_check($module);
     return $self->_reload($module);
 }
@@ -159,6 +175,7 @@ sub _reload {
     if ($self->{config}{enable_cdb_client}) {
         if (-e (my $file = $self->LOCAL_CFG_PATH().$module.'.cdb')) {
             $self->{cache_cdb}{$module} = {};
+            $self->{full_cache_cdb}{$module} = 0;
 
             untie %{$self->{cache}{$module}};
             delete $self->{cache}{$module};

@@ -8,39 +8,22 @@ sub PRELOAD () {'_ALL_'}
 sub preload {
     my ($self) = @_;
     my $preload = $self->PRELOAD();
-    # return 1 if $self->{config}{enable_cdb_client};
-    unless (ref $preload eq 'ARRAY'){
+
+    if ($self->{config}{enable_cdb_client}) {
+        foreach my $i (keys %{$self->{cache}}) {
+            $self->reload($i);
+        }
+    } elsif (ref $preload eq 'ARRAY'){
+        foreach my $i (@$preload){
+            $self->reload($i);
+        }
+    } else {
         $self->_say(-1,"unknown constant $preload") and return undef unless $preload eq '_ALL_';
-        return $self->reloadAll();
+        my $m = $self->_updater_localList() || return undef;
+        $self->_reload($_) for grep {$self->_check($_)} keys %$m;
     }
-    foreach my $i (@$preload){
-        $self->reload($i);
-    }
+
     return 1;
-}
-
-sub reloadAll {
-    my ($self,%opts) = @_;
-    # return 1 if $self->{config}{enable_cdb_client};
-    %opts = (force=>0,%opts);
-    unless ($opts{force}){
-        my $m = $self->_check_all() || return undef;
-        $self->_reload($_) for @$m;
-    }else{
-        $self->_reload_all();
-    }
-}
-
-sub _check_all {
-    my ($self) = @_;
-    my $m = $self->_updater_localList() || return [];
-    return [ grep {$self->_check($_)} keys %$m ];
-}
-
-sub _reload_all {
-    my ($self) = @_;
-    my $m = $self->_updater_localList() || return undef;
-    $self->_reload($_) for keys %$m;
 }
 
 sub _updater_localList {
