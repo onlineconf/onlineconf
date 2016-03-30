@@ -11,7 +11,7 @@ sub preload {
 
     if ($self->{config}{enable_cdb_client}) {
         foreach my $i (keys %{$self->{cache}}) {
-            $self->reload($i);
+            $self->_reload($i);
         }
     } elsif (ref $preload eq 'ARRAY'){
         foreach my $i (@$preload){
