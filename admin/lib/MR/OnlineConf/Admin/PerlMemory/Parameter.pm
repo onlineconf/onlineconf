@@ -135,7 +135,7 @@ has value => (
                         $str = '${' . $org . '}';
                     }
                 } elsif ($str eq 'hostname -s' || $str eq 'short_hostname') {
-                    unless (($str) = $host =~ /^(\w+)\./) {
+                    unless (($str) = $host =~ /^([\w-]+)\./) {
                         $str = '${' . $org . '}';
                     }
                 } elsif ($str eq 'hostname -i' || $str eq 'ip') {
