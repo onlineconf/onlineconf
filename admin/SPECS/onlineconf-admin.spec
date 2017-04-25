@@ -22,7 +22,7 @@ Requires:       perl-Mouse
 Requires:       perl-JSON
 Requires:       perl-JSON-XS
 Requires:       perl-MR-ChangeBot-Database
-Requires:       perl-MR-DBI >= 20120606.1301
+Requires:       perl-MR-DBI >= 20170425.2121
 Requires:       mailru-initd-functions >= 1.11
 Requires:       onlineconf-updater
 Conflicts:      perl-MR-Onlineconf < 20120319.1930

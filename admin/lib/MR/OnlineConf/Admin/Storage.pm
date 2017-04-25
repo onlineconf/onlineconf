@@ -9,6 +9,7 @@ around BUILDARGS => sub {
     my $class = shift;
     my $args = @_ == 1 ? $_[0] : { @_ };
     $args->{database} ||= $args->{base};
+    $args->{utf8} ||= 'utf8mb4';
     return $class->$orig($args);
 };
 
