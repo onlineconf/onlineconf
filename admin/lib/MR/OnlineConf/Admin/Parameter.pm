@@ -222,7 +222,7 @@ sub search {
                         t.`Notification` IS NOT NULL AS `NotificationModified`
                     FROM `my_config_tree` t
                     WHERE NOT `Deleted`
-                    AND (`Name` COLLATE ascii_general_ci LIKE ? OR `Value` COLLATE utf8_general_ci LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
+                    AND (`Name` COLLATE ascii_general_ci LIKE ? OR `Value` COLLATE utf8mb4 LIKE ? OR `Summary` LIKE ? OR `Description` LIKE ?)
                     ORDER BY `Path`
                 ) x
                 WHERE `RW` IS NOT NULL
