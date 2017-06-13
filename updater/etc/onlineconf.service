@@ -1,0 +1,15 @@
+[Unit]
+Description=OnlineConf Updater
+After=syslog.target
+
+[Service]
+ExecStart=/usr/local/bin/onlineconf-updater
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+Restart=always
+Type=notify
+StandardError=syslog
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
