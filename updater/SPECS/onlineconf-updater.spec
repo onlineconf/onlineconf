@@ -29,7 +29,7 @@ Requires:       perl-YAML
 Requires:       perl-CBOR-XS >= 1.25
 Requires:       perl-CDB_File >= 0.98
 Requires:       perl-libwww-perl
-%if %{with systemd}
+%if !%{with systemd}
 Requires:       mailru-initd-functions >= 1.11
 %endif
 Conflicts:      perl-MR-Onlineconf < 20120328.1753
