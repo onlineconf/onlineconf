@@ -64,10 +64,11 @@ sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineCo
 %endif
 %{__mv} %{buildroot}/%{_bindir} %{buildroot}%{_localbindir}
 
+echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
+
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 
-echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 %_fixperms %{buildroot}/*
 
 %files
