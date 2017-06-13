@@ -61,7 +61,7 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %endif
 
 %if %{with systemd}
-%{__install} -m 755 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
+%{__install} -m 644 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
 %else
 %{__install} -m 755 etc/onlineconf.init %{buildroot}%{_initrddir}/onlineconf
 %endif
