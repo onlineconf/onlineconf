@@ -50,15 +50,12 @@ sed -i "s/our \$VERSION = '2.0';/our \$VERSION = '%{version}';/" lib/MR/OnlineCo
 %{__mkdir} -p %{buildroot}%{_localetcdir}/onlineconf
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/cron.d
 %if %{with systemd}
-mkdir -p %{buildroot}%{_unitdir}
+%{__mkdir} -p %{buildroot}%{_unitdir}
 %else
-mkdir -p %{buildroot}%{_initrddir}
+%{__mkdir} -p %{buildroot}%{_initrddir}
 %endif
 
 %{__make} pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
-
-find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
-find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 
 %if %{with systemd}
 %{__install} -m 755 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
@@ -66,6 +63,10 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %{__install} -m 755 etc/onlineconf.init %{buildroot}%{_initrddir}/onlineconf
 %endif
 %{__mv} %{buildroot}/%{_bindir} %{buildroot}%{_localbindir}
+
+find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
+find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
+
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 %_fixperms %{buildroot}/*
 
