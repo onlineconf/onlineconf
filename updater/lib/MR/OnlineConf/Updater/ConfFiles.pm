@@ -54,7 +54,14 @@ sub update {
     }
 
     # Dump TREE.conf
-    my $data = $self->_walk_tree($tree->_root);
+    my $data;
+    
+    if (my $node = $tree->get("/onlineconf/module/TREE")) {
+        $data = $self->_walk_tree($node);
+    } else {
+        #TREE = / if TREE module is empty
+        $data = $self->_walk_tree($tree->_root);
+    }
 
     eval {
         $self->_dump_module('TREE', $data); 1;
