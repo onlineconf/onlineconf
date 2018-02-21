@@ -584,6 +584,7 @@ $(function() {
                 var $node = $(this).data('node');
                 var node = $node.data('node');
                 var data = {
+                    version: $node.data('node').version,
                     path: $('#move-path').val().replace(/\/$/, '/' + node.name),
                     symlink: $('#move-symlink').prop('checked') ? 1 : 0,
                     comment: $('#move-comment').val()

@@ -198,7 +198,8 @@ $(function() {
                 if (last != null && path == last.path) {
                     response($.grep(last.resp, function (v, i) { return v.value.indexOf(request.term) == 0 }));
                 } else {
-                    $.get('/config' + path + (resolveSymlink ? '?symlink=resolve' : ''), function (data) {
+                    var convPath = path == "/" ? path : path.replace(/\/$/, '')
+                    $.get('/config' + convPath + (resolveSymlink ? '?symlink=resolve' : ''), function (data) {
                         var resp = [];
                         $.each(data.children || [], function (id, child) {
                             resp.push({ label: child.name, value: child.path.replace(/^.*\//, path) });
