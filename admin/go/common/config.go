@@ -35,7 +35,6 @@ type ConfigFile struct {
 	}
 	Database             DatabaseConfig
 	NotificationDatabase DatabaseConfig `yaml:"notification_database"`
-	Test                 bool
 }
 
 func readConfigFile(filename string) *ConfigFile {

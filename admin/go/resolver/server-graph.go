@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/hostname"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
 )
+
+var serverSortRe = regexp.MustCompile(`(?:[\*\?]+|\{.*?\}|\[.*?\])`)
 
 type serverGraph struct {
 	graph
@@ -54,7 +55,7 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 	groups := make([]string, 0)
 	for _, group := range t.groups {
 		for _, glob := range group.globs {
-			if matched, _ := hostname.Match(glob, server.Host); matched {
+			if glob.Match(server.Host) {
 				groups = append(groups, group.name)
 				break
 			}
@@ -88,7 +89,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, value string) *Cas
 		return nil
 	}
 
-	byServer := make(CasesByServer, 0)
+	byServer := make([]Case, 0)
 	byGroup := make(map[string]Case, 0)
 	byDatacenter := make(map[string]Case, 0)
 	var defaultCase Case
@@ -107,7 +108,21 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, value string) *Cas
 			log.Ctx(ctx).Error().Str("value", value).Msg("invalid case")
 		}
 	}
-	sort.Sort(byServer)
+	sort.Slice(byServer, func(i, j int) bool {
+		var ic, jc int
+		is := serverSortRe.ReplaceAllStringFunc(byServer[i].Server, func(string) string { ic++; return "" })
+		js := serverSortRe.ReplaceAllStringFunc(byServer[j].Server, func(string) string { jc++; return "" })
+		if len(is) != len(js) {
+			return len(is) > len(js)
+		}
+		if ic != jc {
+			return ic < jc
+		}
+		if len(byServer[i].Server) != len(byServer[j].Server) {
+			return len(byServer[i].Server) > len(byServer[j].Server)
+		}
+		return byServer[i].Server < byServer[j].Server
+	})
 
 	for _, cs := range byServer {
 		if matched, _ := path.Match(cs.Server, cr.server.Host); matched { // TODO replace to hostname.Match()
@@ -129,7 +144,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, value string) *Cas
 		return &defaultCase
 	}
 
-	return &Case{}
+	return &Case{ContentType: "application/x-null"}
 }
 
 func (cr serverCaseResolver) getTemplateVar(name string) string {
@@ -143,31 +158,4 @@ func (cr serverCaseResolver) getTemplateVar(name string) string {
 	default:
 		return ""
 	}
-}
-
-var serverSortRe = regexp.MustCompile(`(?:[\*\?]+|\{.*?\}|\[.*?\])`)
-
-type CasesByServer []Case
-
-func (cases CasesByServer) Len() int {
-	return len(cases)
-}
-
-func (cases CasesByServer) Less(i, j int) bool {
-	is := serverSortRe.ReplaceAllString(cases[i].Server, "")
-	js := serverSortRe.ReplaceAllString(cases[j].Server, "")
-	if len(is) != len(js) {
-		return len(is) > len(js)
-	}
-	if is != js {
-		return is < js
-	}
-	if len(cases[i].Server) != len(cases[j].Server) {
-		return len(cases[i].Server) > len(cases[j].Server)
-	}
-	return cases[i].Server < cases[j].Server
-}
-
-func (cases CasesByServer) Swap(i, j int) {
-	cases[i], cases[j] = cases[j], cases[i]
 }

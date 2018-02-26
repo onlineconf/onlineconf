@@ -3,6 +3,8 @@ package resolver
 import (
 	"context"
 	"errors"
+	"github.com/gobwas/glob"
+	"github.com/rs/zerolog/log"
 	"net"
 	"sort"
 	"strings"
@@ -20,7 +22,7 @@ type datacenter struct {
 
 type group struct {
 	name  string
-	globs []string
+	globs []glob.Glob
 }
 
 type commonGraph struct {
@@ -81,13 +83,18 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 			}
 		} else {
 			sortedGroups = append(sortedGroups, name)
-			globs := make([]string, 0, 1+len(gr.Children))
+			globs := make([]glob.Glob, 0, 1+len(gr.Children))
 			params := []*Param{gr}
 			for len(params) > 0 {
 				node := params[0]
 				params = params[1:]
 				if node.Value.Valid {
-					globs = append(globs, node.Value.String)
+					g, err := glob.Compile(node.Value.String, '.')
+					if err == nil {
+						globs = append(globs, g)
+					} else {
+						log.Ctx(ctx).Warn().Err(err).Str("path", gr.Path).Msg("invalid glob")
+					}
 				}
 				for _, childPtr := range node.Children {
 					if *childPtr != nil {

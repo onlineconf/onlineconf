@@ -3,8 +3,8 @@ package resolver
 import (
 	"errors"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"net"
 	"net/http"
 	"strings"
@@ -26,22 +26,6 @@ func RegisterRoutes(r *mux.Router) {
 }
 
 func serveConfig(w http.ResponseWriter, req *http.Request) {
-	server, err := authenticateByIP(req)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	if server == nil {
-		http.Error(w, "", 403)
-	}
-	log.Ctx(req.Context()).Info().Str("host", server.Host).Str("ip", server.IP.String()).Msg("")
-
-	clientVersion := req.Header.Get("X-OnlineConf-Client-Version")
-	if clientVersion == "" {
-		http.Error(w, "Invalid X-OnlineConf-Client-Version", 400)
-		return
-	}
-
 	server, clientMTime := serverStatus(w, req)
 	if server == nil {
 		return
@@ -59,6 +43,7 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 	ser := newSerializer(modules)
 	body, err := ser.serialize()
 	if err != nil {
+		log.Ctx(req.Context()).Error().Err(err).Msg("500")
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -92,38 +77,19 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 
 	clientMTime := req.Header.Get("X-OnlineConf-Client-MTime")
 
-	err = updateServerActivity(req.Context(), server, clientMTime, clientVersion)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return nil, ""
+	if clientVersion != "TEST" {
+		err = updateServerActivity(req.Context(), server, clientMTime, clientVersion)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return nil, ""
+		}
 	}
 
 	return server, clientMTime
 }
 
 func authenticateByIP(req *http.Request) (*Server, error) {
-	var ipstr string
-	if AdminConfig.Test {
-		if ipstr = req.Form.Get("ip"); ipstr != "" {
-			if host := req.Form.Get("host"); host != "" {
-				ips, err := net.LookupHost(host)
-				if err != nil {
-					return nil, err
-				}
-				if len(ips) == 0 {
-					return nil, nil
-				}
-				ipstr = ips[0]
-			}
-		}
-	}
-	if ipstr == "" {
-		var err error
-		ipstr, _, err = net.SplitHostPort(req.RemoteAddr)
-		if err != nil {
-			return nil, err
-		}
-	}
+	ipstr := strings.Split(req.RemoteAddr, ":")[0]
 	if ipstr == "" {
 		return nil, ErrEmptyIP
 	}
@@ -139,16 +105,27 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 	if len(hosts) == 0 {
 		return nil, nil
 	}
+	if len(hosts) > 1 {
+		arr := zerolog.Arr()
+		for _, host := range hosts {
+			arr.Str(host)
+		}
+		log.Ctx(req.Context()).Warn().Str("ip", ipstr).Array("hosts", arr).Msg("more then one PTR record found")
+	}
 	host := hosts[0]
 
 	ips, err := net.LookupHost(host)
 	if err != nil {
 		return nil, err
 	}
-	if len(ips) == 0 {
-		return nil, nil
+	ok := false
+	for _, ip := range ips {
+		if ip == ipstr {
+			ok = true
+			break
+		}
 	}
-	if ips[0] != ipstr {
+	if !ok {
 		return nil, nil
 	}
 
