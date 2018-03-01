@@ -3,9 +3,9 @@ package resolver
 import (
 	"context"
 	"encoding/json"
+	"github.com/gobwas/glob"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -46,10 +46,13 @@ type serverCaseResolver struct {
 
 func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverCaseResolver {
 	var datacenter string
+dcloop:
 	for _, dc := range t.datacenters {
-		if dc.ipnet.Contains(server.IP) {
-			datacenter = dc.name
-			break
+		for _, ipnet := range dc.ipnets {
+			if ipnet.Contains(server.IP) {
+				datacenter = dc.name
+				break dcloop
+			}
 		}
 	}
 	groups := make([]string, 0)
@@ -125,7 +128,10 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, value string) *Cas
 	})
 
 	for _, cs := range byServer {
-		if matched, _ := path.Match(cs.Server, cr.server.Host); matched { // TODO replace to hostname.Match()
+		g, err := glob.Compile(cs.Server) // TODO add '.' separator
+		if err != nil {
+			log.Ctx(ctx).Warn().Str("server", cs.Server).Msg("invalid server glob")
+		} else if g.Match(cr.server.Host) {
 			return &cs
 		}
 	}

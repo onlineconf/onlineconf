@@ -16,8 +16,8 @@ var (
 )
 
 type datacenter struct {
-	name  string
-	ipnet net.IPNet
+	name   string
+	ipnets []net.IPNet
 }
 
 type group struct {
@@ -49,14 +49,18 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	datacenters := make([]datacenter, 0, len(dcroot.Children))
 	for _, name := range sortedNames {
 		dc := *dcroot.Children[name]
-		if !dc.Value.Valid && dc.ContentType == "text/plain" {
+		if !(dc.Value.Valid && (dc.ContentType == "text/plain" || dc.ContentType == "application/x-list")) {
 			return nil, ErrInvalidDatacenter
 		}
-		_, ipnet, err := net.ParseCIDR(dc.Value.String)
-		if err != nil {
-			return nil, err
+		ipnets := []net.IPNet{}
+		for _, ipstr := range strings.Split(dc.Value.String, ",") {
+			_, ipnet, err := net.ParseCIDR(ipstr)
+			if err != nil {
+				return nil, err
+			}
+			ipnets = append(ipnets, *ipnet)
 		}
-		datacenters = append(datacenters, datacenter{name, *ipnet})
+		datacenters = append(datacenters, datacenter{name, ipnets})
 	}
 	return datacenters, nil
 }
@@ -68,8 +72,8 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 	}
 	graph.resolveChildren(ctx, &grroot)
 	var priority []string
-	sortedGroups := make([]string, 0, len(grroot.Children))
-	groups := make(map[string]group, len(grroot.Children))
+	groupNames := make([]string, 0, len(grroot.Children))
+	globsByName := make(map[string][]string, len(grroot.Children))
 	for name, grPtr := range grroot.Children {
 		gr := *grPtr
 		if gr == nil {
@@ -82,19 +86,14 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 				priority = append(priority, strings.TrimSpace(name))
 			}
 		} else {
-			sortedGroups = append(sortedGroups, name)
-			globs := make([]glob.Glob, 0, 1+len(gr.Children))
+			groupNames = append(groupNames, name)
+			globs := make([]string, 0, 1+len(gr.Children))
 			params := []*Param{gr}
 			for len(params) > 0 {
 				node := params[0]
 				params = params[1:]
 				if node.Value.Valid {
-					g, err := glob.Compile(node.Value.String, '.')
-					if err == nil {
-						globs = append(globs, g)
-					} else {
-						log.Ctx(ctx).Warn().Err(err).Str("path", gr.Path).Msg("invalid glob")
-					}
+					globs = append(globs, node.Value.String)
 				}
 				for _, childPtr := range node.Children {
 					if *childPtr != nil {
@@ -102,31 +101,27 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 					}
 				}
 			}
-			groups[name] = group{name, globs}
+			globsByName[name] = globs
 		}
 	}
-	sort.Strings(sortedGroups)
-	priorityGroups := make([]group, 0, len(priority)+len(sortedGroups))
-	star := -1
-	for i, name := range priority {
-		if name == "*" {
-			star = i
-		} else if group, ok := groups[name]; ok {
-			priorityGroups = append(priorityGroups, group)
-			delete(groups, name)
+	byPriority := groupsSortedByPriority(groupNames, priority)
+	sorted := groupsSortedByInclusion(byPriority, globsByName)
+	result := make([]group, 0, len(sorted))
+	for _, name := range sorted {
+		globs := make([]glob.Glob, 0, len(globsByName[name]))
+		for _, str := range globsByName[name] {
+			g, err := glob.Compile(str, '.')
+			if err == nil {
+				globs = append(globs, g)
+			} else {
+				log.Ctx(ctx).Warn().Err(err).Str("group", name).Msg("invalid glob")
+			}
+		}
+		if len(globs) > 0 {
+			result = append(result, group{name, globs})
 		}
 	}
-	if star == -1 {
-		star = len(priorityGroups)
-	}
-	starGroups := make([]group, 0, len(sortedGroups))
-	for _, name := range sortedGroups {
-		if group, ok := groups[name]; ok {
-			starGroups = append(starGroups, group)
-			delete(groups, name)
-		}
-	}
-	return append(append(priorityGroups[:star], starGroups...), priorityGroups[star:]...), nil
+	return result, nil
 }
 
 type commonCaseResolver struct{}
@@ -137,4 +132,75 @@ func (cr commonCaseResolver) resolveCase(context.Context, string) *Case {
 
 func (cr commonCaseResolver) getTemplateVar(string) string {
 	panic("Dummy")
+}
+
+func groupsSortedByPriority(groups []string, priority []string) []string {
+	sort.Strings(groups)
+	exist := make(map[string]bool, len(groups))
+	for _, name := range groups {
+		exist[name] = true
+	}
+	hasStar := false
+	sorted := make([]string, 0, len(groups)+len(priority))
+	for _, name := range priority {
+		if name == "*" {
+			hasStar = true
+			sorted = append(sorted, groups...)
+		} else if exist[name] {
+			sorted = append(sorted, name)
+		}
+	}
+	if !hasStar {
+		sorted = append(sorted, groups...)
+	}
+	return uniqStrings(sorted)
+}
+
+func groupsSortedByInclusion(groups []string, globs map[string][]string) []string {
+	reverse := make([]string, 0, len(groups))
+	tail := make([]string, 0, len(groups))
+	for len(groups) > 0 {
+		name := groups[len(groups)-1]
+		groups = groups[:len(groups)-1]
+		reverse = append(reverse, name)
+		for _, n := range tail {
+			if name != n && sliceContains(globs[name], globs[n]) {
+				groups = append(groups, n)
+			}
+		}
+		tail = append(tail, name)
+	}
+	nonuniq := make([]string, 0, len(reverse))
+	for i := len(reverse) - 1; i >= 0; i-- {
+		nonuniq = append(nonuniq, reverse[i])
+	}
+	return uniqStrings(nonuniq)
+}
+
+func uniqStrings(orig []string) []string {
+	uniq := make([]string, 0, len(orig))
+	seen := make(map[string]bool, len(orig))
+	for _, str := range orig {
+		if !seen[str] {
+			uniq = append(uniq, str)
+			seen[str] = true
+		}
+	}
+	return uniq
+}
+
+func sliceContains(outter, inner []string) bool {
+	for _, i := range inner {
+		ok := false
+		for _, o := range outter {
+			if i == o {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
 }

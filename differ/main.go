@@ -52,10 +52,14 @@ func main() {
 			}
 		}()
 	}
-	servers, err := selectServers()
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to fetch servers")
-		return
+	servers := flag.Args()
+	if len(servers) == 0 {
+		var err error
+		servers, err = selectServers()
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to fetch servers")
+			return
+		}
 	}
 	go func() {
 		for _, s := range servers {
@@ -233,7 +237,7 @@ func fixOld(old, new *config) {
 		nodes := old.Nodes
 		old.Nodes = nil
 		for _, n := range nodes {
-			if strings.HasPrefix(n.Path, "/onlineconf/module/") {
+			if strings.HasPrefix(n.Path, "/onlineconf/module/") || n.Path == "/" || n.Path == "/onlineconf" || n.Path == "/onlineconf/module" {
 				old.Nodes = append(old.Nodes, n)
 			}
 		}
@@ -243,7 +247,7 @@ func fixOld(old, new *config) {
 		case "application/x-template":
 			old.Nodes[i].ContentType = "text/plain"
 		case "application/x-case":
-			if len(new.Nodes) > i {
+			if len(new.Nodes) > i && old.Nodes[i].Path == new.Nodes[i].Path {
 				old.Nodes[i].ContentType = new.Nodes[i].ContentType
 			}
 		}

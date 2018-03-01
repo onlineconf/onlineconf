@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"net"
 	"net/http"
 	"strings"
@@ -39,12 +40,10 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	sg := newServerGraph(req.Context(), &treeI, *server)
-	modules := sg.modules(req.Context())
-	ser := newSerializer(modules)
+	ser := newSerializer(req.Context(), sg)
 	body, err := ser.serialize()
 	if err != nil {
-		log.Ctx(req.Context()).Error().Err(err).Msg("500")
-		http.Error(w, err.Error(), 500)
+		WriteServerError(req.Context(), w, err)
 		return
 	}
 	w.Write(body)
@@ -60,7 +59,7 @@ func serveActivity(w http.ResponseWriter, req *http.Request) {
 func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 	server, err := authenticateByIP(req)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		WriteServerError(req.Context(), w, err)
 		return nil, ""
 	}
 	if server == nil {
@@ -80,7 +79,7 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 	if clientVersion != "TEST" {
 		err = updateServerActivity(req.Context(), server, clientMTime, clientVersion)
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			WriteServerError(req.Context(), w, err)
 			return nil, ""
 		}
 	}

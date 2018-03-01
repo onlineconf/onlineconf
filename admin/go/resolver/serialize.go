@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"context"
 	"github.com/ugorji/go/codec"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"strings"
@@ -29,7 +30,9 @@ type serializer struct {
 	data serializerData
 }
 
-func newSerializer(modules map[string]*Param) *serializer {
+func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
+	modules := sg.modules(ctx)
+
 	ser := serializer{
 		data: serializerData{
 			Modules: make([]string, 0, len(modules)),
@@ -41,9 +44,14 @@ func newSerializer(modules map[string]*Param) *serializer {
 		ser.data.Modules = append(ser.data.Modules, name)
 	}
 
-	if tree := modules["TREE"]; tree != nil && tree.Path == "/" {
+	if tree := modules["TREE"]; tree != nil && (tree.Path == "/" || tree.Path == "/onlineconf/chroot/mrim/TREE") { // FIXME remove mrim
 		ser.writeParam("/", "", tree)
 	} else {
+		for _, path := range []string{"/", "/onlineconf", "/onlineconf/module"} {
+			if node := sg.get(ctx, path); node != nil {
+				ser.data.Nodes = append(ser.data.Nodes, newSerializerParam(path, node))
+			}
+		}
 		for name, module := range modules {
 			ser.writeParam("/onlineconf/module/"+name, name, module)
 		}

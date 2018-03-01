@@ -18,6 +18,6 @@ func updateServerActivity(ctx context.Context, server *Server, mtime string, ver
 			AND o.Package = n.Package
 			AND o.Online > SUBTIME(n.Online, '00:01:00')
 		)
-	`, server, mtime, version)
+	`, server.Host, mtime, version)
 	return err
 }
