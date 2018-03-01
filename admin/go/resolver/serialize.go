@@ -1,5 +1,7 @@
 package resolver
 
+//go:generate codecgen -d 2018 -o serialize.generated.go serialize.go
+
 import (
 	"context"
 	"github.com/ugorji/go/codec"
