@@ -55,41 +55,42 @@ $(function () {
         cm.on('blur', function () { toolbar.fadeOut(); });
         return toolbar;
     }
-    var resolveStash = {};
-    function resolveList(type, span) {
-        var stash, summary;
 
-        if (!(type in resolveStash)) {
-            resolveStash[type] = {
-                time: new Date(0),
-                queue: [],
-                map: {}
-            };
-        }
-        stash = resolveStash[type];
-        if (stash.time < new Date() - new Date(60000)) {
-            if (stash.queue.length === 0) {
-                $.get('/config/onlineconf/' + type + '?symlink=resolve', {}, function (data) {
-                    stash.map = {};
-                    $.each(data.children, function (id, param) {
-                        stash.map[param.name] = param.summary;
-                    });
-                    $.each(stash.queue, function (id, elem) {
-                        var summary = stash.map[elem.name];
-                        if (summary) {
-                            elem.span.text(summary);
-                        }
-                    });
-                    stash.queue = [];
-                    stash.time = new Date();
-                });
+    var cache = {};
+    function getCached(url, callback) {
+        if (url in cache) {
+            if (cache[url].expire < Date.now()) {
+                delete cache[url];
+            } else if ("data" in cache[url]) {
+                callback(cache[url].data);
+                return;
+            } else {
+                cache[url].callbacks.push(callback);
+                return;
             }
-            stash.queue.push({ span: span, name: span.text() });
         }
-        summary = stash.map[span.text()];
-        if (summary) {
-            span.text(summary);
-        }
+        var c = {
+            expire: Date.now() + 60000,
+            callbacks: [callback]
+        };
+        cache[url] = c;
+        $.get(url, function (data) {
+            c.data = data;
+            c.callbacks.forEach(function (cb) { cb(data) });
+        });
+    }
+
+    function resolveList(type, span) {
+        getCached('/config/onlineconf/' + type + '?symlink=resolve', function (data) {
+            var map = {};
+            $.each(data.children, function (id, param) {
+                map[param.name] = param.summary;
+            });
+            var summary = map[span.text()];
+            if (summary) {
+                span.text(summary);
+            }
+        });
     }
 
     /* new server */
@@ -464,7 +465,7 @@ $(function () {
                 $kvSpan.empty();
                 if ($(this).val() === 'datacenter') {
                     $dc = $('<select name="datacenter"/>').appendTo($kvSpan);
-                    $.get('/config/onlineconf/datacenter?symlink=resolve', {}, function (data) {
+                    getCached('/config/onlineconf/datacenter?symlink=resolve', function (data) {
                         $dc.empty();
                         $.each(data.children, function (id, param) {
                             $('<option/>').val(param.name).text(param.summary || param.name).appendTo($dc);
@@ -473,7 +474,7 @@ $(function () {
                     });
                 } else if ($(this).val() === 'group') {
                     $dc = $('<select name="group"/>').appendTo($kvSpan);
-                    $.get('/config/onlineconf/group?symlink=resolve', {}, function (data) {
+                    getCached('/config/onlineconf/group?symlink=resolve', function (data) {
                         $dc.empty();
                         $.each(data.children, function (id, param) {
                             if (param.name === 'priority') {

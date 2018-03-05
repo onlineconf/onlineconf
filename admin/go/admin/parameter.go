@@ -3,9 +3,11 @@ package admin
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+	"gopkg.in/yaml.v2"
 	"strings"
 )
 
@@ -14,6 +16,7 @@ var (
 	ErrAlreadyExists   = errors.New("Parameter already exists")
 	ErrVersionNotMatch = errors.New("Version not match")
 	ErrCommentRequired = errors.New("Comment required")
+	ErrInvalidValue    = errors.New("Invalid value")
 )
 
 const selectFromConfig string = `
@@ -61,6 +64,9 @@ func SelectParameter(ctx context.Context, path string) (*Parameter, error) {
 		}
 		return nil, err
 	}
+	if !p.RW.Valid {
+		p.Value = NullString{}
+	}
 	return &p, nil
 }
 
@@ -86,12 +92,25 @@ func (p *Parameter) Children(ctx context.Context) ([]Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
+		if !c.RW.Valid {
+			c.Value = NullString{}
+		}
 		i += 1
 	}
 	return children, nil
 }
 
 func SelectParameterFollowingSymlink(ctx context.Context, path string) (*Parameter, error) {
+	return selectParameterFollowingSymlink(ctx, path, map[string]bool{})
+}
+
+func selectParameterFollowingSymlink(ctx context.Context, path string, seen map[string]bool) (*Parameter, error) {
+	if seen[path] {
+		return nil, nil
+	}
+	seen[path] = true
+	defer delete(seen, path)
+
 	parameter, err := SelectParameter(ctx, path)
 	if err != nil {
 		return nil, err
@@ -105,9 +124,9 @@ func SelectParameterFollowingSymlink(ctx context.Context, path string) (*Paramet
 	for i, s := range segments {
 		realPath += "/" + s
 		if i < len(segments)-1 {
-			parameter, err = SelectParameterResolvingSymlink(ctx, realPath)
+			parameter, err = selectParameterResolvingSymlink(ctx, realPath, seen)
 		} else {
-			parameter, err = SelectParameterFollowingSymlink(ctx, realPath)
+			parameter, err = selectParameterFollowingSymlink(ctx, realPath, seen)
 		}
 		if err != nil {
 			return nil, err
@@ -121,7 +140,11 @@ func SelectParameterFollowingSymlink(ctx context.Context, path string) (*Paramet
 }
 
 func SelectParameterResolvingSymlink(ctx context.Context, path string) (*Parameter, error) {
-	parameter, err := SelectParameterFollowingSymlink(ctx, path)
+	return selectParameterResolvingSymlink(ctx, path, map[string]bool{})
+}
+
+func selectParameterResolvingSymlink(ctx context.Context, path string, seen map[string]bool) (*Parameter, error) {
+	parameter, err := selectParameterFollowingSymlink(ctx, path, seen)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +152,9 @@ func SelectParameterResolvingSymlink(ctx context.Context, path string) (*Paramet
 		return nil, nil
 	}
 	if parameter.ContentType == "application/x-symlink" {
-		return SelectParameterResolvingSymlink(ctx, parameter.Value.String)
+		seen[path] = true
+		defer delete(seen, path)
+		return selectParameterResolvingSymlink(ctx, parameter.Value.String, seen)
 	}
 	return parameter, nil
 }
@@ -176,6 +201,9 @@ func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
+		if !p.RW.Valid {
+			p.Value = NullString{}
+		}
 		list = append(list, p)
 	}
 	return list, nil
@@ -186,6 +214,14 @@ func CreateParameter(ctx context.Context, path, contentType, value, summary, des
 	if contentType != "application/x-null" {
 		nullValue.Valid = true
 		nullValue.String = value
+	}
+
+	if err := validateParameter(ctx, contentType, nullValue); err != nil {
+		return err
+	}
+
+	if err := validateNotification(ctx, notification); err != nil {
+		return err
 	}
 
 	var nullNotification NullString
@@ -235,6 +271,10 @@ func SetParameter(ctx context.Context, path string, version int, contentType str
 	if contentType != "application/x-null" {
 		nullValue.Valid = true
 		nullValue.String = value
+	}
+
+	if err := validateParameter(ctx, contentType, nullValue); err != nil {
+		return err
 	}
 
 	tx, err := DB.BeginTx(ctx, nil)
@@ -337,6 +377,10 @@ func SetParameterDescription(ctx context.Context, path string, summary, descript
 }
 
 func SetParameterNotification(ctx context.Context, path string, notification string) error {
+	if err := validateNotification(ctx, notification); err != nil {
+		return err
+	}
+
 	var nullNotification NullString
 	if notification != "" {
 		nullNotification.Valid = true
@@ -406,4 +450,92 @@ func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Pa
 		return nil, ErrAccessDenied
 	}
 	return &p, nil
+}
+
+func validateParameter(ctx context.Context, contentType string, value NullString) error {
+	switch contentType {
+	case "application/x-null":
+		if value.Valid {
+			return ErrInvalidValue
+		} else {
+			return nil
+		}
+	case "text/plain", "application/x-list", "application/x-server", "application/x-template":
+		if value.Valid {
+			return nil
+		} else {
+			return ErrInvalidValue
+		}
+	case "application/json":
+		if !value.Valid {
+			return ErrInvalidValue
+		}
+		var i interface{}
+		return json.Unmarshal([]byte(value.String), &i)
+	case "application/x-yaml":
+		if !value.Valid {
+			return ErrInvalidValue
+		}
+		var i interface{}
+		return yaml.Unmarshal([]byte(value.String), &i)
+	case "application/x-symlink":
+		if !value.Valid {
+			return ErrInvalidValue
+		}
+		target, err := SelectParameterFollowingSymlink(ctx, value.String)
+		if err != nil {
+			return err
+		} else if target == nil {
+			return ErrInvalidValue
+		} else {
+			return nil
+		}
+	case "application/x-case":
+		if !value.Valid {
+			return ErrInvalidValue
+		}
+		var cases []map[string]NullString
+		if err := json.Unmarshal([]byte(value.String), &cases); err != nil {
+			return err
+		}
+		def := 0
+		for _, c := range cases {
+			i := 0
+			if c["server"].Valid {
+				i++
+			}
+			if c["group"].Valid {
+				i++
+			}
+			if c["datacenter"].Valid {
+				i++
+			}
+			if i == 0 {
+				def++
+			} else if i > 1 {
+				return ErrInvalidValue
+			}
+			if err := validateParameter(ctx, c["mime"].String, c["value"]); err != nil {
+				return err
+			}
+		}
+		if def > 1 {
+			return ErrInvalidValue
+		}
+		return nil
+	default:
+		return ErrInvalidValue
+	}
+}
+
+func validateNotification(ctx context.Context, notification string) error {
+	if notification == "none" {
+		root, err := UserIsRoot(ctx, Username(ctx))
+		if err != nil {
+			return err
+		} else if !root {
+			return ErrAccessDenied
+		}
+	}
+	return nil
 }

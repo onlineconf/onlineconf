@@ -14,7 +14,7 @@ type Access struct {
 
 func SelectAccess(ctx context.Context, path string) ([]Access, error) {
 	rows, err := DB.QueryContext(ctx, `
-		SELECT g.Name
+		SELECT g.Name,
 			tg.GroupID IS NOT NULL AS Overridden,
 			IF(tg.GroupID IS NOT NULL, tg.RW, my_config_tree_group_access(t.ID, g.ID)) AS RW
 		FROM my_config_group g

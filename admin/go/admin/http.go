@@ -9,6 +9,14 @@ import (
 	"strconv"
 )
 
+var clientError = map[error]int{
+	ErrAccessDenied:    403,
+	ErrAlreadyExists:   400,
+	ErrVersionNotMatch: 400,
+	ErrCommentRequired: 400,
+	ErrInvalidValue:    400,
+}
+
 func RegisterRoutes(r *mux.Router) {
 	c := r.Path("/config{path:(?:/|(?:/[^/]+)+)}").Subrouter()
 	c.Methods("GET").HandlerFunc(serveGetConfig)
@@ -51,7 +59,10 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 		parameter, err = SelectParameterResolvingSymlink(req.Context(), path)
 	}
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
+		return
+	} else if parameter == nil {
+		writeClientError(req.Context(), w, 404, "Parameter not exists")
 		return
 	}
 	pc, err := parameter.WithChildren(req.Context())
@@ -69,7 +80,7 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 		var version int
 		version, err = strconv.Atoi(verstr)
 		if err != nil {
-			WriteServerError(req.Context(), w, err)
+			writeError(req.Context(), w, err)
 			return
 		}
 
@@ -100,13 +111,13 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
 		return
 	}
 
 	p, err := SelectParameter(req.Context(), path)
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
 		return
 	}
 
@@ -150,11 +161,11 @@ func serveGetUsers(w http.ResponseWriter, req *http.Request) {
 func validateUserIsRoot(w http.ResponseWriter, req *http.Request) bool {
 	canEdit, err := UserIsRoot(req.Context(), Username(req.Context()))
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
 		return false
 	}
 	if !canEdit {
-		writeForbidden(w)
+		writeClientError(req.Context(), w, 403, "Allowed to root users only")
 		return false
 	}
 	return true
@@ -209,11 +220,11 @@ func serveDeleteUserFromGroup(w http.ResponseWriter, req *http.Request) {
 func validateUserCanEditAccess(w http.ResponseWriter, req *http.Request) bool {
 	canEdit, err := UserCanEditAccess(req.Context(), Username(req.Context()), mux.Vars(req)["path"])
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
 		return false
 	}
 	if !canEdit {
-		writeForbidden(w)
+		writeClientError(req.Context(), w, 403, "Forbidden")
 		return false
 	}
 	return true
@@ -221,7 +232,7 @@ func validateUserCanEditAccess(w http.ResponseWriter, req *http.Request) bool {
 
 func writeModifyAccessResponse(w http.ResponseWriter, req *http.Request, err error) {
 	if err != nil {
-		WriteServerError(req.Context(), w, err)
+		writeError(req.Context(), w, err)
 		return
 	}
 	group := req.PostFormValue("group")
@@ -308,7 +319,7 @@ func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{},
 	if err == nil {
 		writeJSON(ctx, w, data)
 	} else {
-		WriteServerError(ctx, w, err)
+		writeError(ctx, w, err)
 	}
 }
 
@@ -325,6 +336,26 @@ func writeJSON(ctx context.Context, w http.ResponseWriter, data interface{}) {
 	w.Write(content)
 }
 
-func writeForbidden(w http.ResponseWriter) {
-	http.Error(w, "403 forbidden", http.StatusForbidden)
+func writeClientError(ctx context.Context, w http.ResponseWriter, code int, message string) {
+	content, err := json.Marshal(map[string]string{
+		"status":  "Error",
+		"message": message,
+	})
+	if err != nil {
+		WriteServerError(ctx, w, err)
+		return
+	}
+	header := w.Header()
+	header.Add("Content-Type", "application/json")
+	header.Add("Content-Length", strconv.Itoa(len(content)))
+	w.WriteHeader(code)
+	w.Write(content)
+}
+
+func writeError(ctx context.Context, w http.ResponseWriter, err error) {
+	if code, ok := clientError[err]; ok {
+		writeClientError(ctx, w, code, err.Error())
+	} else {
+		WriteServerError(ctx, w, err)
+	}
 }

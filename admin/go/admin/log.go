@@ -183,7 +183,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 	}
 	message += path
 	if !new.Deleted && notification == "with-value" {
-		message += " ➜ "
+		message += " ➾ "
 		if new.Value.Valid {
 			message += contentTypeSymbol(new.ContentType)
 			if new.ContentType == "application/x-case" {
@@ -230,7 +230,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 func contentTypeSymbol(contentType string) string {
 	switch contentType {
 	case "application/x-symlink":
-		return "⇗"
+		return "➦"
 	case "application/x-case":
 		return "☰"
 	case "application/x-template":
