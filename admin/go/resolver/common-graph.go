@@ -104,6 +104,7 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 			globsByName[name] = globs
 		}
 	}
+	sort.Strings(groupNames)
 	byPriority := groupsSortedByPriority(groupNames, priority)
 	sorted := groupsSortedByInclusion(byPriority, globsByName)
 	result := make([]group, 0, len(sorted))
@@ -135,7 +136,6 @@ func (cr commonCaseResolver) getTemplateVar(string) string {
 }
 
 func groupsSortedByPriority(groups []string, priority []string) []string {
-	sort.Strings(groups)
 	exist := make(map[string]bool, len(groups))
 	for _, name := range groups {
 		exist[name] = true
@@ -157,22 +157,27 @@ func groupsSortedByPriority(groups []string, priority []string) []string {
 }
 
 func groupsSortedByInclusion(groups []string, globs map[string][]string) []string {
-	reverse := make([]string, 0, len(groups))
+	existInHead := make(map[string]bool, len(groups))
+	for _, g := range groups {
+		existInHead[g] = true
+	}
 	tail := make([]string, 0, len(groups))
 	for len(groups) > 0 {
 		name := groups[len(groups)-1]
 		groups = groups[:len(groups)-1]
-		reverse = append(reverse, name)
-		for _, n := range tail {
-			if name != n && sliceContains(globs[name], globs[n]) {
+		existInHead[name] = false
+		for i := len(tail) - 1; i >= 0; i-- {
+			n := tail[i]
+			if name != n && !existInHead[n] && strictSuperset(globs[name], globs[n]) {
 				groups = append(groups, n)
+				existInHead[n] = true
 			}
 		}
 		tail = append(tail, name)
 	}
-	nonuniq := make([]string, 0, len(reverse))
-	for i := len(reverse) - 1; i >= 0; i-- {
-		nonuniq = append(nonuniq, reverse[i])
+	nonuniq := make([]string, 0, len(tail))
+	for i := len(tail) - 1; i >= 0; i-- {
+		nonuniq = append(nonuniq, tail[i])
 	}
 	return uniqStrings(nonuniq)
 }
@@ -189,7 +194,7 @@ func uniqStrings(orig []string) []string {
 	return uniq
 }
 
-func sliceContains(outter, inner []string) bool {
+func strictSuperset(outter, inner []string) bool {
 	for _, i := range inner {
 		ok := false
 		for _, o := range outter {
@@ -202,5 +207,5 @@ func sliceContains(outter, inner []string) bool {
 			return false
 		}
 	}
-	return true
+	return len(outter) > len(inner)
 }
