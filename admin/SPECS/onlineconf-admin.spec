@@ -27,7 +27,7 @@ onlineconf-admin application server. Built from revision %{__revision}.
 
 export GOPATH=%{_builddir}/onlineconf-admin-build
 cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/go
-go build ./
+go build -o onlineconf-admin ./
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
