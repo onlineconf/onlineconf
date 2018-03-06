@@ -8,7 +8,6 @@ Group:          MAILRU
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch:      noarch
-AutoReq:        0
 BuildRequires:  mr-rpm-macros
 BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  golang
