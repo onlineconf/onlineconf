@@ -31,15 +31,14 @@ go build -o onlineconf-admin ./
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
-#%__make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 #find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 #find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
-#%__chmod -R u+w $RPM_BUILD_ROOT/*
-#%{__rm} %{buildroot}/%{_bindir}/onlineconf-migration
+%{__chmod} -R u+w $RPM_BUILD_ROOT/*
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf/static
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
-%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
+%{__install} -m 755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/go/%{name} %{buildroot}/%{_localbindir}
+#%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
 %{__cp} -r static/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/static/
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
@@ -47,10 +46,10 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 
 %files
 %defattr(-,root,root,-)
-%{perl_vendorlib}/MR/OnlineConf/Admin
-%{perl_vendorlib}/Plack/Handler/OnlineConf.pm
+#%{perl_vendorlib}/MR/OnlineConf/Admin
+#%{perl_vendorlib}/Plack/Handler/OnlineConf.pm
 %{_localbindir}/onlineconf-admin
-%{_localbindir}/onlineconf-import
+#%{_localbindir}/onlineconf-import
 %{_initrddir}/%{name}
 %config(noreplace) %{_localetcdir}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/nginx/*
