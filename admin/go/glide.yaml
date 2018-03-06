@@ -19,6 +19,9 @@ import:
   subpackages:
   - codec
 - package: gitlab.corp.mail.ru/mydev/onlineconf
+  repo: git@gitlab.corp.mail.ru:mydev/onlineconf.git
+  vcs: git
+  version: MMSYS-8187.go
   subpackages:
   - admin/go/admin
   - admin/go/common
