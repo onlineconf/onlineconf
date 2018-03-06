@@ -14,22 +14,6 @@ BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  golang
 BuildRequires:  golang-bin
 Requires:       mailru-initd-functions >= 1.11
-#Requires:       onlineconf-updater
-#Requires:       perl-CBOR-XS
-#Requires:       perl-JSON
-#Requires:       perl-JSON-XS
-#Requires:       perl-List-MoreUtils
-#Requires:       perl-Log-Dispatch
-#Requires:       perl-MR-ChangeBot-Database
-#Requires:       perl-MR-DBI >= 20170425.2121
-#Requires:       perl-Mojolicious
-#Requires:       perl-Mojolicious-Plugin-MysqlBasicAuth
-#Requires:       perl-Mouse
-#Requires:       perl-Net-IP-CMatch
-#Requires:       perl-Starman
-#Requires:       perl-Text-Glob
-#Requires:       perl-YAML
-#Conflicts:      perl-MR-Onlineconf < 20120319.1930
 
 %description
 onlineconf-admin application server. Built from revision %{__revision}.
@@ -38,8 +22,6 @@ onlineconf-admin application server. Built from revision %{__revision}.
 %setup -n onlineconf/admin
 
 %build
-#%__perl Makefile.PL INSTALLDIRS=vendor
-#%__make %{?_smp_mflags}
 %{__rm}   -rf %{_builddir}/onlineconf-admin-build
 %{__mkdir} -p %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev
 %{__cp}    -r %{_builddir}/onlineconf/admin/go %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/
