@@ -134,7 +134,11 @@ span.enum-slider a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-
 #tree a.jstree-search { color: blue }
 #tree a.jstree-search span { color: inherit }
 
+#monitoring-dialog > table { width: 100% }
+#monitoring-list > tr > td:nth-child(2), #monitoring-list > tr > td:nth-child(3) { text-align: center }
+#monitoring-list > tr > td:nth-child(4) { text-align: right }
 .monitoring-alert { background-color: #FFCCCC }
+.monitoring-delete { display: block; float: right; text-decoration: none }
 
 
 

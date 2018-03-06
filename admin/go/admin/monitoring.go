@@ -51,3 +51,8 @@ func SelectServerStatus(ctx context.Context, sort string) ([]ServerStatus, error
 	}
 	return list, nil
 }
+
+func DeleteServerStatus(ctx context.Context, host string) error {
+	_, err := DB.ExecContext(ctx, "DELETE FROM my_config_activity WHERE Host = ?", host)
+	return err
+}

@@ -44,6 +44,7 @@ func RegisterRoutes(r *mux.Router) {
 	r.Path("/log{path:(?:/|(?:/[^/]+)+)}").Methods("GET").HandlerFunc(serveParameterLog)
 
 	r.Path("/monitoring").Methods("GET").HandlerFunc(serveMonitoring)
+	r.Path("/monitoring/{host}").Methods("DELETE").HandlerFunc(serveDeleteServerFromMonitoring)
 }
 
 func serveGetConfig(w http.ResponseWriter, req *http.Request) {
@@ -313,6 +314,14 @@ func serveParameterLog(w http.ResponseWriter, req *http.Request) {
 func serveMonitoring(w http.ResponseWriter, req *http.Request) {
 	list, err := SelectServerStatus(req.Context(), req.URL.Query().Get("sort"))
 	writeResponse(req.Context(), w, list, err)
+}
+
+func serveDeleteServerFromMonitoring(w http.ResponseWriter, req *http.Request) {
+	if !validateUserIsRoot(w, req) {
+		return
+	}
+	err := DeleteServerStatus(req.Context(), mux.Vars(req)["host"])
+	writeResponse(req.Context(), w, map[string]string{"Result": "Deleted"}, err)
 }
 
 func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{}, err error) {

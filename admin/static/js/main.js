@@ -222,9 +222,30 @@ $(function() {
         var matches = $(this).attr('id').match(/^monitoring-(\w+)$/);
         if (matches) params.sort = matches[1];
         $.get('/monitoring', params, function (data) {
+            if (!params.sort || params.sort === "host") {
+                data.sort(function (a, b) {
+                    var aname = a.host;
+                    var bname = b.host;
+                    var amatch = aname.match(/^(\D*?)(\d+)(\D*?)$/);
+                    var bmatch = bname.match(/^(\D*?)(\d+)(\D*?)$/);
+                    if (amatch && bmatch && amatch[1] == bmatch[1]) {
+                        var anum = parseInt(amatch[2]);
+                        var bnum = parseInt(bmatch[2]);
+                        return (anum == bnum ? amatch[3] > bmatch[3] : anum > bnum) ? 1 : -1;
+                    } else {
+                        return aname > bname ? 1 : -1;
+                    }
+                });
+            }
             $.each(data, function (id, host) {
+                var $host = $('<td/>').append($('<span class="monitoring-host"/>').text(host.host));
+                if (host.online_alert && can_edit_groups) {
+                    $('<a class="monitoring-delete" href="#">✗</a>')
+                        .click(removeFromMonitoring)
+                        .appendTo($host);
+                }
                 $('<tr/>')
-                    .append($('<td/>').text(host.host))
+                    .append($host)
                     .append($('<td/>').text(host.mtime).addClass(host.mtime_alert ? 'monitoring-alert' : ''))
                     .append($('<td/>').text(host.online).addClass(host.online_alert ? 'monitoring-alert' : ''))
                     .append($('<td/>').text(host.package))
@@ -235,9 +256,47 @@ $(function() {
         return false;
     }
 
+    function removeFromMonitoring(event) {
+        function deleteFromMonitoring(host, $tr) {
+            $.ajax({
+                type: 'DELETE',
+                url: '/monitoring/' + host,
+                success: function () { $tr.remove() }
+            });
+        }
+        var $tr = $(this).closest('tr');
+        var host = $tr.find('.monitoring-host').text();
+        var online = $tr.children('td:nth-child(3)').text();
+        if (new Date(online) < new Date(Date.now() - 2592000000)) {
+            deleteFromMonitoring(host, $tr);
+        } else {
+            $('<div title="Удалить из мониторинга">Вы уверены, что хотите удалить <span class="monitoring-host"/> из мониторинга?</div>').dialog({
+                modal: true,
+                resizeable: false,
+                buttons: {
+                    Удалить: function () {
+                        deleteFromMonitoring(host, $tr);
+                        $(this).dialog('close');
+                    },
+                    Отменить: function () {
+                        $(this).dialog('close');
+                    }
+                },
+                open: function () {
+                    $(this).find('.monitoring-host').text(host);
+                },
+                close: function () {
+                    $(this).dialog('destroy');
+                    $(this).remove();
+                }
+            });
+        }
+        return false;
+    }
+
     $('#monitoring, #monitoring-dialog th a').click(showMonitoring);
     $('#monitoring-dialog').dialog({
         autoOpen: false,
-        width: 600
+        width: 800
     });
 });
