@@ -22,16 +22,12 @@ type ConfigFile struct {
 		BehindReverseProxy bool `yaml:"behind_reverse_proxy"`
 	}
 	Auth struct {
-		Host          string
-		User          string
-		Password      string
-		Database      string
-		Table         string
-		NameField     string `yaml:"name_field"`
-		PasswordField string `yaml:"password_field"`
-		Condition     string
-		Timeout       int
-		Realm         string
+		DatabaseConfig `yaml:",inline"`
+		Table          string
+		NameField      string `yaml:"name_field"`
+		PasswordField  string `yaml:"password_field"`
+		Condition      string
+		Realm          string
 	}
 	Database             DatabaseConfig
 	NotificationDatabase DatabaseConfig `yaml:"notification_database"`

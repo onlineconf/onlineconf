@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
 	"github.com/nyarla/go-crypt"
 	"github.com/rs/zerolog/log"
 	"regexp"
@@ -14,13 +13,7 @@ import (
 var authDB = openAuthDatabase()
 
 func openAuthDatabase() *sql.DB {
-	mysqlConfig := mysql.NewConfig()
-	mysqlConfig.User = AdminConfig.Auth.User
-	mysqlConfig.Passwd = AdminConfig.Auth.Password
-	mysqlConfig.Net = "tcp"
-	mysqlConfig.Addr = AdminConfig.Auth.Host
-	mysqlConfig.DBName = AdminConfig.Auth.Database
-	mysqlConfig.Params = make(map[string]string)
+	mysqlConfig := mysqlInitConfig(AdminConfig.Auth.DatabaseConfig)
 	mysqlConfig.Params["allowOldPasswords"] = "1"
 	db, err := sql.Open("mysql", mysqlConfig.FormatDSN())
 	if err != nil {
