@@ -34,7 +34,7 @@ go build -o %{name} ./
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
-%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}
+%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}/%{name}
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf/static
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
@@ -56,7 +56,7 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 %config(noreplace) %{_sysconfdir}/nginx/*
 /usr/local/www/onlineconf/static/*
 %{_sysconfdir}/cron.d/%{name}
-%{_mandir}/*/*
+#%{_mandir}/*/*
 
 %post
 chkconfig --add %{name}
