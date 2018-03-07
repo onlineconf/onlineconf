@@ -27,21 +27,19 @@ onlineconf-admin application server. Built from revision %{__revision}.
 
 export GOPATH=%{_builddir}/onlineconf-admin-build
 cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go
-go build -o onlineconf-admin ./
+go build -o %{name} ./
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
-#find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
-#find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
-%{__chmod} -R u+w %{buildroot}/*
+%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf/static
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
-%{__install} -m 755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/go/%{name} %{buildroot}/%{_localbindir}
-#%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
 %{__cp} -r static/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/static/
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
+#%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
+#%{__chmod} -R u+w %{buildroot}/*
 #%_fixperms %{buildroot}/*
 
 %files
