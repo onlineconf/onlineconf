@@ -10,7 +10,6 @@ License:        BSD
 Group:          MAILRU
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildArch:      noarch
 BuildRequires:  mr-rpm-macros
 BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  golang
