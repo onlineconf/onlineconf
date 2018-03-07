@@ -67,19 +67,19 @@ if [ $1 -eq 0 ]; then
     chkconfig --del %{name}
 fi
 
-%package -n onlineconf-selftest
-Summary:    onlineconf monitoring support script
-Group:      MAILRU
-Requires:   perl-Log-Dispatch
-Requires:   onlineconf-admin >= %{__version}
-Requires:   perl-YAML
+#%package -n onlineconf-selftest
+#Summary:    onlineconf monitoring support script
+#Group:      MAILRU
+#Requires:   perl-Log-Dispatch
+#Requires:   onlineconf-admin >= %{__version}
+#Requires:   perl-YAML
 
-%description -n onlineconf-selftest
-onlineconf-selftest - onlineconf monitoring support script.
+#%description -n onlineconf-selftest
+#onlineconf-selftest - onlineconf monitoring support script.
 
-%files -n onlineconf-selftest
-%defattr(-,root,root,-)
-%{_localbindir}/onlineconf-selftest
+#%files -n onlineconf-selftest
+#%defattr(-,root,root,-)
+#%{_localbindir}/onlineconf-selftest
 
 %changelog
 * Mon Mar 19 2012 Aleksey Mashanov <a.mashanov@corp.mail.ru>
