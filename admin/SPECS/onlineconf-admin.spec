@@ -23,10 +23,10 @@ onlineconf-admin application server. Built from revision %{__revision}.
 %build
 %{__rm}   -rf %{_builddir}/onlineconf-admin-build
 %{__mkdir} -p %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev
-%{__cp}    -r %{_builddir}/onlineconf/admin/go %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/
+%{__cp}    -r %{_builddir}/onlineconf %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/
 
 export GOPATH=%{_builddir}/onlineconf-admin-build
-cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/go
+cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go
 go build -o onlineconf-admin ./
 
 %install
