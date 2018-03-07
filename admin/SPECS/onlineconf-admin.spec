@@ -1,3 +1,6 @@
+%define debug_package %{nil}
+%define __strip /bin/true
+
 Name:           onlineconf-admin
 Version:        %{__version}
 Release:        %{__release}%{?dist}
