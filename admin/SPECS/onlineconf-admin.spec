@@ -33,7 +33,7 @@ go build -o onlineconf-admin ./
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
 #find $RPM_BUILD_ROOT -type f -name .packlist -exec rm -f {} ';'
 #find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
-%{__chmod} -R u+w $RPM_BUILD_ROOT/*
+%{__chmod} -R u+w %{buildroot}/*
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf/static
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
