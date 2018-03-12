@@ -122,12 +122,16 @@ $(function () {
     function editServer(span, mime, data) {
         var addcontainer = $('<div class="add-server-container" />'),
             ip = $('<span class="add-server-host-container" />').append(
-                $('<input type="text" data-type="ip" placeholder="127.0.0.1" class="add-server-host" />'),
-                $('<span class="add-server-host-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить хост" />')
+                $('<div class="ui-widget-content ui-corner-all input-width-fill-wrapper" />').append(
+                    $('<input type="text" data-type="ip" placeholder="127.0.0.1" class="input-width-fill" />'),
+                    $('<span class="add-server-host-delete-button add-server-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить хост" />')
+                )
             ),
             port = $('<span class="add-server-port-container" />').append(
-                $('<input type="text" data-type="port" placeholder="8080" class="add-server-port" />'),
-                $('<span class="add-server-port-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить порт" />')
+                $('<div class="ui-widget-content ui-corner-all input-width-fill-wrapper" />').append(
+                    $('<input type="text" data-type="port" placeholder="8080" class="input-width-fill" />'),
+                    $('<span class="add-server-port-delete-button add-server-delete-button ui-button-icon-primary ui-icon ui-icon-closethick" title="удалить порт" />')
+                )
             ),
             addServerButton = $('<div class="add-server-host-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить значение</div>'),
             addPortButton = $('<span class="add-server-port-button ui-button ui-widget ui-state-default ui-button-text-only ui-corner-all">Добавить порт</span>'),
@@ -136,9 +140,8 @@ $(function () {
                     e,
                     container = $('<div data-type="server" class="add-server-row" />');
 
-                if (target.hasClass('simple')) {
+                if (target.closest('.add-server-container').hasClass('simple')) {
                     e = ip.clone();
-                    e.find('[data-type="ip"]').addClass('add-server-simple');
                     container.append(e);
                 } else {
                     container.append(ip.clone())
@@ -173,7 +176,7 @@ $(function () {
             dataHash = {};
 
         if (mime === 'application/x-list') {
-            addServerButton.addClass('simple');
+            addcontainer.addClass('simple');
         }
         if (data) {
             dataHash = parseServerData(data, mime);
@@ -183,7 +186,7 @@ $(function () {
 
                 ipClone = ip.clone();
                 if (mime === 'application/x-list') {
-                    ipClone.find('[data-type="ip"]').val(value).addClass('add-server-simple');
+                    ipClone.find('[data-type="ip"]').val(value);
                     node.append(ipClone);
                 } else {
                     ipClone.find('[data-type="ip"]').val(key);
@@ -204,7 +207,7 @@ $(function () {
                     $('<div data-type="server" class="add-server-row" />')
                         .append(ip.clone()),
                     addServerButton
-                ).find('[data-type="ip"]').addClass('add-server-simple');
+                ).find('[data-type="ip"]');
             } else {
                 addcontainer.append(
                     $('<div data-type="server" class="add-server-row" />')

@@ -460,7 +460,7 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 		} else {
 			return nil
 		}
-	case "text/plain", "application/x-list", "application/x-server", "application/x-template":
+	case "text/plain", "application/x-list", "application/x-server", "application/x-server2", "application/x-template":
 		if value.Valid {
 			return nil
 		} else {

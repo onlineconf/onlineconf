@@ -152,34 +152,21 @@ span.enum-slider a.ui-slider-handle > span.wait-for-set { font-size: 100%; font-
     padding: 3px 10px;
     margin: 5px;
 }
-.add-server-host {
-    width: 60%;
-    display: inline-block;
-}
-.add-server-host-delete-button {
+.add-server-delete-button {
     cursor: pointer;
     display: inline-block;
     vertical-align: middle;
-    margin: -4px 0px 0px -20px;
+    margin: -4px 0px 0px -16px;
 }
-span.value input.add-server-host {
-    width: 60%;
+.add-server-host-container {
     display: inline-block;
-}
-.add-server-port-delete-button {
-    cursor: pointer;
-    display: inline-block;
-    vertical-align: middle;
-    margin: -4px 0px 0px -20px;
-}
-span.value input.add-server-port {
-    width: 90%;
+    width: 70%;
 }
 .add-server-port-container {
-    display: inline-block;
+    display: block;
     float: right;
     clear: both;
-    width: 34%;
+    width: 30%;
     white-space: nowrap;
 }
 .add-server-port-button {
@@ -188,7 +175,7 @@ span.value input.add-server-port {
     cursor: pointer;
     clear: both;
     padding: 3px 10px;
-    margin: 5px;
+    margin: 1px;
 }
 .add-server-row {
     overflow: hidden;
@@ -204,6 +191,6 @@ span.value input.add-server-port {
 .view-server-host {
     font-weight: bold;
 }
-.add-server-simple {
-    width: 97% !important;
+.add-server-container.simple .add-server-host-container {
+    width: 100%;
 }
