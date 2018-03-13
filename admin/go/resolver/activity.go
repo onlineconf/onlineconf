@@ -9,7 +9,12 @@ func updateServerActivity(ctx context.Context, server *Server, mtime string, ver
 	_, err := DB.ExecContext(ctx, `
 		REPLACE INTO my_config_activity (Host, Time, Online, Package)
 		SELECT n.Host, n.Time, n.Online, n.Package
-		FROM (SELECT ? AS Host, ? AS Time, NOW() AS Online, ? AS Package) n
+		FROM (SELECT
+			CAST(? AS char(255)) AS Host,
+			CAST(? AS datetime) AS Time,
+			NOW() AS Online,
+			CAST(? AS char(32)) AS Package
+		) n
 		WHERE NOT EXISTS (
 			SELECT 1
 			FROM my_config_activity o
