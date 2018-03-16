@@ -75,14 +75,15 @@ div.value-case span.label > span { padding: 0 2px }
 .cm-toolbar { display: none; position: absolute; margin-left: -28px; margin-top: 4px; overflow: hidden }
 .cm-toolbar.ui-buttonset .ui-button { width: 12px; height: 12px; margin-right: 0 }
 .cm-toolbar .ui-icon-arrowreturn-1-w { -webkit-transform: scaleY(-1); -moz-transform: scaleY(-1); -ms-transform: scaleY(-1); -o-transform: scaleY(-1); transform: scaleY(-1) }
-.CodeMirror.CodeMirror-fullscreen { display: block; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; max-height: none; margin: 0; border: none; background-color: white }
+.CodeMirror-fullscreen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; height: auto; z-index: 9; border: none; margin: 0 }
+.CodeMirror-fullscreen.CodeMirror, .CodeMirror-fullscreen .CodeMirror-scroll { max-height: none }
 
-.CodeMirror { margin: 1px; height: auto; max-height: 20em }
-.CodeMirror-scroll { overflow-y: hidden; overflow-x: auto }
-.CodeMirror-lines { padding: 2px 0; font-family: monospace; font-size: 1em }
+.CodeMirror { height: auto; margin: 1px }
+.CodeMirror, .CodeMirror-scroll { max-height: 20em }
+.CodeMirror-lines { padding: 1px 0 }
 span.view-text .CodeMirror { margin: 1px 0 }
 span.view-text .CodeMirror-lines { padding: 0 }
-span.view-text .CodeMirror pre { padding: 0 }
+span.view-text .CodeMirror-line { padding: 0 }
 
 #edit-description { color: #666666 }
 
