@@ -21,6 +21,7 @@ onlineconf-admin application server. Built from revision %{__revision}.
 
 %prep
 %setup -n onlineconf/admin
+sed -i 's/\(<link href="[^"]*\.css\|<script src="[^"]*\.js\)"/\1?%{version}"/' static/index.html
 
 %build
 %{__rm}   -rf %{_builddir}/onlineconf-admin-build
