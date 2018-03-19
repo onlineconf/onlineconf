@@ -18,6 +18,8 @@ var clientError = map[error]int{
 }
 
 func RegisterRoutes(r *mux.Router) {
+	r.Use(csrfProtection)
+
 	c := r.Path("/config{path:(?:/|(?:/[^/]+)+)}").Subrouter()
 	c.Methods("GET").HandlerFunc(serveGetConfig)
 	c.Methods("POST").HandlerFunc(serveSetConfig)
@@ -367,4 +369,22 @@ func writeError(ctx context.Context, w http.ResponseWriter, err error) {
 	} else {
 		WriteServerError(ctx, w, err)
 	}
+}
+
+func csrfProtection(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if _, ok := req.Header["X-Requested-With"]; ok {
+			next.ServeHTTP(w, req)
+		} else {
+			writeClientError(req.Context(), w, 403, "Forbidden")
+		}
+	})
+}
+
+func RootUsersOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if validateUserIsRoot(w, req) {
+			next.ServeHTTP(w, req)
+		}
+	})
 }

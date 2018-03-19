@@ -22,8 +22,8 @@ type Server struct {
 }
 
 func RegisterRoutes(r *mux.Router) {
-	r.Path("/client/config").Methods("GET").HandlerFunc(serveConfig)
-	r.Path("/client/activity").Methods("POST").HandlerFunc(serveActivity)
+	r.Path("/config").Methods("GET").HandlerFunc(serveConfig)
+	r.Path("/activity").Methods("POST").HandlerFunc(serveActivity)
 }
 
 func serveConfig(w http.ResponseWriter, req *http.Request) {

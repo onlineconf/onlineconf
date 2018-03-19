@@ -15,9 +15,9 @@ import (
 
 func main() {
 	r := mux.NewRouter()
-	admin.RegisterRoutes(r)
-	resolver.RegisterRoutes(r)
-	r.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
+	registerPProf(r.PathPrefix("/debug/pprof/").Subrouter())
+	resolver.RegisterRoutes(r.PathPrefix("/client/").Subrouter())
+	admin.RegisterRoutes(r.PathPrefix("/").Subrouter())
 	handler := Authenticate(r)
 	handler = hlog.AccessHandler(writeAccessLog)(handler)
 	if AdminConfig.HTTP.BehindReverseProxy {
@@ -46,4 +46,14 @@ func writeAccessLog(r *http.Request, status, size int, duration time.Duration) {
 		Int("size", size).
 		Dur("duration", duration).
 		Msg("")
+}
+
+func registerPProf(r *mux.Router) {
+	r.Use(admin.RootUsersOnly)
+
+	r.Path("/cmdline").HandlerFunc(pprof.Cmdline)
+	r.Path("/profile").HandlerFunc(pprof.Profile)
+	r.Path("/symbol").HandlerFunc(pprof.Symbol)
+	r.Path("/trace").HandlerFunc(pprof.Trace)
+	r.PathPrefix("/").HandlerFunc(pprof.Index)
 }
