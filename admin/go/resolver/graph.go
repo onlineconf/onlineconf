@@ -19,7 +19,7 @@ type Case struct {
 }
 
 type caseResolver interface {
-	resolveCase(context.Context, string) *Case
+	resolveCase(context.Context, *Param) *Case
 	getTemplateVar(string) string
 }
 
@@ -72,7 +72,7 @@ func (g *graph) resolveSymlink(ctx context.Context, paramPtr **Param) {
 }
 
 func (g *graph) resolveCase(ctx context.Context, param *Param) {
-	cs := g.caseResolver.resolveCase(ctx, param.Value.String)
+	cs := g.caseResolver.resolveCase(ctx, param)
 	if cs != nil {
 		param.ContentType = cs.ContentType
 		param.Value = cs.Value

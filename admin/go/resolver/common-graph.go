@@ -127,7 +127,7 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 
 type commonCaseResolver struct{}
 
-func (cr commonCaseResolver) resolveCase(context.Context, string) *Case {
+func (cr commonCaseResolver) resolveCase(context.Context, *Param) *Case {
 	panic("Dummy")
 }
 
