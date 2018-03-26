@@ -175,7 +175,7 @@ func (p *Parameter) WithChildren(ctx context.Context) (*ParameterWithChildren, e
 }
 
 func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
-	like := likeEscape(term)
+	like := "%" + likeEscape(term) + "%"
 	rows, err := DB.QueryContext(ctx, `
 		SELECT * FROM (
 			`+selectFromConfig+`
