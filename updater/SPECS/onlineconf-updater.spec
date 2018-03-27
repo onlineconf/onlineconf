@@ -26,7 +26,7 @@ Requires:       perl-JSON
 Requires:       perl-Log-Dispatch
 Requires:       perl-Mouse
 Requires:       perl-YAML
-Requires:       perl-CBOR-XS >= 1.25
+Requires:       perl-CBOR-XS >= 1:1.7
 Requires:       perl-CDB_File >= 0.98
 Requires:       perl-libwww-perl
 %if %{with systemd}
