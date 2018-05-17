@@ -1,14 +1,18 @@
 [Unit]
 Description=OnlineConf Updater
-After=syslog.target
+Requires=cronolog@%p.service
+After=cronolog@%p.service
 
 [Service]
+Type=notify
+LimitCORE=infinity
 ExecStart=/usr/local/bin/onlineconf-updater
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGINT
 Restart=always
-Type=notify
-StandardError=syslog
+StandardOutput=tty
+StandardError=tty
+TTYPath=/run/cronolog@%p.tty
 NotifyAccess=all
 
 [Install]
