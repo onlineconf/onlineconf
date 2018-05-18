@@ -93,6 +93,7 @@ echo "Executing systemd post-install tasks"
 %else
     if [ $1 -eq 1 ] ; then
         # Initial installation
+        echo "systemctl daemon-reload"
         /bin/systemctl daemon-reload >/dev/null 2>&1 || :
     fi
 %endif
