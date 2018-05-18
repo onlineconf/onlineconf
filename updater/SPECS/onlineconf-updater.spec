@@ -91,10 +91,7 @@ echo "Executing systemd post-install tasks"
 %if 0%{?systemd_post:1}
     %systemd_post onlineconf.service
 %else
-    if [ $1 -eq 1 ] ; then
-        # Initial installation
-        /bin/systemctl daemon-reload >/dev/null 2>&1 || :
-    fi
+    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 %endif
 %else
 echo "Executing System V post-install tasks"
