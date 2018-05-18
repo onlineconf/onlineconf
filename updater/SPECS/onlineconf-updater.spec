@@ -69,7 +69,9 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null ';'
 %endif
 
 %{__mv} %{buildroot}/%{_bindir} %{buildroot}%{_localbindir}
+%if !%{with systemd}
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
+%endif
 %_fixperms %{buildroot}/*
 
 %files
@@ -83,7 +85,9 @@ echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sy
 %endif
 
 %dir %attr(755,root,mail) %{_localetcdir}/onlineconf
+%if !%{with systemd}
 %{_sysconfdir}/cron.d/%{name}
+%endif
 
 %post
 %if %{with systemd}
