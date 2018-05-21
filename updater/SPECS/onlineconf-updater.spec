@@ -1,4 +1,8 @@
 # Conditionally enable/disable some things in epel7
+%if 0%{?rhel} == 6
+%bcond_with systemd
+%endif
+
 %if 0%{?rhel} == 7
 %bcond_without systemd
 %endif
