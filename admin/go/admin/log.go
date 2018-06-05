@@ -80,7 +80,7 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	}
 
 	query := `
-		SELECT STRAIGHT_JOIN
+		SELECT
 			l.NodeID, t.Path, l.Version, l.ContentType, l.Value, l.MTime, l.Author, l.Comment, l.Deleted,
 			my_config_tree_access(t.ID, ?) AS RW
 		FROM my_config_tree_log l JOIN my_config_tree t ON t.ID = l.NodeID
