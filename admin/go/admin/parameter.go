@@ -20,13 +20,16 @@ var (
 	ErrNotEmpty        = errors.New("Parameter has children")
 )
 
-const selectFromConfig string = `
-	SELECT ID, Name, ParentID, Path, Value, ContentType, Summary, Description, Version, MTime, Deleted,
+const selectFields string = `
+	SELECT t.ID, t.Name, t.ParentID, t.Path, t.Value, t.ContentType, t.Summary, t.Description, t.Version, t.MTime, t.Deleted,
 	(SELECT count(*) FROM my_config_tree c WHERE c.ParentID = t.ID AND NOT c.Deleted) AS NumChildren,
 	(SELECT count(*) <> 0 FROM my_config_tree_group g WHERE g.NodeID = t.ID) AS AccessModified,
 		my_config_tree_access(t.ID, ?) AS RW,
 		my_config_tree_notification(t.ID) AS Notification,
 		t.Notification IS NOT NULL AS NotificationModified
+`
+
+const selectFromConfig string = selectFields + `
 	FROM my_config_tree t
 `
 
@@ -173,6 +176,72 @@ func (p *Parameter) WithChildren(ctx context.Context) (*ParameterWithChildren, e
 		return nil, err
 	}
 	return &pc, nil
+}
+
+func SelectWithChildrenMulti(ctx context.Context, paths []string) (map[string]*ParameterWithChildren, error) {
+	if len(paths) == 0 {
+		return map[string]*ParameterWithChildren{}, nil
+	}
+	pathMap := make(map[string]bool, len(paths))
+	binds := []interface{}{Username(ctx)}
+	for _, path := range paths {
+		binds = append(binds, path)
+		pathMap[path] = true
+	}
+	for _, path := range paths {
+		binds = append(binds, path)
+	}
+	marks := make([]string, len(paths))
+	for i := range marks {
+		marks[i] = "?"
+	}
+	marksStr := strings.Join(marks, ", ")
+	rows, err := DB.QueryContext(ctx, selectFields+`
+		FROM (
+			SELECT t.*
+			FROM my_config_tree t
+			WHERE t.Path IN (`+marksStr+`)
+			UNION
+			SELECT t.*
+			FROM my_config_tree t
+			JOIN my_config_tree p ON p.ID = t.ParentID
+			WHERE p.Path IN (`+marksStr+`)
+		) t
+		WHERE NOT t.Deleted
+		ORDER BY t.Path
+	`, binds...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]*ParameterWithChildren)
+	for rows.Next() {
+		var p Parameter
+		err := rows.Scan(
+			&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
+			&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
+			&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !p.RW.Valid {
+			p.Value = NullString{}
+		}
+		if pathMap[p.Path] {
+			result[p.Path] = &ParameterWithChildren{
+				Parameter: p,
+				Children:  []Parameter{},
+			}
+		}
+		if p.Path != "/" {
+			parentPath, _ := splitPath(p.Path)
+			if _, ok := result[parentPath]; ok {
+				result[parentPath].Children = append(result[parentPath].Children, p)
+			}
+		}
+	}
+	return result, nil
 }
 
 func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {

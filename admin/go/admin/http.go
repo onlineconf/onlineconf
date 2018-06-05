@@ -25,6 +25,7 @@ func RegisterRoutes(r *mux.Router) {
 	c.Methods("GET").HandlerFunc(serveGetConfig)
 	c.Methods("POST").HandlerFunc(serveSetConfig)
 	c.Methods("DELETE").HandlerFunc(serveDeleteConfig)
+	r.Path("/batch/GET/config").Methods("POST").HandlerFunc(serveBatchGetConfig)
 
 	r.Path("/whoami").Methods("GET").HandlerFunc(serveWhoami)
 	r.Path("/user").Methods("GET").HandlerFunc(serveGetUsers)
@@ -145,6 +146,16 @@ func serveDeleteConfig(w http.ResponseWriter, req *http.Request) {
 		err = DeleteParameter(req.Context(), mux.Vars(req)["path"], version, req.PostFormValue("comment"))
 	}
 	writeResponse(req.Context(), w, map[string]string{"result": "Deleted"}, err)
+}
+
+func serveBatchGetConfig(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		writeError(req.Context(), w, err)
+		return
+	}
+	data, err := SelectWithChildrenMulti(req.Context(), req.PostForm["id[]"])
+	writeResponse(req.Context(), w, data, err)
 }
 
 func serveWhoami(w http.ResponseWriter, req *http.Request) {
