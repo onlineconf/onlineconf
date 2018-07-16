@@ -26,6 +26,11 @@ func newServerGraph(ctx context.Context, t *tree, server Server) *serverGraph {
 	}
 }
 
+func (graph *serverGraph) suspended(ctx context.Context) bool {
+	node := graph.get(ctx, "/onlineconf/suspended")
+	return node != nil && node.Value.Valid && node.Value.String != "" && node.Value.String != "0"
+}
+
 func (graph *serverGraph) modules(ctx context.Context) map[string]*Param {
 	node := graph.get(ctx, "/onlineconf/module")
 	graph.resolveChildren(ctx, &node)

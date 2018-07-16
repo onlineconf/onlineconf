@@ -40,6 +40,13 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	sg := newServerGraph(req.Context(), &treeI, *server)
+	if sg.suspended(req.Context()) {
+		log.Ctx(req.Context()).Info().Msg("suspended")
+		w.Header().Set("X-OnlineConf-Suspended", "true")
+		http.Error(w, "", 304)
+		return
+	}
+
 	ser := newSerializer(req.Context(), sg)
 	body, err := ser.serialize()
 	if err != nil {
