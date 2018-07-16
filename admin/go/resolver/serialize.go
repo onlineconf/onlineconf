@@ -63,6 +63,10 @@ func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
 }
 
 func (ser *serializer) writeParam(path string, name string, param *Param) {
+	if param == nil {
+		return
+	}
+
 	if !param.common {
 		if param.seen {
 			return
