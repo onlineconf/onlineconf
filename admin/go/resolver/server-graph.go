@@ -15,14 +15,18 @@ var serverSortRe = regexp.MustCompile(`(?:[\*\?]+|\{.*?\}|\[.*?\])`)
 
 type serverGraph struct {
 	graph
+	mtime string
 }
 
 func newServerGraph(ctx context.Context, t *tree, server Server) *serverGraph {
+	t.rw.RLock()
+	defer t.rw.RUnlock()
 	return &serverGraph{
 		graph: graph{
-			root:         t.clone(),
+			root:         t.root.deepClone(),
 			caseResolver: *newServerCaseResolver(ctx, t, server),
 		},
+		mtime: t.mtime,
 	}
 }
 

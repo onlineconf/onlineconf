@@ -8,6 +8,7 @@ import (
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"net"
 	"net/http"
+	"runtime"
 	"strings"
 )
 
@@ -21,6 +22,8 @@ type Server struct {
 	IP   net.IP
 }
 
+var configSemaphore = make(chan struct{}, runtime.NumCPU())
+
 func RegisterRoutes(r *mux.Router) {
 	r.Path("/config").Methods("GET").HandlerFunc(serveConfig)
 	r.Path("/activity").Methods("POST").HandlerFunc(serveActivity)
@@ -33,16 +36,20 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	mtime := treeI.mtime
-	w.Header().Add("X-OnlineConf-Admin-Last-Modified", mtime)
 	if clientMTime >= mtime {
+		w.Header().Add("X-OnlineConf-Admin-Last-Modified", mtime)
 		http.Error(w, "", 304)
 		return
 	}
+
+	configSemaphore <- struct{}{}
+	defer func() { <-configSemaphore }()
 
 	sg := newServerGraph(req.Context(), &treeI, *server)
 	if sg.suspended(req.Context()) {
 		log.Ctx(req.Context()).Info().Msg("suspended")
 		w.Header().Set("X-OnlineConf-Suspended", "true")
+		w.Header().Add("X-OnlineConf-Admin-Last-Modified", clientMTime)
 		http.Error(w, "", 304)
 		return
 	}
@@ -53,6 +60,7 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 		WriteServerError(req.Context(), w, err)
 		return
 	}
+	w.Header().Add("X-OnlineConf-Admin-Last-Modified", sg.mtime)
 	w.Write(body)
 }
 

@@ -144,9 +144,3 @@ func (t *tree) update(ctx context.Context) error {
 	t.mtime = mtime
 	return nil
 }
-
-func (t *tree) clone() *Param {
-	t.rw.RLock()
-	defer t.rw.RUnlock()
-	return t.root.deepClone()
-}
