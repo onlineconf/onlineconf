@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/ugorji/go/codec"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+	"runtime"
 	"strings"
 )
 
@@ -29,7 +30,8 @@ type serializerParam struct {
 }
 
 type serializer struct {
-	data serializerData
+	data   serializerData
+	pushed int
 }
 
 func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
@@ -97,9 +99,17 @@ func (ser *serializer) writeParam(path string, name string, param *Param) {
 			}
 		}
 	}
+
+	ser.pushed++
+	if ser.pushed%1000 == 0 {
+		runtime.Gosched()
+	}
 }
 
 func (ser *serializer) serialize() ([]byte, error) {
+	runtime.Gosched()
+	defer runtime.Gosched()
+
 	buf := make([]byte, 0, 100*len(ser.data.Nodes))
 	enc := codec.NewEncoderBytes(&buf, &cborHandle)
 	err := enc.Encode(ser.data)

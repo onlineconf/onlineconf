@@ -5,6 +5,7 @@ import (
 	"github.com/rs/zerolog/log"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -26,6 +27,7 @@ type caseResolver interface {
 type graph struct {
 	root         *Param
 	caseResolver caseResolver
+	resolved     int
 }
 
 func (g *graph) get(ctx context.Context, path string) *Param {
@@ -45,6 +47,13 @@ func (g *graph) get(ctx context.Context, path string) *Param {
 }
 
 func (g *graph) resolve(ctx context.Context, paramPtr **Param) {
+	defer func() {
+		g.resolved++
+		if g.resolved%1000 == 0 {
+			runtime.Gosched()
+		}
+	}()
+
 	param := *paramPtr
 	for *paramPtr != nil {
 		switch (*paramPtr).ContentType {
