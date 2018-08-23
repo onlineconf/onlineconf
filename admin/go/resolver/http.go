@@ -22,7 +22,7 @@ type Server struct {
 	IP   net.IP
 }
 
-var configSemaphore = make(chan struct{}, runtime.NumCPU())
+var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
 
 func RegisterRoutes(r *mux.Router) {
 	r.Path("/config").Methods("GET").HandlerFunc(serveConfig)
