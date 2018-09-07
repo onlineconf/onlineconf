@@ -283,6 +283,10 @@ func serveDeleteAccess(w http.ResponseWriter, req *http.Request) {
 	if !validateUserCanEditAccess(w, req) {
 		return
 	}
+	origMethod := req.Method
+	req.Method = "POST"
+	req.ParseForm()
+	req.Method = origMethod
 	err := DeleteAccess(req.Context(), mux.Vars(req)["path"], req.PostFormValue("group"))
 	writeModifyAccessResponse(w, req, err)
 }
