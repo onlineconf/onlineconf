@@ -50,7 +50,7 @@ type Parameter struct {
 }
 
 func SelectParameter(ctx context.Context, path string) (*Parameter, error) {
-	query := selectFromConfig + "WHERE Path = ?\n"
+	query := selectFromConfig + "WHERE Path = ? AND NOT Deleted\n"
 
 	row := DB.QueryRowContext(ctx, query, Username(ctx), path)
 	p := Parameter{}
