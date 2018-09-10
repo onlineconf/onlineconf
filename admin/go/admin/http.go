@@ -15,6 +15,7 @@ var clientError = map[error]int{
 	ErrVersionNotMatch: 400,
 	ErrCommentRequired: 400,
 	ErrInvalidValue:    400,
+	ErrNotEmpty:        400,
 }
 
 func RegisterRoutes(r *mux.Router) {

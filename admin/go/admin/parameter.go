@@ -17,6 +17,7 @@ var (
 	ErrVersionNotMatch = errors.New("Version not match")
 	ErrCommentRequired = errors.New("Comment required")
 	ErrInvalidValue    = errors.New("Invalid value")
+	ErrNotEmpty        = errors.New("Parameter has children")
 )
 
 const selectFromConfig string = `
@@ -421,6 +422,18 @@ func DeleteParameter(ctx context.Context, path string, version int, comment stri
 		tx.Rollback()
 		return ErrVersionNotMatch
 	}
+
+	row := tx.QueryRowContext(ctx, "SELECT count(*) FROM my_config_tree WHERE ParentID = ? AND Deleted = false", p.ID)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		tx.Rollback()
+		return err
+	} else if count != 0 {
+		tx.Rollback()
+		return ErrNotEmpty
+	}
+
 	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET Deleted = true, Version = Version + 1, MTime = now() WHERE Path = ?", path)
 	if err == nil {
 		err = ClearAccess(ctx, tx, p.ID)
