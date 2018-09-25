@@ -145,7 +145,7 @@ func groupsSortedByPriority(groups []string, priority []string) []string {
 	for _, name := range priority {
 		if name == "*" {
 			hasStar = true
-			sorted = append(sorted, groups...)
+			sorted = append(sorted, subtract(groups, priority)...)
 		} else if exist[name] {
 			sorted = append(sorted, name)
 		}
@@ -192,6 +192,20 @@ func uniqStrings(orig []string) []string {
 		}
 	}
 	return uniq
+}
+
+func subtract(orig, rem []string) []string {
+	result := make([]string, 0, len(orig))
+	exist := make(map[string]bool, len(rem))
+	for _, s := range rem {
+		exist[s] = true
+	}
+	for _, s := range orig {
+		if !exist[s] {
+			result = append(result, s)
+		}
+	}
+	return result
 }
 
 func strictSuperset(outter, inner []string) bool {
