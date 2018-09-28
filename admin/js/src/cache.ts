@@ -1,8 +1,10 @@
 import * as API from './api';
 
+type CacheKey = 'group' | 'datacenter';
+
 const cache = {};
 
-async function getDict(key: 'group' | 'datacenter') {
+async function getDict(key: CacheKey) {
 	if (key in cache) {
 		return cache[key];
 	}
@@ -23,7 +25,7 @@ async function getDict(key: 'group' | 'datacenter') {
 
 const promise = {};
 
-export async function getDictionary(key: 'group' | 'datacenter') {
+export async function getDictionary(key: CacheKey) {
 	if (!(key in promise)) {
 		promise[key] = getDict(key);
 	}

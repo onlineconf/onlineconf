@@ -45,7 +45,6 @@ class Search extends React.Component<SearchProps, SearchState> {
 				placeholder="Search"
 				type="search"
 				margin="none"
-				color="inherit"
 				value={this.state.value}
 				onChange={this.handleChange}
 				onSubmit={this.handleSubmit}

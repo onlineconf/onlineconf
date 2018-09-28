@@ -4,7 +4,7 @@ import { createStyles, Theme, WithStyles, withStyles, IconButton, CircularProgre
 import AddIcon from '@material-ui/icons/AddCircle';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
 
-import { getDictionary } from '../../../global';
+import { getDictionary } from '../../../cache';
 import { Case, EditNonnullValueProps } from '../../common';
 import { ParamType } from '../../../api';
 import TypeValueFields from '../../TypeValueFields';
@@ -141,10 +141,12 @@ export default withStyles(styles)(
 					this.timer = setTimeout(() => {
 						this.setState(prevState => ({ loading: { ...prevState.loading, [`${t}s`]: false } }));
 					}, 1000);
-					getDictionary(t).then(data => {
-						this.setState(prevState => ({ [`${t}s`]: data, loading: { ...prevState.loading, [`${t}s`]: false } }));
-						clearTimeout(this.timer);
-					});
+					getDictionary(t)
+						.then(data => {
+							this.setState(prevState => ({ [`${t}s`]: data, loading: { ...prevState.loading, [`${t}s`]: false } }));
+							clearTimeout(this.timer);
+						})
+						.catch(error => this.props.onError(error));
 				}
 			}
 		}
@@ -196,8 +198,8 @@ export default withStyles(styles)(
 										caseKey = (
 											<TextField select label="Group" value={c.group} {...commonProps}>
 												{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
-											</TextField>)
-										;
+											</TextField>
+										);
 									} else if (loading.groups) {
 										caseKey = <CircularProgress/>;
 									}
@@ -240,7 +242,7 @@ export default withStyles(styles)(
 										{caseKey}
 									</div>
 									<div className={classes.caseValue}>
-										<TypeValueFields type={c.mime} value={c.value} onChange={this.createDataHandler(i)}/>
+										<TypeValueFields type={c.mime} value={c.value} onChange={this.createDataHandler(i)} onError={this.props.onError}/>
 									</div>
 								</div>
 							);

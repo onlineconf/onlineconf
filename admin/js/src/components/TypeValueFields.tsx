@@ -9,6 +9,7 @@ interface TypeValueFieldsProps {
 	type: ParamType;
 	value: string | null;
 	onChange: (state: { type?: ParamType, value?: string | null }) => void;
+	onError: (error: Error) => void;
 }
 
 export default class TypeValueFields extends React.Component<TypeValueFieldsProps> {
@@ -51,7 +52,7 @@ export default class TypeValueFields extends React.Component<TypeValueFieldsProp
 						<MenuItem key={type} value={type}>{typeNames[type]}</MenuItem>
 					))}
 				</TextField>
-				<ValueEdit type={this.props.type} value={this.props.value} onChange={this.handleValueChange} />
+				<ValueEdit type={this.props.type} value={this.props.value} onChange={this.handleValueChange} onError={this.props.onError} />
 			</React.Fragment>
 		);
 	}

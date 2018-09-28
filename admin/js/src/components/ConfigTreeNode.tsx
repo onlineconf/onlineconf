@@ -12,6 +12,7 @@ const styles = (theme: Theme) => createStyles({
 	arrow: {
 		margin: spacingUnit,
 		padding: iconButtonPadding,
+		minWidth: buttonSize,
 	},
 	children: {
 		paddingLeft: buttonSize + 2 * spacingUnit,

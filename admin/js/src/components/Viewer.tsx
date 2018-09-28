@@ -26,6 +26,7 @@ const styles = (theme: Theme) => createStyles({
 interface ViewerProps {
 	param: IParamNode;
 	fullScreen?: boolean;
+	onDescribe: () => void;
 	onEdit: () => void;
 	onClose: () => void;
 }
@@ -46,7 +47,7 @@ const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof st
 			</div>
 		</DialogContent>
 		<DialogActions>
-			<Button>Describe</Button>
+			<Button onClick={props.onDescribe}>Describe</Button>
 			<Button onClick={props.onEdit}>Edit</Button>
 			<Button color="primary" onClick={props.onClose}>Close</Button>
 		</DialogActions>

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Theme, createStyles, IconButton, withStyles, WithStyles, Dialog, Slide } from '@material-ui/core';
 
 import CloseIcon from '@material-ui/icons/Close';
-import DescriptionIcon from '@material-ui/icons/Description';
+import NotesIcon from '@material-ui/icons/Notes';
 import EditIcon from '@material-ui/icons/Edit';
 import HistoryIcon from '@material-ui/icons/History';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
@@ -71,6 +71,7 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 		}}
 		TransitionComponent={Slide}
 		TransitionProps={{ direction: 'left' } as any}
+		maxWidth={false}
 		scroll="body"
 	>
 		<div className={props.classes.content}>
@@ -85,7 +86,7 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 				<IconButton onClick={props.onLog}><HistoryIcon/></IconButton>
 			</IconButtonProgress>
 			<IconButton onClick={props.onDescribe}><InsertCommentIcon/></IconButton>
-			<IconButton onClick={props.onView}><DescriptionIcon/></IconButton>
+			<IconButton onClick={props.onView}><NotesIcon/></IconButton>
 			<IconButton onClick={props.onEdit}><EditIcon/></IconButton>
 			<IconButton onClick={props.onMove}><LowPriorityIcon/></IconButton>
 			<IconButton onClick={props.onDelete} disabled={props.param.num_children !== 0}><DeleteIcon/></IconButton>

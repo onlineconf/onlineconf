@@ -144,7 +144,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 						</React.Fragment>
 					)}
 					{this.props.description !== '' && <Typography variant="body1" paragraph>{this.props.description}</Typography>}
-					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} />
+					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} onError={this.props.onError} />
 					{this.state.notification !== undefined && (
 						<NotificationControl
 							compact

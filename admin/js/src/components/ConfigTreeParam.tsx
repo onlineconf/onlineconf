@@ -19,7 +19,7 @@ import CaseIcon from '@material-ui/icons/LiveHelp';
 import TemplateIcon from '@material-ui/icons/LocalAtm';
 import ListIcon from '@material-ui/icons/List';
 import LockOpen from '@material-ui/icons/LockOpen';
-import MoreVert from '@material-ui/icons/MoreVert';
+import MoreHoriz from '@material-ui/icons/MoreHoriz';
 import Notifications from '@material-ui/icons/Notifications';
 
 import { ParamType } from '../api';
@@ -63,7 +63,6 @@ const previewStyles = (theme: Theme) => {
 		},
 		icon: {
 			flex: 'none',
-			color: theme.palette.action.active,
 		},
 		name: {
 			flex: 'auto',
@@ -152,7 +151,7 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 
 	return (
 		<Typography variant="body1" component="div" className={className}>
-			<Icon className={classes.icon} />
+			<Icon className={classes.icon} color="action"/>
 			<div className={classes.name}>
 				{param.name}
 				{param.summary !== '' && <span className={classes.summary}>{param.summary}</span>}
@@ -176,7 +175,7 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 				<Button onClick={onLog} classes={{ root: classes.button, label: classes.version }}>{param.version}</Button>
 				<Button onClick={onLog} classes={{ root: classes.button, label: classes.mtime }}>{param.mtime}</Button>
 			</ButtonProgress>
-			<IconButton onClick={onViewOpen} className={classes.iconButton}><MoreVert/></IconButton>
+			<IconButton onClick={onViewOpen} className={classes.iconButton}><MoreHoriz/></IconButton>
 		</Typography>
 	);
 };

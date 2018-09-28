@@ -24,6 +24,7 @@ const styles = (theme: Theme) => createStyles({
 		flex: 'none',
 		margin: theme.spacing.unit,
 		padding: 12,
+		minWidth: 48,
 	},
 	internalContainer: {
 		flex: 'auto',

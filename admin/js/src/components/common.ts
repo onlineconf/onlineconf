@@ -9,6 +9,7 @@ export interface ValueProps {
 
 export interface EditValueProps extends ValueProps {
 	onChange: (props: { target: { value: string | null } }) => void;
+	onError: (error: Error) => void;
 }
 
 export interface NonNullValueProps {
@@ -18,6 +19,7 @@ export interface NonNullValueProps {
 
 export interface EditNonnullValueProps extends NonNullValueProps {
 	onChange: (props: { target: { value: string } }) => void;
+	onError: (error: Error) => void;
 }
 
 export interface Case {

@@ -83,6 +83,10 @@ function getNodeAndParents(root: IParamNode, path: string): { node: IParamNode, 
 		}
 	}
 
+	if (!node) {
+		return;
+	}
+
 	return { node, parents };
 }
 
@@ -404,6 +408,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				param={param}
 				onClose={this.handleDialogClose}
 				onEdit={() => this.handleEdit(param)}
+				onDescribe={() => this.handleDescribe(param)}
 			/>,
 			menu: undefined,
 		});
