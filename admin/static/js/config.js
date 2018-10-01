@@ -124,38 +124,38 @@ $(function() {
             max_children: 1,
             types: {
                 default: {
-                    icon: { image: '/css/type/default.png' },
+                    icon: { image: 'css/type/default.png' },
                 },
                 root: {
-                    icon: { image: '/css/type/root.png' },
+                    icon: { image: 'css/type/root.png' },
                     valid_children: ['project']
                 },
                 project: {
-                    icon: { image: '/css/type/project.png' }
+                    icon: { image: 'css/type/project.png' }
                 },
                 "application/x-symlink": {
-                    icon: { image: '/css/type/symlink.png' }
+                    icon: { image: 'css/type/symlink.png' }
                 },
                 "application/json": {
-                    icon: { image: '/css/type/struct.png' }
+                    icon: { image: 'css/type/struct.png' }
                 },
                 "application/x-yaml": {
-                    icon: { image: '/css/type/struct.png' }
+                    icon: { image: 'css/type/struct.png' }
                 },
                 "text/plain": {
-                    icon: { image: '/css/type/text.png' }
+                    icon: { image: 'css/type/text.png' }
                 },
                 "application/x-list": {
-                    icon: { image: '/css/type/text.png' }
+                    icon: { image: 'css/type/text.png' }
                 },
                 "application/x-server": {
-                    icon: { image: '/css/type/text.png' }
+                    icon: { image: 'css/type/text.png' }
                 },
                 "application/x-server2": {
-                    icon: { image: '/css/type/text.png' }
+                    icon: { image: 'css/type/text.png' }
                 },
                 "application/x-case": {
-                    icon: { image: '/css/type/case.png' }
+                    icon: { image: 'css/type/case.png' }
                 }
             }
         },

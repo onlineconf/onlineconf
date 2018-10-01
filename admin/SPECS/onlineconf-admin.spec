@@ -14,6 +14,7 @@ BuildRequires:  mr-rpm-macros
 BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  golang
 BuildRequires:  golang-bin
+BuildRequires:  nodejs
 Requires:       mailru-initd-functions >= 1.11
 
 %description
@@ -32,13 +33,17 @@ export GOPATH=%{_builddir}/onlineconf-admin-build
 cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go
 go build -o %{name} ./
 
+cd ../js
+npm run build
+
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
 %{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}/%{name}
-%{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf/static
+%{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
-%{__cp} -r static/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/static/
+%{__cp} -r %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
+%{__cp} -r static $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 #%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
@@ -54,7 +59,7 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 %{_initrddir}/%{name}
 %config(noreplace) %{_localetcdir}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/nginx/*
-/usr/local/www/onlineconf/static/*
+/usr/local/www/onlineconf/*
 %{_sysconfdir}/cron.d/%{name}
 #%{_mandir}/*/*
 

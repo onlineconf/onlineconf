@@ -57,11 +57,11 @@ $(function() {
                     max_depth: 2,
                     types: {
                         group: {
-                            icon: { image: '/css/type/group.png' },
+                            icon: { image: 'css/type/group.png' },
                             valid_children: ['user']
                         },
                         user: {
-                            icon: { image: '/css/type/user.png' },
+                            icon: { image: 'css/type/user.png' },
                             valid_children: 'none'
                         }
                     }

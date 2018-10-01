@@ -35,9 +35,9 @@ span.node-data-and-icon { width: 32em }
 span.node-data { text-overflow: ellipsis; display: inline-block; overflow: hidden; width: 32em }
 span.node-data.node-icon-1 { width: 30.75em }
 span.node-data.node-icon-2 { width: 29.5em }
-span.node-access-modified, span.node-notification-modified { display: inline-block; float: right; height: 16px; width: 16px; background-image: url("/css/type/access.png") }
-span.node-access-modified { background-image: url("/css/type/access.png") }
-span.node-notification-modified { background-image: url("/css/type/notification.png") }
+span.node-access-modified, span.node-notification-modified { display: inline-block; float: right; height: 16px; width: 16px; background-image: url("type/access.png") }
+span.node-access-modified { background-image: url("type/access.png") }
+span.node-notification-modified { background-image: url("type/notification.png") }
 span.node-version { text-align: right; width: 2em }
 span.node-mtime { width: 9.5em }
 span.no-access { color: gray; letter-spacing: 1em; font-variant: small-caps }
