@@ -12,6 +12,7 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 		onlineconf: {
 			instance: OnlineConfInstance
 			palette: {
+				noAccess: React.CSSProperties['color']
 				null: React.CSSProperties['color']
 				symlink: React.CSSProperties['color']
 				case: {
@@ -27,6 +28,7 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 		onlineconf?: {
 			instance?: OnlineConfInstance
 			palette?: {
+				noAccess?: React.CSSProperties['color']
 				null?: React.CSSProperties['color']
 				symlink?: React.CSSProperties['color']
 				case?: {
@@ -58,6 +60,7 @@ export default function createTheme(options: ThemeOptions = {}) {
 			{
 				onlineconf: {
 					palette: {
+						noAccess: 'gray',
 						null: 'gray',
 						symlink: '#000088',
 						case: {

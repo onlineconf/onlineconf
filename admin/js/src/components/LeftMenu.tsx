@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link, LinkProps, Route } from 'react-router-dom';
 import Drawer from '@material-ui/core/Drawer';
 import { SvgIconProps } from '@material-ui/core/SvgIcon';
-import { List, ListItem, ListItemIcon, ListItemText, Theme, withStyles, WithStyles } from '@material-ui/core';
+import { List, ListItem, ListItemIcon, ListItemText, Theme, withStyles, WithStyles, createStyles } from '@material-ui/core';
 
 import SettingsIcon from '@material-ui/icons/Settings';
 import HistoryIcon from '@material-ui/icons/History';
@@ -37,11 +37,19 @@ class ListLink extends React.Component<ListLinkProps> {
 
 }
 
-const styles = (theme: Theme) => ({
+const ClassicLink = (props: LinkProps) => <a href="/classic/" {...props}/>;
+
+const styles = (theme: Theme) => createStyles({
 	paper: {
 		zIndex: theme.zIndex.appBar - 1,
 	},
 	toolbar: theme.mixins.toolbar,
+	classicIcon: {
+		margin: '4px 20px 4px 4px',
+	},
+	classicText: {
+		fontStyle: 'italic',
+	},
 });
 
 interface LeftMenuProps {
@@ -61,6 +69,10 @@ const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
 				<ListLink to="/history/" Icon={HistoryIcon}>History</ListLink>
 				<ListLink to="/server/" Icon={StorageIcon}>Servers</ListLink>
 				<ListLink to="/access/" Icon={GroupIcon}>Access</ListLink>
+				<ListItem button component={ClassicLink}>
+					<img src="/classic/css/type/default.png" className={classes.classicIcon}/>
+					<ListItemText className={classes.classicText}>Classic</ListItemText>
+				</ListItem>
 			</List>
 		</Drawer>
 	);

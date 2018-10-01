@@ -23,6 +23,7 @@ interface NotificationControlProps {
 	compact?: boolean;
 	overridden: boolean;
 	value: Notification;
+	allowNone: boolean;
 	onChange: (value: Notification | null) => void;
 }
 
@@ -76,7 +77,7 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						)
 					}}
 				>
-					<MenuItem value="none">None</MenuItem>
+					<MenuItem value="none" disabled={!this.props.allowNone}>None</MenuItem>
 					<MenuItem value="no-value">Without value</MenuItem>
 					<MenuItem value="with-value">With value</MenuItem>
 				</TextField>
@@ -90,7 +91,7 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						onChange={this.handleOverride}
 					/>
 					<RadioGroup value={this.props.value} className={this.props.classes.radioGroup} onChange={this.handleChange}>
-						<FormControlLabel value="none" label="None" control={<Radio disabled={!overridden}/>}/>
+						<FormControlLabel value="none" label="None" control={<Radio disabled={!overridden || !this.props.allowNone}/>}/>
 						<FormControlLabel value="no-value" label="Without value" control={<Radio disabled={!overridden}/>}/>
 						<FormControlLabel value="with-value" label="With value" control={<Radio disabled={!overridden}/>}/>
 					</RadioGroup>

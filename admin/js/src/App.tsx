@@ -13,6 +13,8 @@ import Access from './components/Access';
 import ErrorSnackbar from './components/ErrorSnackbar';
 import GlobalLog from './components/GlobalLog';
 
+import { getWhoAmI } from './api';
+
 const theme = createTheme();
 
 const leftMenuWidth = 240;
@@ -40,6 +42,7 @@ const styles = {
 };
 
 interface AppState {
+	userIsRoot: boolean;
 	menu: boolean;
 	search: string;
 	searching: boolean;
@@ -50,10 +53,24 @@ export default withStyles(styles)(
 	class App extends React.Component<WithStyles<typeof styles>, AppState> {
 
 		state: AppState = {
+			userIsRoot: false,
 			menu: false,
 			search: '',
 			searching: false,
 		};
+
+		componentDidMount() {
+			this.loadWhoAmI();
+		}
+
+		async loadWhoAmI() {
+			try {
+				const data = await getWhoAmI();
+				this.setState({ userIsRoot: data.can_edit_groups });
+			} catch (error) {
+				this.handleError(error);
+			}
+		}
 
 		handleMenuToggle = () => {
 			this.setState(({ menu }) => ({ menu: !menu }));
@@ -86,10 +103,10 @@ export default withStyles(styles)(
 							<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching}/>
 							<LeftMenu open={this.state.menu} onClose={this.handleMenuClose} classes={{ paper: this.props.classes.menu }}/>
 							<main className={mainClassName}>
-								<Route exact path="/" render={props => <ConfigTree {...props} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
+								<Route exact path="/" render={props => <ConfigTree {...props} userIsRoot={this.state.userIsRoot} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
 								<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>
-								<Route exact path="/server/" render={props => <Servers {...props} onError={this.handleError}/>}/>
-								<Route exact path="/access/" render={props => <Access {...props} onError={this.handleError}/>}/>
+								<Route exact path="/server/" render={props => <Servers {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
+								<Route exact path="/access/" render={props => <Access {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
 							</main>
 						</div>
 					</BrowserRouter>

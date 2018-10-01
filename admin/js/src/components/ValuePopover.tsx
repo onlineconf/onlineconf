@@ -15,12 +15,12 @@ const styles = (theme: Theme) => ({
 	},
 });
 
-interface IValuePopoverProps extends ValueProps {
+interface ValuePopoverProps extends ValueProps {
 	anchorEl: HTMLElement;
 	onClose: () => void;
 }
 
-const ValuePopover = (props: IValuePopoverProps & WithStyles<typeof styles>) => (
+const ValuePopover = (props: ValuePopoverProps & WithStyles<typeof styles>) => (
 	<Popover
 		open
 		onClose={props.onClose}
@@ -32,7 +32,7 @@ const ValuePopover = (props: IValuePopoverProps & WithStyles<typeof styles>) => 
 		disableRestoreFocus
 	>
 		<Typography variant="body1" component="div">
-			<ValueView type={props.type} value={props.value} />
+			<ValueView type={props.type} value={props.value} accessible/>
 		</Typography>
 	</Popover>
 );

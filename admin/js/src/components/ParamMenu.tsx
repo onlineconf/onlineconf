@@ -46,6 +46,7 @@ const styles = (theme: Theme) => createStyles({
 
 export interface ParamMenuProps {
 	param: IParamNode;
+	userIsRoot: boolean;
 	onClose: () => void;
 	onView: () => void;
 	onEdit: () => void;
@@ -78,19 +79,19 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 			<IconButtonProgress loading={props.param.state === 'loading'}>
 				<IconButton onClick={props.onReload}><RefreshIcon/></IconButton>
 			</IconButtonProgress>
-			<IconButton onClick={props.onNotification}><NotificationsIcon/></IconButton>
+			<IconButton onClick={props.onNotification} disabled={props.param.rw !== true}><NotificationsIcon/></IconButton>
 			<IconButtonProgress loading={props.param.accessLoading}>
-				<IconButton onClick={props.onAccess}><LockOpenIcon/></IconButton>
+				<IconButton onClick={props.onAccess} disabled={props.param.rw !== true && !props.userIsRoot}><LockOpenIcon/></IconButton>
 			</IconButtonProgress>
 			<IconButtonProgress loading={props.param.logLoading}>
 				<IconButton onClick={props.onLog}><HistoryIcon/></IconButton>
 			</IconButtonProgress>
-			<IconButton onClick={props.onDescribe}><InsertCommentIcon/></IconButton>
+			<IconButton onClick={props.onDescribe} disabled={props.param.rw !== true}><InsertCommentIcon/></IconButton>
 			<IconButton onClick={props.onView}><NotesIcon/></IconButton>
-			<IconButton onClick={props.onEdit}><EditIcon/></IconButton>
-			<IconButton onClick={props.onMove}><LowPriorityIcon/></IconButton>
-			<IconButton onClick={props.onDelete} disabled={props.param.num_children !== 0}><DeleteIcon/></IconButton>
-			<IconButton onClick={props.onAddChild} disabled={props.param.mime === 'application/x-symlink'}><PlaylistAddIcon/></IconButton>
+			<IconButton onClick={props.onEdit} disabled={props.param.rw !== true}><EditIcon/></IconButton>
+			<IconButton onClick={props.onMove} disabled={props.param.rw !== true}><LowPriorityIcon/></IconButton>
+			<IconButton onClick={props.onDelete} disabled={props.param.rw !== true || props.param.num_children !== 0}><DeleteIcon/></IconButton>
+			<IconButton onClick={props.onAddChild} disabled={props.param.rw !== true || props.param.mime === 'application/x-symlink'}><PlaylistAddIcon/></IconButton>
 			<IconButton onClick={props.onClose}><CloseIcon/></IconButton>
 		</div>
 	</Dialog>

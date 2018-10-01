@@ -24,6 +24,7 @@ const styles = (theme: Theme) => createStyles({
 type ServerColumns = 'host' | 'mtime' | 'online' | 'package';
 
 interface ServersProps {
+	userIsRoot: boolean;
 	onError: (error: Error) => void;
 }
 
@@ -146,7 +147,9 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 								<TableRow key={server.host} className={classes.row}>
 									<TableCell>{server.host}</TableCell>
 									<TableCell padding="none">
-										{server.online_alert && <IconButton onClick={() => this.deleteServer(server)} className={classes.delete}><RemoveIcon/></IconButton>}
+										{server.online_alert && this.props.userIsRoot && (
+											<IconButton onClick={() => this.deleteServer(server)} className={classes.delete}><RemoveIcon/></IconButton>
+										)}
 									</TableCell>
 									<TableCell className={server.mtime_alert ? classes.alert : undefined}>{server.mtime}</TableCell>
 									<TableCell className={server.online_alert ? classes.alert : undefined}>{server.online}</TableCell>

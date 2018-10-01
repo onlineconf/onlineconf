@@ -40,7 +40,7 @@ const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof st
 		<DialogContent>
 			{param.description !== '' && <Typography variant="body1" paragraph>{param.description}</Typography>}
 			{(param.mime !== 'application/x-null' || param.data !== null) && <Typography variant="caption">{typeNames[param.mime]}</Typography>}
-			<Typography variant="body1" component="div" className={classes.value}><ValueView type={param.mime} value={param.data} /></Typography>
+			<Typography variant="body1" component="div" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
 			<div className={classes.versionBox}>
 				<Typography variant="body1" className={classes.version}>Version: {param.version}</Typography>
 				<Typography variant="body1" color="textSecondary">{param.mtime}</Typography>

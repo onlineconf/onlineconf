@@ -24,6 +24,7 @@ interface ParamFields {
 	description: string;
 	version: number;
 	mtime: string;
+	rw: boolean | null;
 	notification: Notification;
 }
 
@@ -212,5 +213,15 @@ export async function deleteParamAccess(path: string, group: string) {
 		method: 'DELETE',
 		data: qs.stringify({ group }),
 	});
+	return response.data;
+}
+
+interface WhoAmI {
+	username: string;
+	can_edit_groups: boolean;
+}
+
+export async function getWhoAmI() {
+	const response = await axios.get<WhoAmI>('/whoami', commonOptions);
 	return response.data;
 }

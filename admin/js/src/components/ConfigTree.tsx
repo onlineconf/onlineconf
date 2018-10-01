@@ -196,6 +196,7 @@ function parentPath(path: string) {
 }
 
 interface ConfigTreeProps {
+	userIsRoot: boolean;
 	history: History;
 	search: string;
 	onSearching: (searching: boolean) => void;
@@ -427,6 +428,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				value={param.data}
 				summary={param.summary}
 				description={param.description}
+				userIsRoot={this.props.userIsRoot}
 				onChange={this.handleEditDone}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -449,6 +451,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				create
 				path={param.path}
 				notification={param.notification}
+				userIsRoot={this.props.userIsRoot}
 				onChange={this.handleAddChildDone}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -555,6 +558,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				path={param.path}
 				overridden={param.notification_modified}
 				value={param.notification}
+				allowNone={this.props.userIsRoot}
 				onChange={this.handleModifyNotification}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -573,6 +577,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				path={param.path}
 				overridden={param.notification_modified}
 				value={param.notification}
+				allowNone={this.props.userIsRoot}
 				onChange={this.handleModifyNotification}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -606,7 +611,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 
 	handleLog = this.dialogHandler(ParamLog, 'logLoading');
 
-	handleAccess = this.dialogHandler(ParamAccess, 'accessLoading');
+	handleAccess = this.dialogHandler(ParamAccess, 'accessLoading'); // TODO apply changes to tree
 
 	handleDialogClose = () => {
 		this.setState({ dialog: null });
@@ -623,14 +628,13 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 	}
 
 	public render() {
-		const { root } = this.state;
-
 		return (
 			<div>
 				<Tree>
-					{root && (
+					{this.state.root && (
 						<ConfigTreeNode
-							param={root}
+							param={this.state.root}
+							userIsRoot={this.props.userIsRoot}
 							menu={this.state.menu}
 							onOpen={this.handleOpen}
 							onClose={this.handleClose}

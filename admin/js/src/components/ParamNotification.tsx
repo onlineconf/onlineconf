@@ -10,6 +10,7 @@ interface ParamNotificationProps {
 	path: string;
 	overridden: boolean;
 	value: Notification;
+	allowNone: boolean;
 	onChange: (param: IParam) => void;
 	onError: (error: Error) => void;
 	onClose: () => void;
@@ -28,10 +29,10 @@ export default class ParamNotification extends React.Component<ParamNotification
 
 	render() {
 		return (
-			<Dialog open={true} onClose={this.props.onClose}>
-				<ParamDialogTitle path={this.props.path}>Access</ParamDialogTitle>
+			<Dialog open onClose={this.props.onClose}>
+				<ParamDialogTitle path={this.props.path}>Notifications</ParamDialogTitle>
 				<DialogContent>
-					<NotificationControl overridden={this.props.overridden} value={this.props.value} onChange={this.handleChange}/>
+					<NotificationControl overridden={this.props.overridden} value={this.props.value} allowNone={this.props.allowNone} onChange={this.handleChange}/>
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={this.props.onClose}>Close</Button>

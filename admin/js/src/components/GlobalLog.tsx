@@ -132,7 +132,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 								<TableRow key={`${row.path} ${row.version}`} className={this.props.classes.row}>
 									<TableCell>{row.mtime}</TableCell>
 									<TableCell>{row.path}</TableCell>
-									<TableCell><ValueView type={row.mime} value={row.data} /></TableCell>
+									<TableCell><ValueView type={row.mime} value={row.data} accessible={row.rw !== null}/></TableCell>
 									<TableCell>{row.author}</TableCell>
 									<TableCell>{row.comment}</TableCell>
 								</TableRow>

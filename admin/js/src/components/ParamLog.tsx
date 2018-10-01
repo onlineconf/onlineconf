@@ -98,7 +98,7 @@ export default withMobileDialog<ParamDialogProps>()(
 									return (
 										<TableRow key={row.version}>
 											<TableCell numeric>{row.version}</TableCell>
-											<TableCell><ValueView type={row.mime} value={row.data} /></TableCell>
+											<TableCell><ValueView type={row.mime} value={row.data} accessible={row.rw !== null}/></TableCell>
 											<TableCell>{row.mtime}</TableCell>
 											<TableCell>{row.author}</TableCell>
 											<TableCell>{row.comment}</TableCell>

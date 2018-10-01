@@ -52,7 +52,7 @@ const CaseValueView = (props: NonNullValueProps & WithStyles<typeof styles>) => 
 							<span className={keyClassName}>{key}</span>:
 						</div>
 						<div className={props.classes.value}>
-							<ValueView type={c.mime} value={c.value} />
+							<ValueView type={c.mime} value={c.value} accessible/>
 						</div>
 					</React.Fragment>
 				);

@@ -20,6 +20,7 @@ const styles = (theme: Theme) => createStyles({
 });
 
 interface AccessProps {
+	userIsRoot: boolean;
 	onError: (error: Error) => void;
 }
 
@@ -178,23 +179,27 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 									color="primary"
 									label={group}
 									className={classes.chip}
-									onDelete={access[group].length === 0 ? () => this.deleteGroup(group) : undefined}
+									onDelete={this.props.userIsRoot && access[group].length === 0 ? () => this.deleteGroup(group) : undefined}
 								/>
 								{access[group].map(user => (
 									<Chip
 										key={user}
 										label={user}
 										className={classes.chip}
-										onDelete={() => this.removeUser(group, user)}
+										onDelete={this.props.userIsRoot ? () => this.removeUser(group, user) : undefined}
 									/>
 								))}
-								<IconButton className={classes.add} onClick={() => this.showAddUserDialog(group)}><AddIcon/></IconButton>
+								{this.props.userIsRoot && (
+									<IconButton className={classes.add} onClick={() => this.showAddUserDialog(group)}><AddIcon/></IconButton>
+								)}
 							</ListItem>
 						);
 					})}
-					<ListItem className={classes.group}>
-						<IconButton className={classes.add} onClick={() => this.showCreateGroupDialog()}><AddIcon/></IconButton>
-					</ListItem>
+					{this.props.userIsRoot && (
+						<ListItem className={classes.group}>
+							<IconButton className={classes.add} onClick={() => this.showCreateGroupDialog()}><AddIcon/></IconButton>
+						</ListItem>
+					)}
 				</List>
 				{this.renderDialog()}
 			</React.Fragment>

@@ -28,6 +28,7 @@ import ValuePreview from './ValuePreview';
 import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
+import NoAccess from './NoAccess';
 
 export const spacingUnit = 2;
 export const buttonSize = 24;
@@ -124,6 +125,7 @@ const previewStyles = (theme: Theme) => {
 
 interface ConfigTreeParamPreviewProps {
 	param: IParamNode;
+	userIsRoot: boolean;
 	onViewOpen: () => void;
 	onEdit: () => void;
 	onNotification: () => void;
@@ -158,16 +160,18 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 			</div>
 			<div className={classes.valueContainer}>
 				<div className={classes.value}>
-					<span onMouseEnter={onValuePopoverOpen} onMouseLeave={onValuePopoverClose}>
-						<ValuePreview type={param.mime} value={param.data}/>
-					</span>
+					{param.rw === null ? <NoAccess/> : (
+						<span onMouseEnter={onValuePopoverOpen} onMouseLeave={onValuePopoverClose}>
+							<ValuePreview type={param.mime} value={param.data}/>
+						</span>
+					)}
 				</div>
 				{param.notification_modified && (
-					<IconButton onClick={onNotification} className={classes.iconButton}><Notifications/></IconButton>
+					<IconButton onClick={onNotification} disabled={param.rw !== true} className={classes.iconButton}><Notifications/></IconButton>
 				)}
 				{param.access_modified && (
 					<IconButtonProgress size={buttonSize} loading={param.accessLoading}>
-						<IconButton onClick={onAccess} className={classes.iconButton}><LockOpen/></IconButton>
+						<IconButton onClick={onAccess} disabled={param.rw !== true && !props.userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
 					</IconButtonProgress>
 				)}
 			</div>
@@ -184,6 +188,7 @@ const ConfigTreeParamPreviewStyled = withStyles(previewStyles)(ConfigTreeParamPr
 
 interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose'> {
 	param: IParamNode;
+	userIsRoot: boolean;
 	menu?: string;
 	onMenuOpen: () => void;
 	onMenuClose: () => void;
@@ -201,6 +206,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				{this.props.menu === param.path && (
 					<ParamMenu
 						param={param}
+						userIsRoot={this.props.userIsRoot}
 						onClose={this.props.onMenuClose}
 						onView={this.props.onView}
 						onEdit={onEdit}
@@ -216,6 +222,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				)}
 				<ConfigTreeParamPreviewStyled
 					param={param}
+					userIsRoot={this.props.userIsRoot}
 					onViewOpen={this.props.onMenuOpen}
 					onEdit={onEdit}
 					onNotification={onNotification}

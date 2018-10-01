@@ -21,6 +21,7 @@ const styles = (theme: Theme) => createStyles({
 
 interface ConfigTreeNodeProps {
 	param: IParamNode;
+	userIsRoot: boolean;
 	menu?: string;
 	onOpen: (path: string) => void;
 	onClose: (path: string) => void;
@@ -44,7 +45,6 @@ interface ConfigTreeNodeProps {
 let ConfigTreeNode: React.ComponentType<ConfigTreeNodeProps>;
 ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 	const { param, ...rest } = props;
-	const { onOpen, onClose, onSelect, onEdit, onLog, onAddChild, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose, classes } = rest;
 
 	if (param.hidden) {
 		return null;
@@ -54,29 +54,30 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 		<TreeNode
 			state={param.forceOpen ? 'open' : param.state}
 			selected={param.selected}
-			onOpen={() => onOpen(param.path)}
-			onClose={() => onClose(param.path)}
-			onClick={event => { if (!param.selected) { onSelect(param); } }}
-			onDoubleClick={event => onEdit(param)}
+			onOpen={() => props.onOpen(param.path)}
+			onClose={() => props.onClose(param.path)}
+			onClick={() => { if (!param.selected) { props.onSelect(param); } }}
+			onDoubleClick={() => param.rw === true ? props.onEdit(param) : props.onView(param)}
 			item={<ConfigTreeParam
 				param={param}
+				userIsRoot={props.userIsRoot}
 				menu={props.menu}
 				onMenuOpen={() => props.onMenuOpen(param.path)}
 				onMenuClose={() => props.onMenuClose(param.path)}
 				onView={() => props.onView(param)}
-				onEdit={() => onEdit(param)}
+				onEdit={() => props.onEdit(param)}
 				onDescribe={() => props.onDescribe(param)}
-				onNotification={() => onNotification(param)}
-				onAccess={() => onAccess(param.path)}
-				onLog={() => onLog(param.path)}
-				onAddChild={() => onAddChild(param)}
+				onNotification={() => props.onNotification(param)}
+				onAccess={() => props.onAccess(param.path)}
+				onLog={() => props.onLog(param.path)}
+				onAddChild={() => props.onAddChild(param)}
 				onReload={() => props.onReload(param)}
 				onDelete={() => props.onDelete(param)}
 				onMove={() => props.onMove(param)}
-				onValuePopoverOpen={event => onValuePopoverOpen(event, param)}
-				onValuePopoverClose={onValuePopoverClose}
+				onValuePopoverOpen={event => props.onValuePopoverOpen(event, param)}
+				onValuePopoverClose={props.onValuePopoverClose}
 			/>}
-			classes={classes}
+			classes={props.classes}
 			divider
 		>
 			{param.children && Object.keys(param.children).sort(smartCompare).map(name => {

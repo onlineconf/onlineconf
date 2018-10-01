@@ -29,6 +29,7 @@ interface EditorProps extends Partial<ValueProps> {
 	summary?: string;
 	description?: string;
 	notification?: Notification;
+	userIsRoot: boolean;
 	fullScreen?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
@@ -150,6 +151,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 							compact
 							overridden={this.state.notification !== null}
 							value={this.state.notification !== null ? this.state.notification : this.props.notification!}
+							allowNone={this.props.userIsRoot}
 							onChange={this.handleNotificationChange}
 						/>
 					)}
