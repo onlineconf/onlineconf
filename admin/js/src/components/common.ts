@@ -66,8 +66,8 @@ export function smartCompare(a: string, b: string) {
 	const amatch = a.match(/^(\D*?)(\d+)(\D*?)$/);
 	const bmatch = b.match(/^(\D*?)(\d+)(\D*?)$/);
 	if (amatch && bmatch && amatch[1] === bmatch[1]) {
-		const anum = parseInt(amatch[2]);
-		const bnum = parseInt(bmatch[2]);
+		const anum = parseInt(amatch[2], 10);
+		const bnum = parseInt(bmatch[2], 10);
 		return (anum === bnum ? amatch[3] > bmatch[3] : anum > bnum) ? 1 : -1;
 	}
 	else {

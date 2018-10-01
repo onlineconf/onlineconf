@@ -44,14 +44,14 @@ export default withStyles(styles)(
 
 		private handleAddHost = () => {
 			this.props.onChange({ target: { value: this.props.value + ',' } });
-				let list = this.getList();
+				const list = this.getList();
 				list.push({ host: '', ports: [] });
 				this.setList(list);
 		}
 
 		private createRemoveHostHandler(id: number) {
 			return () => {
-				let list = this.getList();
+				const list = this.getList();
 				list.splice(id, 1);
 				this.setList(list);
 			};
@@ -59,7 +59,7 @@ export default withStyles(styles)(
 
 		private createChangeHostHandler(id: number) {
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
-				let list = this.getList();
+				const list = this.getList();
 				list[id].host = event.target.value.replace(/\s+/g, '');
 				this.setList(list);
 			};
@@ -67,7 +67,7 @@ export default withStyles(styles)(
 
 		private createAddPortHandler(hostId: number) {
 			return () => {
-				let list = this.getList();
+				const list = this.getList();
 				list[hostId].ports.push('');
 				this.setList(list);
 			};
@@ -75,7 +75,7 @@ export default withStyles(styles)(
 
 		private createRemovePortHandler(hostId: number, portId: number) {
 			return () => {
-				let list = this.getList();
+				const list = this.getList();
 				list[hostId].ports.splice(portId, 1);
 				this.setList(list);
 			};
@@ -83,7 +83,7 @@ export default withStyles(styles)(
 
 		private createChangePortHandler(hostId: number, portId: number) {
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
-				let list = this.getList();
+				const list = this.getList();
 				list[hostId].ports[portId] = event.target.value.replace(/[^\d;,]+/g, '');
 				this.setList(list);
 			};

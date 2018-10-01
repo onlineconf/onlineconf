@@ -10,7 +10,7 @@ async function getDict(key: CacheKey) {
 	}
 
 	const data = await API.getParam(`/onlineconf/${key}`, 'resolve');
-	let result = {};
+	const result = {};
 	if (data.children) {
 		for (const node of data.children) {
 			result[node.name] = node.summary || node.name;

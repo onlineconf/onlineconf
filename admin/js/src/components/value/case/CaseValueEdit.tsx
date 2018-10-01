@@ -67,7 +67,7 @@ export default withStyles(styles)(
 		timer: NodeJS.Timer;
 
 		handleChange(cb: (cases: Case[]) => void) {
-			let cases: Case[] = JSON.parse(this.props.value);
+			const cases: Case[] = JSON.parse(this.props.value);
 			cb.call(this, cases);
 			this.props.onChange({ target: { value: JSON.stringify(cases) } });
 		}
@@ -129,7 +129,7 @@ export default withStyles(styles)(
 
 		loadDictionaries() {
 			const cases: Case[] = JSON.parse(this.props.value);
-			for (const t of (['group', 'datacenter'] as ('group' | 'datacenter')[])) {
+			for (const t of (['group', 'datacenter'] as Array<'group' | 'datacenter'>)) {
 				let has = false;
 				for (const c of cases) {
 					if (t in c) {

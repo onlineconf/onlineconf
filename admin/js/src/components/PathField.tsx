@@ -146,7 +146,7 @@ class PathField extends React.Component<PathFieldProps & WithStyles<typeof style
 	}
 
 	setValue(value: string) {
-		this.props.onChange({ target: { value: value } });
+		this.props.onChange({ target: { value } });
 		this.closeMenu();
 		this.inputRef.current!.focus();
 	}

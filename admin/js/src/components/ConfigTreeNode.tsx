@@ -56,7 +56,7 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 			selected={param.selected}
 			onOpen={() => onOpen(param.path)}
 			onClose={() => onClose(param.path)}
-			onClick={event => { if (!param.selected) onSelect(param); }}
+			onClick={event => { if (!param.selected) { onSelect(param); } }}
 			onDoubleClick={event => onEdit(param)}
 			item={<ConfigTreeParam
 				param={param}

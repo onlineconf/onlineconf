@@ -77,8 +77,8 @@ export async function deleteParam(path: string, info: { version: number, comment
 }
 
 export async function batchGetParams(paths: string[]) {
-	let data = new URLSearchParams();
-	for (let path of paths) {
+	const data = new URLSearchParams();
+	for (const path of paths) {
 		data.append('id[]', path);
 	}
 	const response = await axios.post<{[key: string]: IParam}>('/batch/GET/config', data, commonOptions);
@@ -153,11 +153,11 @@ export async function deleteServer(host: string) {
 
 
 export async function getAccess() {
-	let access = {};
+	const access = {};
 	const response = await axios.get<string[]>('/group/', commonOptions);
 	const promises = response.data.map(group => {
-		return axios.get<string[]>(`/group/${group}`, commonOptions).then(response => {
-			access[group] = response.data;
+		return axios.get<string[]>(`/group/${group}`, commonOptions).then(resp => {
+			access[group] = resp.data;
 		});
 	});
 	await Promise.all(promises);

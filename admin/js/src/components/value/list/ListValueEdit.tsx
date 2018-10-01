@@ -24,7 +24,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 
 	createRemoveItemHandler(id: number) {
 		return () => {
-			let list = this.props.value.split(',');
+			const list = this.props.value.split(',');
 			list.splice(id, 1);
 			this.props.onChange({ target: { value: list.join(',') } });
 		};
@@ -32,7 +32,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 
 	createChangeItemHandler(id: number) {
 		return (event: React.ChangeEvent<HTMLInputElement>) => {
-			let list = this.props.value.split(',');
+			const list = this.props.value.split(',');
 			list[id] = event.target.value;
 			this.props.onChange({ target: { value: list.join(',') } });
 		};

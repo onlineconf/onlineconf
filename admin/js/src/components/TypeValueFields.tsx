@@ -17,7 +17,7 @@ export default class TypeValueFields extends React.Component<TypeValueFieldsProp
 	handleTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const type = event.target.value as ParamType;
 		if (type !== this.props.type) {
-			let state: { type: ParamType, value?: string | null } = { type };
+			const state: { type: ParamType, value?: string | null } = { type };
 			if (type === 'application/x-case') {
 				state.value = JSON.stringify([{ mime: this.props.type, value: this.props.value }]);
 			} else if (this.props.type === 'application/x-case') {

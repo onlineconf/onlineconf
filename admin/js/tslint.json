@@ -1,11 +1,25 @@
 {
 	"extends": [
-		"tslint-eslint-rules"
+		"tslint:recommended",
+		"tslint-react",
+		"tslint-config-prettier"
 	],
-	"rulesDirectory": [
-		// "./node_modules/tslint-misc-rules/rules"
-	],
+	"linterOptions": {
+		"exclude": [
+			"config/**/*.js",
+			"node_modules/**/*.ts",
+			"coverage/lcov-report/*.js"
+		]
+	},
 	"rules": {
+		"interface-name": false,
+		"jsx-boolean-value": false,
+		"jsx-no-lambda": false,
+		"member-access": false,
+		"member-ordering": false,
+		"no-shadowed-variable": false,
+		"object-literal-sort-keys": false,
+		"ordered-imports": false,
 		"class-name": true,
 		"comment-format": [
 			true,
@@ -61,49 +75,6 @@
 			"check-separator",
 			"check-type",
 			"check-module"
-		],
-		// "no-unused-variable": [
-		// 	true,
-		// 	{
-		// 		"ignore-pattern": "^React$"
-		// 	}
-		// ],
-		"object-curly-spacing": [
-			true,
-			"always"
-		],
-		"array-type": [
-			true,
-			"array"
-		],
-		"ter-padded-blocks": [
-			true,
-			{
-				"blocks": "never",
-				"classes": "always",
-				"switches": "never"
-			}
-		],
-		"class-method-newlines": [
-			true,
-			{
-				"padded-classes": true
-			}
-		],
-		"jsx-no-braces-for-string-attributes": true,
-		"react-lifecycle-order": [
-			true,
-			"constructor",
-			"getChildContext",
-			"componentWillMount",
-			"componentDidMount",
-			"componentWillUnmount",
-			"componentWillReceiveProps",
-			"shouldComponentUpdate",
-			"componentWillUpdate",
-			"componentDidUpdate",
-			"render"
 		]
 	}
 }
-

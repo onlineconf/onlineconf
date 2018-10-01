@@ -35,7 +35,7 @@ const ServerListValueView = (props: NonNullValueProps & WithStyles<typeof viewSt
 };
 
 const split = (value: string) => {
-	let list: ServerListEntry[] = [];
+	const list: ServerListEntry[] = [];
 	for (const item of value.split(',')) {
 		const m = item.match(/^(\[[^\]]*\]?|.*?)(?::([^:]*))?$/);
 		const host = m ? m[1] : item;
@@ -52,7 +52,7 @@ const split = (value: string) => {
 };
 
 const join = (list: ServerListEntry[]) => {
-	let items: string[] = [];
+	const items: string[] = [];
 	for (const item of list) {
 		if (item.ports.length > 0) {
 			for (const port of item.ports) {

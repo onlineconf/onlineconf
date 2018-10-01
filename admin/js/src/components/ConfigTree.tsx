@@ -29,7 +29,7 @@ const styles = (theme: Theme) => ({
 function paramNode(param: API.IParam, options: { open?: boolean, selected?: string } = {}): IParamNode {
 	const { children, ...rest } = param;
 	const state = options.open && children ? 'open' : param.num_children > 0 ? 'closed' : 'leaf';
-	let node: IParamNode = { ...rest, state };
+	const node: IParamNode = { ...rest, state };
 
 	if (children) {
 		node.children = children.reduce((obj, param) => {
@@ -53,7 +53,7 @@ function updateTree(root: IParamNode | undefined, param: API.IParam, options: { 
 	let parent = root;
 	const chunks = param.path.split('/').slice(1, -1);
 
-	for (let chunk of chunks) {
+	for (const chunk of chunks) {
 		if (!(parent && parent.children)) {
 			return root;
 		}
@@ -70,11 +70,11 @@ function updateTree(root: IParamNode | undefined, param: API.IParam, options: { 
 
 function getNodeAndParents(root: IParamNode, path: string): { node: IParamNode, parents: IParamNode[] } | undefined {
 	let node = root;
-	let parents = [];
+	const parents = [];
 
 	if (path !== '/') {
 		const chunks = path.split('/').slice(1);
-		for (let chunk of chunks) {
+		for (const chunk of chunks) {
 			if (!(node && node.children)) {
 				return;
 			}
@@ -95,7 +95,7 @@ function getNode(root: IParamNode, path: string): IParamNode | undefined {
 
 	if (path !== '/') {
 		const chunks = path.split('/').slice(1);
-		for (let chunk of chunks) {
+		for (const chunk of chunks) {
 			if (!(node && node.children)) {
 				return;
 			}
@@ -107,7 +107,7 @@ function getNode(root: IParamNode, path: string): IParamNode | undefined {
 }
 
 function modifyNode(root: IParamNode, path: string, action: (node: IParamNode) => void): IParamNode {
-	let node = getNode(root, path);
+	const node = getNode(root, path);
 
 	if (node) {
 		action(node);
@@ -124,7 +124,7 @@ function modifyNodes(root: IParamNode, paths: string[], action: (node: IParamNod
 }
 
 function setNodeState(root: IParamNode, path: string, state: TreeNodeState = 'open'): IParamNode {
-	let node = getNode(root, path);
+	const node = getNode(root, path);
 
 	if (node) {
 		node.state = state;
@@ -158,7 +158,7 @@ function clearMatch(param: IParamNode) {
 function setMatch(root: IParamNode, paths: string[]) {
 	initMatch(root);
 	for (const path of paths) {
-		let ret = getNodeAndParents(root, path);
+		const ret = getNodeAndParents(root, path);
 		if (ret) {
 			ret.node.match = true;
 			ret.node.hidden = false;
@@ -171,10 +171,14 @@ function setMatch(root: IParamNode, paths: string[]) {
 }
 
 function showSelected(root: IParamNode, selected?: string) {
-	if (!selected) return;
+	if (!selected) {
+		return;
+	}
 
 	const ret = getNodeAndParents(root, selected);
-	if (!ret) return;
+	if (!ret) {
+		return;
+	}
 
 	for (const param of ret.parents) {
 		if (param.state === 'closed') {
@@ -248,7 +252,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 	}
 
 	requiredPaths(path: string, withChildren = false) {
-		let paths: string[] = [];
+		const paths: string[] = [];
 
 		let node = this.state.root;
 		if (!node) {
@@ -256,7 +260,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		}
 		let currentPath = '';
 		const chunks = path.split('/').slice(1);
-		for (let chunk of chunks) {
+		for (const chunk of chunks) {
 			if (node && node.children) {
 				node = node.children[chunk];
 			} else if (currentPath) {
@@ -273,7 +277,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 
 	async loadNodes(paths: string[], options: { open?: boolean, withChildren?: boolean, reload?: boolean } = {}) {
 		try {
-			let loadPaths = new Set<string>(options.reload ? paths : []);
+			const loadPaths = new Set<string>(options.reload ? paths : []);
 			for (const path of paths) {
 				for (const p of this.requiredPaths(path, options.withChildren)) {
 					loadPaths.add(p);
@@ -284,10 +288,10 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 
 			this.setState(prevState => {
 				let root = prevState.root;
-				for (let path of Object.keys(nodes).sort()) {
+				for (const path of Object.keys(nodes).sort()) {
 					root = updateTree(root, nodes[path], { open: options.open, selected: prevState.selected });
 				}
-				return { root: root };
+				return { root };
 			});
 		} catch (error) {
 			this.setState(({ root }) => ({ root: modifyNodes(root!, paths, node => { node.state = 'closed'; }) }));
@@ -313,14 +317,14 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 					return null;
 				}
 
-				let node = getNode(prevState.root!, prevState.selected);
+				const node = getNode(prevState.root!, prevState.selected);
 				if (node) {
 					node.selected = false;
 					treeModified = true;
 				}
 			}
 
-			let ret = getNodeAndParents(prevState.root!, path);
+			const ret = getNodeAndParents(prevState.root!, path);
 			if (ret) {
 				ret.node.selected = true;
 				for (const parent of ret.parents) {
@@ -371,7 +375,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 	}
 
 	handleOpen = (path: string) => {
-		let node = getNode(this.state.root!, path);
+		const node = getNode(this.state.root!, path);
 
 		if (node && node.children) {
 			this.setState({ root: setNodeState(this.state.root!, path, 'open') });
