@@ -29,6 +29,7 @@ interface PathFieldProps {
 	autoFocus?: boolean;
 	fullWidth?: boolean;
 	margin?: PropTypes.Margin;
+	variant?: 'standard' | 'outlined' | 'filled';
 }
 
 interface PathFieldState {
@@ -168,6 +169,7 @@ class PathField extends React.Component<PathFieldProps & WithStyles<typeof style
 					autoFocus={this.props.autoFocus}
 					margin={this.props.margin}
 					fullWidth={this.props.fullWidth}
+					variant={this.props.variant}
 					className={this.props.className}
 				/>
 				<Popper

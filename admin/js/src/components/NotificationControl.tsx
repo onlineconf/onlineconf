@@ -91,9 +91,9 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						onChange={this.handleOverride}
 					/>
 					<RadioGroup value={this.props.value} className={this.props.classes.radioGroup} onChange={this.handleChange}>
-						<FormControlLabel value="none" label="None" control={<Radio disabled={!overridden || !this.props.allowNone}/>}/>
-						<FormControlLabel value="no-value" label="Without value" control={<Radio disabled={!overridden}/>}/>
-						<FormControlLabel value="with-value" label="With value" control={<Radio disabled={!overridden}/>}/>
+						<FormControlLabel value="none" label="None" disabled={!overridden || !this.props.allowNone} control={<Radio/>}/>
+						<FormControlLabel value="no-value" label="Without value" disabled={!overridden} control={<Radio/>}/>
+						<FormControlLabel value="with-value" label="With value" disabled={!overridden} control={<Radio/>}/>
 					</RadioGroup>
 				</div>
 			);

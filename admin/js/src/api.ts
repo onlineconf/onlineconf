@@ -120,14 +120,28 @@ export async function getParamLog(path: string, options: AxiosRequestConfig = {}
 	return response.data;
 }
 
-export interface GlobalLogParams {
+export interface GlobalLogFilter {
 	author?: string;
 	branch?: string;
 	from?: string;
 	till?: string;
+	all?: boolean;
 }
 
-export async function getGlobalLog(params: GlobalLogParams, options: AxiosRequestConfig = {}) {
+interface GlobalLogParams extends Omit<GlobalLogFilter, 'all'> {
+	all?: 1;
+}
+
+export async function getGlobalLog(filter: GlobalLogFilter, options: AxiosRequestConfig = {}) {
+	const params: GlobalLogParams = {};
+	for (const k of ['author', 'branch', 'from', 'till']) {
+		if (filter[k] !== undefined && filter[k] !== '') {
+			params[k] = filter[k];
+		}
+	}
+	if (filter.all) {
+		params.all = 1;
+	}
 	const response = await axios.get<IParamLog[]>('/global-log', { ...options, ...commonOptions, params });
 	return response.data;
 }
