@@ -9,11 +9,12 @@ import (
 var AdminConfig *ConfigFile = readConfigFile("/usr/local/etc/onlineconf-admin.yaml")
 
 type DatabaseConfig struct {
-	Host     string
-	User     string
-	Password string
-	Base     string
-	Timeout  int
+	Host        string
+	User        string
+	Password    string
+	Base        string
+	Timeout     int
+	MaxLifetime int `yaml:"max_lifetime"`
 }
 
 type ConfigFile struct {

@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var authDB = openAuthDatabase()
@@ -19,6 +20,7 @@ func openAuthDatabase() *sql.DB {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open authentication database")
 	}
+	db.SetConnMaxLifetime(time.Duration(AdminConfig.Auth.DatabaseConfig.MaxLifetime) * time.Second)
 	return db
 }
 
