@@ -6,6 +6,7 @@
 
 # production
 /build
+/build-green
 
 # misc
 .DS_Store

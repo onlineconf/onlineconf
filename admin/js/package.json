@@ -18,6 +18,7 @@
 	"scripts": {
 		"start": "react-scripts-ts start",
 		"build": "react-scripts-ts build",
+		"build-green": "sh build-green.sh",
 		"test": "react-scripts-ts test --env=jsdom",
 		"eject": "react-scripts-ts eject"
 	},

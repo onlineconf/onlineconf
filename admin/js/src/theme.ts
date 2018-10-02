@@ -5,12 +5,9 @@ import indigo from '@material-ui/core/colors/indigo';
 import orange from '@material-ui/core/colors/orange';
 import green from '@material-ui/core/colors/green';
 
-type OnlineConfInstance = 'production' | 'development';
-
 declare module '@material-ui/core/styles/createMuiTheme' {
 	interface Theme {
 		onlineconf: {
-			instance: OnlineConfInstance
 			palette: {
 				noAccess: React.CSSProperties['color']
 				null: React.CSSProperties['color']
@@ -26,7 +23,6 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 	// allow configuration using `createMuiTheme`
 	interface ThemeOptions {
 		onlineconf?: {
-			instance?: OnlineConfInstance
 			palette?: {
 				noAccess?: React.CSSProperties['color']
 				null?: React.CSSProperties['color']
@@ -42,7 +38,7 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 }
 
 export default function createTheme(options: ThemeOptions = {}) {
-	const palette = options.onlineconf && options.onlineconf.instance === 'development'
+	const palette = process.env.REACT_APP_GREEN
 		? {
 			primary: green,
 			secondary: orange,

@@ -1,3 +1,4 @@
+%bcond_with green
 %define debug_package %{nil}
 %define __strip /bin/true
 
@@ -34,7 +35,7 @@ cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/
 go build -o %{name} ./
 
 cd ../js
-npm run build
+npm run build%{?with_green:-green}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
@@ -44,6 +45,9 @@ npm run build
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
 %{__cp} -r %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
 %{__cp} -r static $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic
+%if %{with green}
+sed -i '4s/#FFFFFF/#D6F3D6/; 32s/background: white; //' $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic/css/main.css
+%endif
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 #%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
