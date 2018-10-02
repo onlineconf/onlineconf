@@ -102,6 +102,9 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 		if err != nil {
 			return nil, err
 		}
+		if !l.RW.Valid {
+			l.Value = NullString{}
+		}
 		list = append(list, l)
 	}
 	return list, nil
