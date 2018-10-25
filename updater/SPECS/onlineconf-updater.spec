@@ -29,7 +29,7 @@ Requires:       perl-EV >= 4.02
 Requires:       perl-JSON
 Requires:       perl-Log-Dispatch
 Requires:       perl-Mouse
-Requires:       perl-YAML
+Requires:       perl-YAML >= 3:1.26
 Requires:       perl-CBOR-XS >= 1:1.7
 Requires:       perl-CDB_File >= 0.98
 Requires:       perl-libwww-perl
