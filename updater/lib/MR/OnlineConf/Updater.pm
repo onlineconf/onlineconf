@@ -89,7 +89,9 @@ has _admin => (
         return MR::OnlineConf::Updater::Admin->new(
             log => $_[0]->log, %{
                 $self->config->{admin}
-            }, version => $VERSION
+            },
+            version => $VERSION,
+            hostname => $self->config->{hostname},
         );
     }
 );

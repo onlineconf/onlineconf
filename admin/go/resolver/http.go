@@ -112,26 +112,30 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 		return nil, ErrParseIP
 	}
 
-	hosts, err := net.LookupAddr(ipstr)
-	if err != nil {
-		return nil, err
-	}
-	if len(hosts) == 0 {
-		return nil, nil
-	}
-	if len(hosts) > 1 {
-		arr := zerolog.Arr()
-		for _, host := range hosts {
-			arr.Str(host)
+	host := req.Header.Get("X-OnlineConf-Client-Host")
+	if host == "" {
+		hosts, err := net.LookupAddr(ipstr)
+		if err != nil {
+			return nil, err
 		}
-		log.Ctx(req.Context()).Warn().Str("ip", ipstr).Array("hosts", arr).Msg("more then one PTR record found")
+		if len(hosts) == 0 {
+			return nil, nil
+		}
+		if len(hosts) > 1 {
+			arr := zerolog.Arr()
+			for _, host := range hosts {
+				arr.Str(host)
+			}
+			log.Ctx(req.Context()).Warn().Str("ip", ipstr).Array("hosts", arr).Msg("more then one PTR record found")
+		}
+		host = hosts[0]
 	}
-	host := hosts[0]
 
 	ips, err := net.LookupHost(host)
 	if err != nil {
 		return nil, err
 	}
+
 	ok := false
 	for _, ip := range ips {
 		if ip == ipstr {

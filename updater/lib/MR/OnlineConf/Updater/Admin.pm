@@ -64,6 +64,11 @@ has password => (
     required => 1,
 );
 
+has hostname => (
+    is => 'ro',
+    isa => 'Maybe[Str]',
+);
+
 has lwp => (
     is => 'ro',
     isa => 'LWP::UserAgent',
@@ -72,6 +77,7 @@ has lwp => (
         my ($self) = @_;
         my $ua = LWP::UserAgent->new();
 
+        $ua->default_header("X-OnlineConf-Client-Host" => $self->hostname) if $self->hostname;
         $ua->default_header("X-OnlineConf-Client-Version" => $self->version);
         $ua->default_header("Authorization" => "Basic " . MIME::Base64::encode_base64(
             $self->username . ':' . $self->password

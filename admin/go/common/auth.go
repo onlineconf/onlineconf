@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/nyarla/go-crypt"
+	"gitlab.com/nyarla/go-crypt"
 	"github.com/rs/zerolog/log"
 	"regexp"
 	"strings"
