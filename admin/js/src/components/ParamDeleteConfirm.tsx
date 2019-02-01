@@ -39,7 +39,7 @@ export default class ParamDeleteConfirm extends React.Component<ParamDeleteConfi
 
 	render() {
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form', onSubmit: this.handleConfirm }}>
+			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
 				<ParamDialogTitle path={this.props.path}>Delete</ParamDialogTitle>
 				<DialogContent>
 					<DialogContentText>Are you really want to delete {this.props.path}?</DialogContentText>

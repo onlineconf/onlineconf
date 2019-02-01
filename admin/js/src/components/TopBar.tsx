@@ -48,7 +48,7 @@ class Search extends React.Component<SearchProps, SearchState> {
 				value={this.state.value}
 				onChange={this.handleChange}
 				onSubmit={this.handleSubmit}
-				component="form"
+				component={'form' as any}
 				className={this.props.className}
 				InputProps={{
 					endAdornment: (

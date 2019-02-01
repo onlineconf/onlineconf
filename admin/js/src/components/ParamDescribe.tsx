@@ -46,7 +46,7 @@ export default class ParamDescribe extends React.Component<ParamDescribeProps, P
 
 	render() {
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form', onSubmit: this.handleSubmit }}>
+			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleSubmit }}>
 				<ParamDialogTitle path={this.props.path}>Describe</ParamDialogTitle>
 				<DialogContent>
 					<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleChange}/>

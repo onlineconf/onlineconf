@@ -57,7 +57,7 @@ export default class ParamMove extends React.Component<ParamMoveProps, ParamMove
 
 	render() {
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form', onSubmit: this.handleConfirm }}>
+			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
 				<ParamDialogTitle path={this.props.path}>Move</ParamDialogTitle>
 				<DialogContent>
 					<PathField label="Move to" required value={this.state.path} onChange={this.handlePathChange} fullWidth autoFocus margin="dense"/>

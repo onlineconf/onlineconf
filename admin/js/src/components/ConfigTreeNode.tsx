@@ -58,6 +58,13 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 			onClose={() => props.onClose(param.path)}
 			onClick={() => { if (!param.selected) { props.onSelect(param); } }}
 			onDoubleClick={() => param.rw === true ? props.onEdit(param) : props.onView(param)}
+			onContextMenu={event => {
+				event.preventDefault();
+				if (!param.selected) {
+					props.onSelect(param);
+				}
+				props.onMenuOpen(param.path);
+			}}
 			item={<ConfigTreeParam
 				param={param}
 				userIsRoot={props.userIsRoot}

@@ -65,6 +65,7 @@ interface TreeNodeProps {
 	onClose: () => void;
 	onClick?: React.MouseEventHandler<{}>;
 	onDoubleClick?: React.MouseEventHandler<{}>;
+	onContextMenu?: React.MouseEventHandler<{}>;
 }
 
 class TreeNode extends React.Component<TreeNodeProps & WithStyles<typeof styles>> {
@@ -84,9 +85,9 @@ class TreeNode extends React.Component<TreeNodeProps & WithStyles<typeof styles>
 	}
 
 	render() {
-		const { item, children, state, onOpen, onClose, onClick, onDoubleClick, component, classes, className: classNameProp, selected, disabled, divider, ...rest } = this.props;
+		const { item, children, state, onOpen, onClose, onClick, onDoubleClick, onContextMenu, component, classes, className: classNameProp, selected, disabled, divider, ...rest } = this.props;
 
-		const Component = component || 'li';
+		const Component: any = component || 'li';
 		const className = classNames(classes.root, { [classes.selected]: selected, [classes.divider]: divider }, classNameProp);
 		const componentProps = { className, disabled, ...rest };
 
@@ -94,7 +95,7 @@ class TreeNode extends React.Component<TreeNodeProps & WithStyles<typeof styles>
 			<Component {...componentProps}>
 				<div className={classes.externalContainer} ref={this.ecRef}>
 					<TreeNodeArrow state={state} onOpen={onOpen} onClose={onClose} className={classes.arrow} />
-					<div className={classes.internalContainer} onClick={onClick} onDoubleClick={onDoubleClick}>
+					<div className={classes.internalContainer} onClick={onClick} onDoubleClick={onDoubleClick} onContextMenu={onContextMenu}>
 						{item}
 					</div>
 				</div>

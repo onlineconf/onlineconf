@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { InputProps } from '@material-ui/core/Input';
+import { InputBaseComponentProps } from '@material-ui/core/InputBase';
 import { TextField, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
 import { EditNonnullValueProps } from '../../common';
@@ -26,13 +26,13 @@ const styles = createStyles({
 export default withStyles(styles)(
 	class TextValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles>> {
 
-		codeMirrorEditor = (props: EditNonnullValueProps & InputProps) => {
+		codeMirrorEditor = (props: InputBaseComponentProps) => {
 			const { onFocus, onBlur } = props;
 			return (
 				<CodeMirror
 					value={props.value}
 					options={{ mode: this.props.type }}
-					onBeforeChange={(editor, data, value) => props.onChange({ target: { value } })}
+					onBeforeChange={(editor, data, value) => this.props.onChange({ target: { value } })}
 					onFocus={onFocus ? (editor, event) => onFocus(event as any) : undefined}
 					onBlur={onBlur ? (editor, event) => onBlur(event as any) : undefined}
 					className={this.props.classes.codemirror}
@@ -60,7 +60,6 @@ export default withStyles(styles)(
 					margin="dense"
 					helperText={this.helperText()}
 					value={this.props.value}
-					onChange={this.props.onChange}
 					InputProps={{ inputComponent: this.codeMirrorEditor }}
 				/>
 			);

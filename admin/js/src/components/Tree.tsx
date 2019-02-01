@@ -25,7 +25,7 @@ interface TreeProps extends StandardProps<React.HTMLAttributes<HTMLUListElement>
 function Tree(props: TreeProps & WithStyles<TreeClassKey>) {
 	const { children, classes, className: classNameProp, component, disablePadding, ...rest } = props;
 	const className = classNames(classes.root, { [classes.padding]: !disablePadding }, classNameProp);
-	const Component = component || 'ul';
+	const Component: any = component || 'ul';
 
 	return (
 		<Component className={className} {...rest}>

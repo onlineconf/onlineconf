@@ -186,7 +186,7 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 
 const ConfigTreeParamPreviewStyled = withStyles(previewStyles)(ConfigTreeParamPreview);
 
-interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose'> {
+interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorEl'> {
 	param: IParamNode;
 	userIsRoot: boolean;
 	menu?: string;
@@ -198,13 +198,16 @@ interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose'> {
 
 export default class ConfigTreeParam extends React.Component<ConfigTreeParamProps> {
 
+	anchorEl = React.createRef<HTMLDivElement>();
+
 	render() {
 		const { onEdit, onLog, onAddChild, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose, param } = this.props;
 
 		return (
-			<React.Fragment>
+			<div ref={this.anchorEl}>
 				{this.props.menu === param.path && (
 					<ParamMenu
+						anchorEl={this.anchorEl.current}
 						param={param}
 						userIsRoot={this.props.userIsRoot}
 						onClose={this.props.onMenuClose}
@@ -231,7 +234,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 					onValuePopoverOpen={onValuePopoverOpen}
 					onValuePopoverClose={onValuePopoverClose}
 				/>
-			</React.Fragment>
+			</div>
 		);
 	}
 

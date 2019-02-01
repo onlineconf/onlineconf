@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Theme, createStyles, IconButton, withStyles, WithStyles, Dialog, Slide } from '@material-ui/core';
+import { Theme, createStyles, withStyles, WithStyles, Menu, MenuItem, ListItemIcon, ListItemText } from '@material-ui/core';
 
-import CloseIcon from '@material-ui/icons/Close';
 import NotesIcon from '@material-ui/icons/Notes';
 import EditIcon from '@material-ui/icons/Edit';
 import HistoryIcon from '@material-ui/icons/History';
@@ -17,34 +16,15 @@ import { IParamNode } from './common';
 import IconButtonProgress from './IconButtonProgress';
 
 const styles = (theme: Theme) => createStyles({
-	root: {
-		position: 'absolute',
-		top: 'auto',
-		bottom: 'auto',
-		left: 'auto',
-		right: 0,
-		marginTop: -68,
-		marginBottom: -68,
-	},
-	paper: {
-		borderRadius: '32px',
-	},
-	paperScrollBody: {
-		marginLeft: 48,
-		marginRight: 0,
-	},
-	content: {
-		display: 'flex',
-		flexWrap: 'wrap-reverse',
-		placeContent: 'space-between',
-		padding: theme.spacing.unit / 2,
-		'& > *': {
-			margin: theme.spacing.unit / 2,
-		},
-	},
+	progress: {
+		margin: -6,
+		padding: 6,
+		display: 'inline-flex',
+	}
 });
 
 export interface ParamMenuProps {
+	anchorEl: HTMLElement | ((elem: HTMLElement) => HTMLElement) | null;
 	param: IParamNode;
 	userIsRoot: boolean;
 	onClose: () => void;
@@ -61,40 +41,69 @@ export interface ParamMenuProps {
 }
 
 const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
-	<Dialog
+	<Menu
 		open
 		onClose={props.onClose}
-		disablePortal
-		classes={{
-			root: props.classes.root,
-			paper: props.classes.paper,
-			paperScrollBody: props.classes.paperScrollBody
-		}}
-		TransitionComponent={Slide}
-		TransitionProps={{ direction: 'left' } as any}
-		maxWidth={false}
-		scroll="body"
+		anchorEl={props.anchorEl}
+		anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
 	>
-		<div className={props.classes.content}>
-			<IconButtonProgress loading={props.param.state === 'loading'}>
-				<IconButton onClick={props.onReload}><RefreshIcon/></IconButton>
-			</IconButtonProgress>
-			<IconButton onClick={props.onNotification} disabled={props.param.rw !== true}><NotificationsIcon/></IconButton>
-			<IconButtonProgress loading={props.param.accessLoading}>
-				<IconButton onClick={props.onAccess} disabled={props.param.rw !== true && !props.userIsRoot}><LockOpenIcon/></IconButton>
-			</IconButtonProgress>
-			<IconButtonProgress loading={props.param.logLoading}>
-				<IconButton onClick={props.onLog}><HistoryIcon/></IconButton>
-			</IconButtonProgress>
-			<IconButton onClick={props.onDescribe} disabled={props.param.rw !== true}><InsertCommentIcon/></IconButton>
-			<IconButton onClick={props.onView}><NotesIcon/></IconButton>
-			<IconButton onClick={props.onEdit} disabled={props.param.rw !== true}><EditIcon/></IconButton>
-			<IconButton onClick={props.onMove} disabled={props.param.rw !== true}><LowPriorityIcon/></IconButton>
-			<IconButton onClick={props.onDelete} disabled={props.param.rw !== true || props.param.num_children !== 0}><DeleteIcon/></IconButton>
-			<IconButton onClick={props.onAddChild} disabled={props.param.rw !== true || props.param.mime === 'application/x-symlink'}><PlaylistAddIcon/></IconButton>
-			<IconButton onClick={props.onClose}><CloseIcon/></IconButton>
-		</div>
-	</Dialog>
+		<MenuItem onClick={props.onReload} divider>
+			<ListItemIcon>
+				<IconButtonProgress loading={props.param.state === 'loading'} size={36} className={props.classes.progress}>
+					<RefreshIcon/>
+				</IconButtonProgress>
+			</ListItemIcon>
+			<ListItemText primary="Reload"/>
+		</MenuItem>
+
+		<MenuItem onClick={props.onView}>
+			<ListItemIcon><NotesIcon/></ListItemIcon>
+			<ListItemText primary="View"/>
+		</MenuItem>
+		<MenuItem onClick={props.onLog} divider>
+			<ListItemIcon>
+				<IconButtonProgress loading={props.param.logLoading} size={36} className={props.classes.progress}>
+					<HistoryIcon/>
+				</IconButtonProgress>
+			</ListItemIcon>
+			<ListItemText primary="History"/>
+		</MenuItem>
+
+		<MenuItem onClick={props.onEdit} disabled={props.param.rw !== true}>
+			<ListItemIcon><EditIcon/></ListItemIcon>
+			<ListItemText primary="Edit"/>
+		</MenuItem>
+		<MenuItem onClick={props.onDescribe} disabled={props.param.rw !== true}>
+			<ListItemIcon><InsertCommentIcon/></ListItemIcon>
+			<ListItemText primary="Describe"/>
+		</MenuItem>
+		<MenuItem onClick={props.onMove} disabled={props.param.rw !== true}>
+			<ListItemIcon><LowPriorityIcon/></ListItemIcon>
+			<ListItemText primary="Move"/>
+		</MenuItem>
+		<MenuItem onClick={props.onDelete} disabled={props.param.rw !== true || props.param.num_children !== 0} divider>
+			<ListItemIcon><DeleteIcon/></ListItemIcon>
+			<ListItemText primary="Delete"/>
+		</MenuItem>
+
+		<MenuItem onClick={props.onAccess} disabled={props.param.rw !== true && !props.userIsRoot}>
+			<ListItemIcon>
+				<IconButtonProgress loading={props.param.accessLoading} size={36} className={props.classes.progress}>
+					<LockOpenIcon/>
+				</IconButtonProgress>
+			</ListItemIcon>
+			<ListItemText primary="Access"/>
+		</MenuItem>
+		<MenuItem onClick={props.onNotification} disabled={props.param.rw !== true} divider>
+			<ListItemIcon><NotificationsIcon/></ListItemIcon>
+			<ListItemText primary="Notifications"/>
+		</MenuItem>
+
+		<MenuItem onClick={props.onAddChild} disabled={props.param.rw !== true || props.param.mime === 'application/x-symlink'}>
+			<ListItemIcon><PlaylistAddIcon/></ListItemIcon>
+			<ListItemText primary="Create"/>
+		</MenuItem>
+	</Menu>
 );
 
 export default withStyles(styles)(ParamMenu);

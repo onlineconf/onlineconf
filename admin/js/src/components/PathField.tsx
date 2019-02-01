@@ -169,7 +169,7 @@ class PathField extends React.Component<PathFieldProps & WithStyles<typeof style
 					autoFocus={this.props.autoFocus}
 					margin={this.props.margin}
 					fullWidth={this.props.fullWidth}
-					variant={this.props.variant}
+					variant={this.props.variant as any}
 					className={this.props.className}
 				/>
 				<Popper
