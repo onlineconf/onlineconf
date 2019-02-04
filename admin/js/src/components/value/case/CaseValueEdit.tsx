@@ -8,12 +8,10 @@ import { getDictionary } from '../../../cache';
 import { Case, EditNonnullValueProps } from '../../common';
 import { ParamType } from '../../../api';
 import TypeValueFields from '../../TypeValueFields';
+import ValueOutline from '../ValueOutline';
+import { TextFieldProps } from '@material-ui/core/TextField';
 
 const styles = (theme: Theme) => createStyles({
-	root: {
-		marginTop: theme.spacing.unit,
-		marginBottom: theme.spacing.unit / 2,
-	},
 	label: {
 		fontFamily: theme.typography.fontFamily,
 		fontSize: theme.typography.pxToRem(12),
@@ -21,8 +19,11 @@ const styles = (theme: Theme) => createStyles({
 		lineHeight: 1 / 0.75,
 	},
 	case: {
-		margin: `${theme.spacing.unit / 2}px 0`,
-		boxShadow: theme.shadows[1],
+		borderBottomWidth: 1,
+		borderBottomStyle: 'solid',
+		borderBottomColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
+		paddingBottom: theme.spacing.unit / 2,
+		marginBottom: theme.spacing.unit / 2,
 	},
 	caseKey: {
 		display: 'flex',
@@ -45,6 +46,7 @@ const styles = (theme: Theme) => createStyles({
 	},
 	add: {
 		textAlign: 'center',
+		marginBottom: theme.spacing.unit / 2,
 	},
 });
 
@@ -169,8 +171,7 @@ export default withStyles(styles)(
 			const { classes } = this.props;
 			const cases: Case[] = JSON.parse(this.props.value);
 			return (
-				<div className={classes.root}>
-					<div className={classes.label}>Value</div>
+				<ValueOutline>
 					<div>
 						{cases.map((c, i) => {
 							let caseType = 'default';
@@ -182,8 +183,9 @@ export default withStyles(styles)(
 							}
 
 							let caseKey;
-							const commonProps = {
-								margin: 'dense' as 'dense',
+							const commonProps: TextFieldProps = {
+								variant: 'outlined',
+								margin: 'dense',
 								className: classes.caseField,
 								onChange: this.createCaseKeyHandler(i),
 							};
@@ -230,6 +232,7 @@ export default withStyles(styles)(
 											select
 											label="Case by"
 											value={caseType}
+											variant="outlined"
 											margin="dense"
 											className={classes.caseField}
 											onChange={this.createCaseTypeHandler(i)}
@@ -253,7 +256,7 @@ export default withStyles(styles)(
 							<AddIcon/>
 						</IconButton>
 					</div>
-				</div>
+				</ValueOutline>
 			);
 		}
 

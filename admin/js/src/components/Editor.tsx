@@ -15,8 +15,6 @@ import SummaryDescriptionFields from './SummaryDescriptionFields';
 
 const styles = (theme: Theme) => createStyles({
 	prefix: {
-		paddingTop: 3,
-		paddingBottom: 7,
 		marginRight: 0,
 		color: theme.palette.text.secondary,
 	},
@@ -126,11 +124,12 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 					</DialogTitle>
 				)}
 				<DialogContent>
-					{this.props.create && (
+					{this.props.create ? (
 						<React.Fragment>
 							<TextField
 								label="Path"
 								autoFocus
+								variant="outlined"
 								fullWidth
 								margin="dense"
 								value={this.state.name}
@@ -143,8 +142,9 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 							/>
 							<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleSummaryDescriptionChange}/>
 						</React.Fragment>
-					)}
-					{this.props.description !== '' && <Typography variant="body1" paragraph>{this.props.description}</Typography>}
+					) : this.props.description !== '' &&
+						<Typography variant="body1" paragraph>{this.props.description}</Typography>
+					}
 					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} onError={this.props.onError} />
 					{this.state.notification !== undefined && (
 						<NotificationControl
@@ -155,7 +155,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 							onChange={this.handleNotificationChange}
 						/>
 					)}
-					<TextField label="Comment" margin="dense" fullWidth value={this.state.comment} onChange={this.handleCommentChange} />
+					<TextField label="Comment" variant="outlined" margin="dense" fullWidth value={this.state.comment} onChange={this.handleCommentChange} />
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={this.handleClose}>Cancel</Button>

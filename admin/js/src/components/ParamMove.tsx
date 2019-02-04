@@ -60,12 +60,12 @@ export default class ParamMove extends React.Component<ParamMoveProps, ParamMove
 			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
 				<ParamDialogTitle path={this.props.path}>Move</ParamDialogTitle>
 				<DialogContent>
-					<PathField label="Move to" required value={this.state.path} onChange={this.handlePathChange} fullWidth autoFocus margin="dense"/>
+					<PathField label="Move to" required value={this.state.path} onChange={this.handlePathChange} variant="outlined" fullWidth autoFocus margin="dense"/>
 					<FormControlLabel label="Leave symlink" control={<Checkbox value="1" checked={this.state.symlink} onChange={this.handleSymlinkChange}/>}/>
-					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} fullWidth margin="dense"/>
+					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" fullWidth margin="dense"/>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={this.props.onClose}>Cancel</Button>
+					<Button color="primary" onClick={this.props.onClose}>Cancel</Button>
 					<Button color="primary" type="submit">OK</Button>
 				</DialogActions>
 			</Dialog>

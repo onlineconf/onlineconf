@@ -9,13 +9,13 @@ import { createStyles, Omit } from '@material-ui/core';
 
 import DefaultIcon from '@material-ui/icons/Settings';
 import RootIcon from '@material-ui/icons/Language';
-import TopLevelIcon from '@material-ui/icons/Business';
+import TopLevelIcon from '@material-ui/icons/Domain';
 import NullIcon from '@material-ui/icons/Block';
 import FolderIcon from '@material-ui/icons/FolderOpen';
 import TextIcon from '@material-ui/icons/Subject';
 import StructIcon from '@material-ui/icons/DeviceHub';
 import SymlinkIcon from '@material-ui/icons/Launch';
-import CaseIcon from '@material-ui/icons/LiveHelp';
+import CaseIcon from '@material-ui/icons/Help';
 import TemplateIcon from '@material-ui/icons/LocalAtm';
 import ListIcon from '@material-ui/icons/List';
 import LockOpen from '@material-ui/icons/LockOpen';
@@ -115,7 +115,7 @@ const previewStyles = (theme: Theme) => {
 		button: {
 			minWidth: buttonSize,
 			minHeight: buttonSize,
-			padding: `${spacingUnit}px ${spacingUnit * 2}px`,
+			padding: `0 ${spacingUnit}px`,
 		},
 		iconButton: {
 			padding: iconButtonPadding,
@@ -126,7 +126,7 @@ const previewStyles = (theme: Theme) => {
 interface ConfigTreeParamPreviewProps {
 	param: IParamNode;
 	userIsRoot: boolean;
-	onViewOpen: () => void;
+	onMenuOpen: () => void;
 	onEdit: () => void;
 	onNotification: () => void;
 	onAccess: () => void;
@@ -136,7 +136,7 @@ interface ConfigTreeParamPreviewProps {
 }
 
 const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<typeof previewStyles>) => {
-	const { param, classes, onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
+	const { param, classes, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
 	let Icon = iconByType[param.mime] || DefaultIcon;
 
 	if (param.mime === 'application/x-null') {
@@ -226,7 +226,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				<ConfigTreeParamPreviewStyled
 					param={param}
 					userIsRoot={this.props.userIsRoot}
-					onViewOpen={this.props.onMenuOpen}
+					onMenuOpen={this.props.onMenuOpen}
 					onEdit={onEdit}
 					onNotification={onNotification}
 					onAccess={onAccess}

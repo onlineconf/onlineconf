@@ -43,10 +43,10 @@ export default class ParamDeleteConfirm extends React.Component<ParamDeleteConfi
 				<ParamDialogTitle path={this.props.path}>Delete</ParamDialogTitle>
 				<DialogContent>
 					<DialogContentText>Are you really want to delete {this.props.path}?</DialogContentText>
-					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} fullWidth autoFocus/>
+					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" margin="dense" fullWidth autoFocus/>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={this.props.onClose}>Cancel</Button>
+					<Button color="primary" onClick={this.props.onClose}>Cancel</Button>
 					<Button color="primary" type="submit">OK</Button>
 				</DialogActions>
 			</Dialog>

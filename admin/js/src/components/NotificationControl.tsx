@@ -15,7 +15,6 @@ const styles = (theme: Theme) => createStyles({
 	compactCheckbox: {
 		width: 24,
 		height: 24,
-		marginBottom: 4,
 	},
 });
 
@@ -62,12 +61,14 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 					value={this.props.value}
 					disabled={!overridden}
 					onChange={this.handleChange}
+					variant="outlined"
 					margin="dense"
 					fullWidth
 					InputProps={{
 						startAdornment: (
 							<InputAdornment position="start">
 								<Checkbox
+									disabled={false}
 									checked={overridden}
 									indeterminate={this.state.indeterminate}
 									onChange={this.handleOverride}

@@ -8,7 +8,7 @@ import CodeMirror from '../../CodeMirror';
 const styles = createStyles({
 	codemirror: {
 		width: 'inherit',
-		padding: '3px 0 7px 0',
+		padding: '15px 14px',
 		'& > .CodeMirror': {
 			maxHeight: '300px',
 			'& .CodeMirror-scroll': {
@@ -57,6 +57,7 @@ export default withStyles(styles)(
 					id="value"
 					label="Value"
 					fullWidth
+					variant="outlined"
 					margin="dense"
 					helperText={this.helperText()}
 					value={this.props.value}

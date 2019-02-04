@@ -15,7 +15,7 @@ const SymlinkValueView = (props: NonNullValueProps & WithStyles<typeof viewStyle
 );
 
 const SymlinkValueEdit = (props: EditNonnullValueProps) => (
-	<PathField {...props} label="Value" symlink="resolve" fullWidth margin="dense"/>
+	<PathField {...props} label="Value" symlink="resolve" fullWidth variant="outlined" margin="dense"/>
 );
 
 const SymlinkValueViewStyled = withStyles(viewStyles)(SymlinkValueView);

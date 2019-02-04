@@ -81,7 +81,7 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 			<Dialog open onClose={handleClose}>
 				<DialogTitle>Create group</DialogTitle>
 				<DialogContent>
-					<TextField placeholder="Group" value={this.state.group} onChange={handleChange} autoFocus fullWidth/>
+					<TextField placeholder="Group" value={this.state.group} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={handleClose}>Cancel</Button>
@@ -134,7 +134,7 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 			<Dialog open onClose={handleClose}>
 				<DialogTitle>Add user to group "{this.state.group}"</DialogTitle>
 				<DialogContent>
-					<TextField placeholder="User" value={this.state.user} onChange={handleChange} autoFocus fullWidth/>
+					<TextField placeholder="User" value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={handleClose}>Cancel</Button>

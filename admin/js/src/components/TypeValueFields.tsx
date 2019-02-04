@@ -42,8 +42,9 @@ export default class TypeValueFields extends React.Component<TypeValueFieldsProp
 				<TextField
 					id="mime"
 					select
-					label="Data type"
+					label="Type"
 					value={this.props.type}
+					variant="outlined"
 					margin="dense"
 					fullWidth
 					onChange={this.handleTypeChange}
