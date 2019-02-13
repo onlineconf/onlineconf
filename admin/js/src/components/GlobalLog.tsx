@@ -1,16 +1,11 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
-import Table from '@material-ui/core/Table';
-import TableHead from '@material-ui/core/TableHead';
-import TableBody from '@material-ui/core/TableBody';
-import TableRow from '@material-ui/core/TableRow';
-import TableCell from '@material-ui/core/TableCell';
 import { TextField, withStyles, createStyles, WithStyles, Theme, Checkbox, FormControlLabel, Button } from '@material-ui/core';
 
 import * as API from '../api';
 import PathField from './PathField';
-import ValueView from './ValueView';
 import ButtonProgress from './ButtonProgress';
+import LogCard from './LogCard';
 
 const styles = (theme: Theme) => createStyles({
 	filter: {
@@ -43,11 +38,8 @@ const styles = (theme: Theme) => createStyles({
 	load: {
 		margin: theme.spacing.unit,
 	},
-	head: {
-		height: 40,
-	},
-	row: {
-		height: 32,
+	body: {
+		padding: 2 * theme.spacing.unit,
 	},
 });
 
@@ -173,30 +165,9 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 						</ButtonProgress>
 					</div>
 				</div>
-				<Table padding="dense">
-					<TableHead>
-						<TableRow className={this.props.classes.head}>
-							<TableCell>Time</TableCell>
-							<TableCell>Param</TableCell>
-							<TableCell>Value</TableCell>
-							<TableCell>Author</TableCell>
-							<TableCell>Comment</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{this.state.data.map(row => {
-							return (
-								<TableRow key={`${row.path} ${row.version}`} className={this.props.classes.row}>
-									<TableCell>{row.mtime}</TableCell>
-									<TableCell>{row.path}</TableCell>
-									<TableCell><ValueView type={row.mime} value={row.data} accessible={row.rw !== null}/></TableCell>
-									<TableCell>{row.author}</TableCell>
-									<TableCell>{row.comment}</TableCell>
-								</TableRow>
-							);
-						})}
-					</TableBody>
-				</Table>
+				<div className={this.props.classes.body}>
+					{this.state.data.map(row => <LogCard key={`${row.path} ${row.version}`} {...row} showPath/>)}
+				</div>
 			</div>
 		);
 	}

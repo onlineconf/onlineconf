@@ -3,18 +3,13 @@ import axios, { CancelTokenSource } from 'axios';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import Table from '@material-ui/core/Table';
-import TableHead from '@material-ui/core/TableHead';
-import TableBody from '@material-ui/core/TableBody';
-import TableRow from '@material-ui/core/TableRow';
-import TableCell from '@material-ui/core/TableCell';
 import Button from '@material-ui/core/Button';
 import { withMobileDialog } from '@material-ui/core';
 
 import * as API from '../api';
 import { ParamDialogProps } from './common';
 import ParamDialogTitle from './ParamDialogTitle';
-import ValueView from './ValueView';
+import LogCard from './LogCard';
 
 interface ParamLogState {
 	open: boolean;
@@ -83,30 +78,7 @@ export default withMobileDialog<ParamDialogProps>()(
 				>
 					<ParamDialogTitle path={path}>Log</ParamDialogTitle>
 					<DialogContent>
-						<Table>
-							<TableHead>
-								<TableRow>
-									<TableCell>#</TableCell>
-									<TableCell>Value</TableCell>
-									<TableCell>Time</TableCell>
-									<TableCell>Author</TableCell>
-									<TableCell>Comment</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{data.map(row => {
-									return (
-										<TableRow key={row.version}>
-											<TableCell numeric>{row.version}</TableCell>
-											<TableCell><ValueView type={row.mime} value={row.data} accessible={row.rw !== null}/></TableCell>
-											<TableCell>{row.mtime}</TableCell>
-											<TableCell>{row.author}</TableCell>
-											<TableCell>{row.comment}</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
+						{data.map(row => <LogCard key={row.version} {...row}/>)}
 					</DialogContent>
 					<DialogActions>
 						<Button color="primary" onClick={onClose}>Close</Button>

@@ -7,6 +7,9 @@ import { smartCompare } from './common';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
 
 const styles = (theme: Theme) => createStyles({
+	root: {
+		overflow: 'auto',
+	},
 	alert: {
 		color: theme.palette.error.dark,
 	},
@@ -130,7 +133,7 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 		const { classes } = this.props;
 		const { servers, orderBy, order } = this.state;
 		return (
-			<React.Fragment>
+			<div className={classes.root}>
 				<Table padding="dense">
 					<TableHead>
 						<TableRow className={classes.head}>
@@ -160,7 +163,7 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 					</TableBody>
 				</Table>
 				{this.renderConfirmDeleteServer()}
-			</React.Fragment>
+			</div>
 		);
 	}
 

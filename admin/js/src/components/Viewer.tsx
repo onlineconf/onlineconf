@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Theme, createStyles, withStyles, WithStyles, withMobileDialog } from '@material-ui/core';
 
-import { typeNames, IParamNode } from './common';
+import { IParamNode } from './common';
 import ValueView from './ValueView';
 
 const styles = (theme: Theme) => createStyles({
@@ -9,12 +9,11 @@ const styles = (theme: Theme) => createStyles({
 		overflowWrap: 'break-word',
 	},
 	value: {
-		borderTop: `1px solid ${theme.palette.divider}`,
-		borderBottom: `1px solid ${theme.palette.divider}`,
-		paddingTop: theme.spacing.unit,
-		paddingBottom: theme.spacing.unit,
+		overflow: 'auto',
 	},
 	versionBox: {
+		marginTop: theme.spacing.unit / 2,
+		borderTop: `1px solid ${theme.palette.divider}`,
 		display: 'flex',
 	},
 	version: {
@@ -39,10 +38,9 @@ const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof st
 		</DialogTitle>
 		<DialogContent>
 			{param.description !== '' && <Typography variant="body1" paragraph>{param.description}</Typography>}
-			{(param.mime !== 'application/x-null' || param.data !== null) && <Typography variant="caption">{typeNames[param.mime]}</Typography>}
 			<Typography variant="body1" component="div" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
 			<div className={classes.versionBox}>
-				<Typography variant="body1" className={classes.version}>Version: {param.version}</Typography>
+				<Typography variant="body1" className={classes.version}>v.{param.version}</Typography>
 				<Typography variant="body1" color="textSecondary">{param.mtime}</Typography>
 			</div>
 		</DialogContent>
