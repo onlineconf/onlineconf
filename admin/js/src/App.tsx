@@ -37,7 +37,9 @@ const styles = {
 			easing: theme.transitions.easing.easeOut,
 			duration: theme.transitions.duration.enteringScreen,
 		}),
-		marginLeft: leftMenuWidth,
+		[theme.breakpoints.up('sm')]: {
+			marginLeft: leftMenuWidth,
+		},
 	},
 };
 

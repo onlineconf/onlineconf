@@ -9,13 +9,15 @@ import symlink from './value/symlink';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
-		marginTop: theme.spacing.unit / 2,
-		marginBottom: theme.spacing.unit / 2,
+		marginTop: theme.spacing.unit,
+		marginBottom: theme.spacing.unit,
 		borderWidth: 1,
 		borderStyle: 'solid',
 		borderColor: theme.palette.divider,
 		borderRadius: theme.shape.borderRadius,
 		backgroundColor: theme.palette.background.paper,
+		boxShadow: theme.shadows[1],
+		overflow: 'hidden',
 	},
 	path: {
 		padding: '0 4px',
@@ -71,7 +73,7 @@ interface LogCardProps extends API.IParamLog {
 }
 
 const LogCard = (props: LogCardProps & WithStyles<typeof styles>) => (
-	<Typography variant="body1" component="div" className={props.classes.root}>
+	<Typography component="div" className={props.classes.root}>
 		{props.showPath && <div className={props.classes.path}><symlink.view type="application/x-symlink" value={props.path}/></div>}
 		<div className={props.classes.header}>
 			<Button variant="contained" size="small" disabled={props.rw !== true} className={props.classes.version}>v.{props.version}</Button>

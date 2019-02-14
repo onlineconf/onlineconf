@@ -23,10 +23,11 @@ interface ConfigTreeNodeProps {
 	param: IParamNode;
 	userIsRoot: boolean;
 	menu?: string;
+	menuAnchorX?: number;
 	onOpen: (path: string) => void;
 	onClose: (path: string) => void;
 	onSelect: (param: IParamNode) => void;
-	onMenuOpen: (path: string) => void;
+	onMenuOpen: (path: string, anchorX?: number) => void;
 	onMenuClose: (path: string) => void;
 	onView: (param: IParamNode) => void;
 	onEdit: (param: IParamNode) => void;
@@ -63,12 +64,13 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 				if (!param.selected) {
 					props.onSelect(param);
 				}
-				props.onMenuOpen(param.path);
+				props.onMenuOpen(param.path, event.clientX - event.currentTarget.offsetLeft);
 			}}
 			item={<ConfigTreeParam
 				param={param}
 				userIsRoot={props.userIsRoot}
 				menu={props.menu}
+				menuAnchorX={props.menuAnchorX}
 				onMenuOpen={() => props.onMenuOpen(param.path)}
 				onMenuClose={() => props.onMenuClose(param.path)}
 				onView={() => props.onView(param)}

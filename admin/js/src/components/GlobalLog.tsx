@@ -13,7 +13,7 @@ const styles = (theme: Theme) => createStyles({
 		flexWrap: 'wrap',
 		alignItems: 'center',
 		borderBottom: `1px solid ${theme.palette.divider}`,
-		padding: `${2 * theme.spacing.unit}px ${theme.spacing.unit}px`,
+		padding: `${theme.spacing.unit}px`,
 	},
 	field: {
 		flex: 'auto',
@@ -39,7 +39,7 @@ const styles = (theme: Theme) => createStyles({
 		margin: theme.spacing.unit,
 	},
 	body: {
-		padding: 2 * theme.spacing.unit,
+		padding: `${theme.spacing.unit}px ${2 * theme.spacing.unit}px`,
 	},
 });
 

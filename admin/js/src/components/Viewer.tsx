@@ -34,14 +34,14 @@ const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof st
 	<Dialog open onClose={props.onClose} fullScreen={props.fullScreen}>
 		<DialogTitle className={classes.title}>
 			{param.path}
-			{param.summary !== '' && <Typography variant="body1" color="textSecondary">{param.summary}</Typography>}
+			{param.summary !== '' && <Typography color="textSecondary">{param.summary}</Typography>}
 		</DialogTitle>
 		<DialogContent>
-			{param.description !== '' && <Typography variant="body1" paragraph>{param.description}</Typography>}
-			<Typography variant="body1" component="div" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
+			{param.description !== '' && <Typography paragraph>{param.description}</Typography>}
+			<Typography component="div" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
 			<div className={classes.versionBox}>
-				<Typography variant="body1" className={classes.version}>v.{param.version}</Typography>
-				<Typography variant="body1" color="textSecondary">{param.mtime}</Typography>
+				<Typography className={classes.version}>v.{param.version}</Typography>
+				<Typography color="textSecondary">{param.mtime}</Typography>
 			</div>
 		</DialogContent>
 		<DialogActions>

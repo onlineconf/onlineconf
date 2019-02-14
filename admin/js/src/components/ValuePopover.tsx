@@ -31,7 +31,7 @@ const ValuePopover = (props: ValuePopoverProps & WithStyles<typeof styles>) => (
 		classes={{ paper: props.classes.paper }}
 		disableRestoreFocus
 	>
-		<Typography variant="body1" component="div">
+		<Typography component="div">
 			<ValueView type={props.type} value={props.value} accessible/>
 		</Typography>
 	</Popover>

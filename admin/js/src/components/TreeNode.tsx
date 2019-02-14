@@ -65,7 +65,7 @@ interface TreeNodeProps {
 	onClose: () => void;
 	onClick?: React.MouseEventHandler<{}>;
 	onDoubleClick?: React.MouseEventHandler<{}>;
-	onContextMenu?: React.MouseEventHandler<{}>;
+	onContextMenu?: React.MouseEventHandler<HTMLElement>;
 }
 
 class TreeNode extends React.Component<TreeNodeProps & WithStyles<typeof styles>> {

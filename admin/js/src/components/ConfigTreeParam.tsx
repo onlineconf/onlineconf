@@ -152,7 +152,7 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 	const className = classNames(classes.root, { [classes.matched]: param.match });
 
 	return (
-		<Typography variant="body1" component="div" className={className}>
+		<Typography component="div" className={className}>
 			<Icon className={classes.icon} color="action"/>
 			<div className={classes.name}>
 				{param.name}
@@ -190,6 +190,7 @@ interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorE
 	param: IParamNode;
 	userIsRoot: boolean;
 	menu?: string;
+	menuAnchorX?: number;
 	onMenuOpen: () => void;
 	onMenuClose: () => void;
 	onValuePopoverOpen: React.MouseEventHandler<{}>;
@@ -208,6 +209,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				{this.props.menu === param.path && (
 					<ParamMenu
 						anchorEl={this.anchorEl.current}
+						anchorX={this.props.menuAnchorX}
 						param={param}
 						userIsRoot={this.props.userIsRoot}
 						onClose={this.props.onMenuClose}

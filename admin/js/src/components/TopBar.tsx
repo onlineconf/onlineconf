@@ -94,7 +94,7 @@ const TopBar = (props: TopBarProps & WithStyles<typeof styles>) => (
 			<IconButton color="inherit" className={props.classes.menuButton} onClick={props.onMenu}>
 				<MenuIcon/>
 			</IconButton>
-			<Typography variant="title" color="inherit" className={props.classes.title}>
+			<Typography variant="h6" color="inherit" className={props.classes.title}>
 				OnlineConf
 			</Typography>
 			<Search onSearch={props.onSearch} searching={props.searching} className={props.classes.search}/>

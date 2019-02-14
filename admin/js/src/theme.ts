@@ -67,6 +67,9 @@ export default function createTheme(options: ThemeOptions = {}) {
 					},
 				},
 				palette,
+				typography: {
+					useNextVariants: true,
+				},
 			},
 			options,
 		)

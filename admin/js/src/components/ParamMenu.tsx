@@ -25,6 +25,7 @@ const styles = (theme: Theme) => createStyles({
 
 export interface ParamMenuProps {
 	anchorEl: HTMLElement | ((elem: HTMLElement) => HTMLElement) | null;
+	anchorX?: number;
 	param: IParamNode;
 	userIsRoot: boolean;
 	onClose: () => void;
@@ -45,7 +46,7 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 		open
 		onClose={props.onClose}
 		anchorEl={props.anchorEl}
-		anchorOrigin={{ horizontal: 'right', vertical: 'top' }}
+		anchorOrigin={{ horizontal: props.anchorX || 'right', vertical: 'top' }}
 	>
 		<MenuItem onClick={props.onReload} divider>
 			<ListItemIcon>

@@ -11,7 +11,7 @@ const viewStyles = (theme: Theme) => createStyles({
 });
 
 const SymlinkValueView = (props: NonNullValueProps & WithStyles<typeof viewStyles>) => (
-	<a className={props.classes.root} href={'#' + props.value} onClick={event => event.stopPropagation()}>{props.value}</a>
+	<a className={props.classes.root} href={'/#' + props.value} onClick={event => event.stopPropagation()}>{props.value}</a>
 );
 
 const SymlinkValueEdit = (props: EditNonnullValueProps) => (

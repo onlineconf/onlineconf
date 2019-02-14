@@ -14,9 +14,19 @@ import TypeValueFields from './TypeValueFields';
 import SummaryDescriptionFields from './SummaryDescriptionFields';
 
 const styles = (theme: Theme) => createStyles({
-	prefix: {
+	pathPrefix: {
 		marginRight: 0,
 		color: theme.palette.text.secondary,
+		display: 'block',
+		height: 'auto',
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		whiteSpace: 'nowrap',
+		direction: 'rtl',
+	},
+	pathInput: {
+		width: 'auto',
+		flex: 'auto',
 	},
 });
 
@@ -120,7 +130,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 				{this.props.create ? <DialogTitle>Create</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
-						{this.props.summary !== '' && <Typography variant="body1" color="textSecondary">{this.props.summary}</Typography>}
+						{this.props.summary !== '' && <Typography color="textSecondary">{this.props.summary}</Typography>}
 					</DialogTitle>
 				)}
 				<DialogContent>
@@ -132,18 +142,20 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 								variant="outlined"
 								fullWidth
 								margin="dense"
+								required
 								value={this.state.name}
 								onChange={this.handleNameChange}
 								InputProps={{
-									startAdornment: <InputAdornment position="start" disableTypography className={this.props.classes.prefix}>
+									startAdornment: <InputAdornment position="start" disableTypography className={this.props.classes.pathPrefix}>
 										{this.props.path.endsWith('/') ? this.props.path : this.props.path + '/'}
 									</InputAdornment>
 								}}
+								inputProps={{ className: this.props.classes.pathInput }}
 							/>
 							<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleSummaryDescriptionChange}/>
 						</React.Fragment>
 					) : this.props.description !== '' &&
-						<Typography variant="body1" paragraph>{this.props.description}</Typography>
+						<Typography paragraph>{this.props.description}</Typography>
 					}
 					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} onError={this.props.onError} />
 					{this.state.notification !== undefined && (
@@ -155,7 +167,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 							onChange={this.handleNotificationChange}
 						/>
 					)}
-					<TextField label="Comment" variant="outlined" margin="dense" fullWidth value={this.state.comment} onChange={this.handleCommentChange} />
+					<TextField label="Comment" variant="outlined" margin="dense" fullWidth required value={this.state.comment} onChange={this.handleCommentChange} />
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={this.handleClose}>Cancel</Button>

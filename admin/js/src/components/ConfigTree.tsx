@@ -207,6 +207,7 @@ interface ConfigTreeState {
 	root?: IParamNode;
 	selected?: string;
 	menu?: string;
+	menuAnchorX?: number;
 	dialog: JSX.Element | null;
 	popover: JSX.Element | null;
 }
@@ -394,8 +395,8 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		this.props.history.push({ hash: '#' + param.path });
 	}
 
-	handleMenuOpen = (path: string) => {
-		this.setState({ menu: path });
+	handleMenuOpen = (path: string, anchorX?: number) => {
+		this.setState({ menu: path, menuAnchorX: anchorX });
 	}
 
 	handleMenuClose = (path: string) => {
@@ -636,6 +637,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 							param={this.state.root}
 							userIsRoot={this.props.userIsRoot}
 							menu={this.state.menu}
+							menuAnchorX={this.state.menuAnchorX}
 							onOpen={this.handleOpen}
 							onClose={this.handleClose}
 							onSelect={this.handleSelect}
