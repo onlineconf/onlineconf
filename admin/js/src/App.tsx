@@ -108,7 +108,7 @@ export default withStyles(styles)(
 								<Route exact path="/" render={props => <ConfigTree {...props} userIsRoot={this.state.userIsRoot} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
 								<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>
 								<Route exact path="/server/" render={props => <Servers {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
-								<Route exact path="/access/" render={props => <Access {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
+								<Route exact path="/access-group/" render={props => <Access {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
 							</main>
 						</div>
 					</BrowserRouter>

@@ -80,7 +80,7 @@ const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
 				<ListLink to="/" Icon={SettingsIcon}>Configuration</ListLink>
 				<ListLink to="/history/" Icon={HistoryIcon}>History</ListLink>
 				<ListLink to="/server/" Icon={StorageIcon}>Servers</ListLink>
-				<ListLink to="/access/" Icon={GroupIcon}>Access</ListLink>
+				<ListLink to="/access-group/" Icon={GroupIcon}>Access</ListLink>
 				<ListItem button component={ClassicLink}>
 					<img src="/classic/css/type/default.png" className={classicIcon}/>
 					<ListItemText className={classicText}>Classic</ListItemText>
