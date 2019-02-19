@@ -3,6 +3,7 @@ import axios, { CancelTokenSource } from 'axios';
 import { TextField, withStyles, createStyles, WithStyles, Theme, Checkbox, FormControlLabel, Button } from '@material-ui/core';
 
 import * as API from '../api';
+import UserField from './UserField';
 import PathField from './PathField';
 import ButtonProgress from './ButtonProgress';
 import LogCard from './LogCard';
@@ -117,7 +118,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 			<div>
 				<div className={this.props.classes.filter}>
 					<div className={this.props.classes.subgroup}>
-						<TextField
+						<UserField
 							label="Author"
 							value={this.state.author}
 							onChange={event => this.setState({ author: event.target.value })}

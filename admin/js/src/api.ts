@@ -239,3 +239,8 @@ export async function getWhoAmI() {
 	const response = await axios.get<WhoAmI>('/whoami', commonOptions);
 	return response.data;
 }
+
+export async function getUsers(term: string) {
+	const response = await axios.get<string[]>('/user', { ...commonOptions, params: { term } });
+	return response.data;
+}

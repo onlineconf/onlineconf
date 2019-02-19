@@ -4,6 +4,7 @@ import { Chip, List, ListItem, createStyles, WithStyles, withStyles, Theme, Icon
 import AddIcon from '@material-ui/icons/AddCircle';
 
 import * as api from '../api';
+import UserField from './UserField';
 
 const styles = (theme: Theme) => createStyles({
 	group: {
@@ -108,6 +109,9 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 	}
 
 	private renderAddUserDialog() {
+		if (this.state.user === undefined) {
+			return;
+		}
 		const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 			this.setState({ user: event.target.value });
 		};
@@ -134,7 +138,7 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 			<Dialog open onClose={handleClose}>
 				<DialogTitle>Add user to group "{this.state.group}"</DialogTitle>
 				<DialogContent>
-					<TextField placeholder="User" value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
+					<UserField placeholder="User" value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={handleClose}>Cancel</Button>
