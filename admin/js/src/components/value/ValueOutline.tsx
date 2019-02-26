@@ -9,6 +9,7 @@ const styles = (theme: Theme) => createStyles({
 		borderColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
 		margin: '3px 0 4px 0',
 		padding: 0,
+		minInlineSize: 'initial',
 	},
 	legend: {
 		cursor: 'default',

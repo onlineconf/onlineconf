@@ -31,7 +31,7 @@ export default withStyles(styles)(
 			return (
 				<CodeMirror
 					value={props.value}
-					options={{ mode: this.props.type }}
+					options={{ mode: this.props.type, scrollbarStyle: 'null' }}
 					onBeforeChange={(editor, data, value) => this.props.onChange({ target: { value } })}
 					onFocus={onFocus ? (editor, event) => onFocus(event as any) : undefined}
 					onBlur={onBlur ? (editor, event) => onBlur(event as any) : undefined}
