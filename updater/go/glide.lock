@@ -1,0 +1,18 @@
+hash: c3091bbb2d03598296b63bf8ab58499993820307edd6e3dd3ff388b280082294
+updated: 2019-03-27T14:36:56.171517452+03:00
+imports:
+- name: github.com/colinmarc/cdb
+  version: 60f317823f7076bef6824144d9a1d5467c182928
+- name: github.com/rs/zerolog
+  version: 651d361cfeb9d0f5b9f1d14b162c66c82509ef6d
+  subpackages:
+  - internal/cbor
+  - internal/json
+  - log
+- name: github.com/ugorji/go
+  version: 8fd0f8d918c8f0b52d0af210a812ba882cc31a1e
+  subpackages:
+  - codec
+- name: gopkg.in/yaml.v2
+  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
+testImports: []

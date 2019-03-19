@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use FindBin;
+use lib "$FindBin::Bin/../../client/lib";
+use MR::OnlineConf;
+use Test::More;
+
+my ($old, $new) = @ARGV;
+$old .= "/" unless $old =~ /\/$/;
+$new .= "/" unless $new =~ /\/$/;
+
+foreach my $ext (qw/conf cdb/) {
+    my $old_instance = MR::OnlineConf->_new_instance();
+    $old_instance->{$_} = { %{$old_instance->{$_}} } foreach qw/config load cache checks/;
+    $old_instance->{config}->{data_dir} = $old;
+    $old_instance->{config}->{enable_cdb_client} = $ext eq "cdb";
+
+    my $new_instance = MR::OnlineConf->_new_instance();
+    $new_instance->{$_} = { %{$new_instance->{$_}} } foreach qw/config load cache checks/;
+    $new_instance->{config}->{data_dir} = $new;
+    $new_instance->{config}->{enable_cdb_client} = $ext eq "cdb";
+
+    my @mods = map { /([^\/]+)\.(?:conf|cdb)$/ && $1 } <"$old*.$ext">;
+    foreach my $mod (@mods) {
+        my $old_module = $old_instance->getModule($mod);
+        my $new_module = $new_instance->getModule($mod);
+        is_deeply($new_module, $old_module, "$mod.$ext");
+    }
+}
+
+done_testing();

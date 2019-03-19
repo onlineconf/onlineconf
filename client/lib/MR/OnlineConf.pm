@@ -282,8 +282,6 @@ sub _updater_restore {
         }elsif(/\s*(\S+)\s+(.+)$/){
             $self->_say(4,"found var $1 => $2\n");
             my ($k,$v) = ($1,$2);
-            $v=~s/\\n/\n/g;
-            $v=~s/\\r/\r/g;
             if ($k=~/^(.+?)\:JSON$/){
                 $self->_say(4,"var $k is JSON");
                 $k = $1;
@@ -292,6 +290,8 @@ sub _updater_restore {
                     and return undef if $@;
                 $v = $p;
             } else {
+                $v=~s/\\n/\n/g;
+                $v=~s/\\r/\r/g;
                 utf8::decode($v);
             }
             $data->{Data}{$k} = $v;
