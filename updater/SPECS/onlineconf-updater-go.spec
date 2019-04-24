@@ -1,10 +1,8 @@
-# Conditionally enable/disable some things in epel7
-%if 0%{?rhel} == 6
-%bcond_with systemd
-%endif
-
-%if 0%{?rhel} == 7
+# Conditionally enable/disable some things in epel7 and up
+%if 0%{?rhel} >= 7
 %bcond_without systemd
+%else
+%bcond_with systemd
 %endif
 
 # required for glide
@@ -18,11 +16,12 @@
 Name:           onlineconf-updater
 Version:        %{__version}
 Release:        %{__release}%{?dist}
-Summary:        GoLang flavour of onlineconf-updater 
+Summary:        GoLang flavour of onlineconf-updater
 License:        BSD
 Group:          MAILRU
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildRequires:  ca-certificates
+# we have incomplete git 2.14.1 in c7 repo, so we have to pin previous version here
 %if 0%{?rhel} == 7
 BuildRequires:  git = 2.12.2
 %else
@@ -48,11 +47,13 @@ GoLang flavour of onlineconf-updater. Built from revision %{__revision}.
 %prep
 %setup -n onlineconf/updater
 %{__mkdir_p} %{gosrcdir}
-mv go %{gosrcdir}
+%{__mv} go %{gosrcdir}
 
 %build
 export GOPATH="%{gopath}"
 cd %{gosrcdir}/go
+# Set proper version of app
+%{__sed} -i 's|const version = "VERSION"|const version = "%{version}"|' main.go
 glide install
 go build
 
@@ -126,7 +127,11 @@ fi
 %endif
 
 %changelog
+* Wed Apr 24 2019 Sergei Fedosov <s.fedosov@corp.mail.ru>
+- Revamp spec to build onlineconf-updater-go
+
 * Tue Jun 13 2017 Evgenii Molchanov <e.molchanov@corp.mail.ru>
 - Add C7 systemd unit
+
 * Mon Mar 19 2012 Aleksey Mashanov <a.mashanov@corp.mail.ru>
 - initial version
