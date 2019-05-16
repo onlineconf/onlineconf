@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"gitlab.com/nyarla/go-crypt"
-	"github.com/rs/zerolog/log"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"gitlab.com/nyarla/go-crypt"
 )
 
 var authDB = openAuthDatabase()
@@ -24,7 +25,7 @@ func openAuthDatabase() *sql.DB {
 	return db
 }
 
-func checkUserPassword(ctx context.Context, user, password string) (bool, error) {
+func CheckUserPassword(ctx context.Context, user, password string) (bool, error) {
 	query := fmt.Sprintf("SELECT `%s` FROM `%s` WHERE `%s` = ?", AdminConfig.Auth.PasswordField, AdminConfig.Auth.Table, AdminConfig.Auth.NameField)
 	if AdminConfig.Auth.Condition != "" {
 		query += " AND " + AdminConfig.Auth.Condition

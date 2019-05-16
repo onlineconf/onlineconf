@@ -2,12 +2,14 @@ package resolver
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
-	"github.com/gobwas/glob"
-	"github.com/rs/zerolog/log"
 	"net"
 	"sort"
 	"strings"
+
+	"github.com/gobwas/glob"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -24,6 +26,8 @@ type group struct {
 	name  string
 	globs []glob.Glob
 }
+
+type services map[string][]byte
 
 type commonGraph struct {
 	graph
@@ -123,6 +127,29 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 		}
 	}
 	return result, nil
+}
+
+func (graph *commonGraph) readServices(ctx context.Context) (services, error) {
+	uroot := graph.get(ctx, "/onlineconf/service")
+	if uroot == nil {
+		return nil, nil
+	}
+	graph.resolveChildren(ctx, &uroot)
+
+	res := services{}
+	for name, childPtr := range uroot.Children {
+		child := *childPtr
+		if child == nil {
+			continue
+		}
+		pwdHash, err := hex.DecodeString(child.Value.String)
+		if err != nil {
+			log.Ctx(ctx).Warn().Err(err).Str("service", name).Msg("invalid password string")
+			continue
+		}
+		res[name] = pwdHash
+	}
+	return res, nil
 }
 
 type commonCaseResolver struct{}

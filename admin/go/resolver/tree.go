@@ -3,9 +3,10 @@ package resolver
 import (
 	"context"
 	"database/sql"
+	"sync"
+
 	"github.com/rs/zerolog/log"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
-	"sync"
 )
 
 type Param struct {
@@ -64,6 +65,7 @@ type tree struct {
 	rw          sync.RWMutex
 	datacenters []datacenter
 	groups      []group
+	services    services
 }
 
 func getTreeMTime(ctx context.Context) (string, error) {
@@ -138,6 +140,9 @@ func (t *tree) update(ctx context.Context) error {
 		return err
 	}
 	if t.groups, err = cg.readGroups(ctx); err != nil {
+		return err
+	}
+	if t.services, err = cg.readServices(ctx); err != nil {
 		return err
 	}
 

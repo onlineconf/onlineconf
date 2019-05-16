@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"gopkg.in/yaml.v2"
-	"strings"
 )
 
 var (
@@ -590,6 +591,9 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 				i++
 			}
 			if c["datacenter"].Valid {
+				i++
+			}
+			if c["service"].Valid {
 				i++
 			}
 			if i == 0 {

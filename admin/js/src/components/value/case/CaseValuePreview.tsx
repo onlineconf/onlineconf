@@ -26,7 +26,7 @@ const CaseValuePreview = (props: NonNullValueProps & WithStyles<typeof styles>) 
 				let key = 'default';
 				let isDefault = true;
 
-				for (const k of ['datacenter', 'group', 'server']) {
+				for (const k of ['datacenter', 'group', 'server', 'service']) {
 					if (k in c) {
 						key = c[k];
 						isDefault = false;

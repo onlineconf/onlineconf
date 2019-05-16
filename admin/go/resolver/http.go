@@ -1,15 +1,18 @@
 package resolver
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
-	"github.com/gorilla/mux"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"net"
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
 var (
@@ -23,6 +26,24 @@ type Server struct {
 }
 
 var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
+
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		treeI.rw.RLock()
+		defer treeI.rw.RUnlock()
+
+		if username, password, ok := req.BasicAuth(); ok {
+			h := sha256.New()
+			h.Write([]byte(password))
+			if pwdHash, ok := treeI.services[username]; ok && bytes.Equal(pwdHash, h.Sum(nil)) {
+				req = AddUsernameToRequest(req, username)
+				next.ServeHTTP(w, req)
+				return
+			}
+		}
+		SetStatusUnauthorized(w)
+	})
+}
 
 func RegisterRoutes(r *mux.Router) {
 	r.Path("/config").Methods("GET").HandlerFunc(serveConfig)

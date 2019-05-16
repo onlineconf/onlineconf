@@ -1,6 +1,6 @@
 import * as API from './api';
 
-type CacheKey = 'group' | 'datacenter';
+type CacheKey = 'group' | 'datacenter' | 'service';
 
 const cache = {};
 

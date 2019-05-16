@@ -2,11 +2,12 @@ package resolver
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/rs/zerolog/log"
+	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
@@ -17,6 +18,7 @@ type Case struct {
 	Server      string     `json:"server"`
 	Group       string     `json:"group"`
 	Datacenter  string     `json:"datacenter"`
+	Service     string     `json:"service"`
 }
 
 type caseResolver interface {

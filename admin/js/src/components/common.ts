@@ -28,6 +28,7 @@ export interface Case {
 	server?: string;
 	group?: string;
 	datacenter?: string;
+	service?: string;
 }
 
 export interface IParamNode extends Omit<IParam, 'children'> {

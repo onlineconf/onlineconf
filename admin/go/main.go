@@ -1,6 +1,10 @@
 package main
 
 import (
+	"net/http"
+	"net/http/pprof"
+	"time"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/hlog"
@@ -8,23 +12,28 @@ import (
 	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/admin"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/resolver"
-	"net/http"
-	"net/http/pprof"
-	"time"
 )
 
 func main() {
 	r := mux.NewRouter()
+
 	registerPProf(r.PathPrefix("/debug/pprof/").Subrouter())
-	resolver.RegisterRoutes(r.PathPrefix("/client/").Subrouter())
-	admin.RegisterRoutes(r.PathPrefix("/").Subrouter())
-	handler := Authenticate(r)
-	handler = hlog.AccessHandler(writeAccessLog)(handler)
+
+	resolverRouter := r.PathPrefix("/client/").Subrouter()
+	resolverRouter.Use(resolver.AuthMiddleware)
+	resolver.RegisterRoutes(resolverRouter)
+
+	adminRouter := r.PathPrefix("/").Subrouter()
+	adminRouter.Use(admin.AuthMiddleware)
+	admin.RegisterRoutes(adminRouter)
+
+	handler := hlog.AccessHandler(writeAccessLog)(r)
 	if AdminConfig.HTTP.BehindReverseProxy {
 		handler = handlers.ProxyHeaders(handler)
 	}
 	handler = hlog.RequestIDHandler("reqid", "")(handler)
 	handler = hlog.NewHandler(log.Logger)(handler)
+
 	server := http.Server{
 		Addr:    AdminConfig.HTTP.Listen,
 		Handler: handler,

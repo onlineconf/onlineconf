@@ -54,9 +54,11 @@ interface CaseValueEditState {
 	loading: {
 		groups?: boolean;
 		datacenters?: boolean;
+		services?: boolean;
 	};
 	groups?: { [K: string]: string };
 	datacenters?: { [K: string]: string };
+	services?: { [K: string]: string };
 }
 
 export default withStyles(styles)(
@@ -92,7 +94,7 @@ export default withStyles(styles)(
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
 				this.handleChange(cases => {
 					const newType = event.target.value;
-					for (const t of ['server', 'group', 'datacenter']) {
+					for (const t of ['server', 'group', 'datacenter', 'service']) {
 						if (t in cases[id] && t !== newType) {
 							delete(cases[id][t]);
 						}
@@ -107,7 +109,7 @@ export default withStyles(styles)(
 		createCaseKeyHandler(id: number) {
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
 				this.handleChange(cases => {
-					for (const t of ['server', 'group', 'datacenter']) {
+					for (const t of ['server', 'group', 'datacenter', 'service']) {
 						if (t in cases[id]) {
 							cases[id][t] = event.target.value;
 						}
@@ -131,7 +133,7 @@ export default withStyles(styles)(
 
 		loadDictionaries() {
 			const cases: Case[] = JSON.parse(this.props.value);
-			for (const t of (['group', 'datacenter'] as Array<'group' | 'datacenter'>)) {
+			for (const t of (['group', 'datacenter', 'service'] as Array<'group' | 'datacenter' | 'service'>)) {
 				let has = false;
 				for (const c of cases) {
 					if (t in c) {
@@ -175,7 +177,7 @@ export default withStyles(styles)(
 					<div>
 						{cases.map((c, i) => {
 							let caseType = 'default';
-							for (const t of ['server', 'group', 'datacenter']) {
+							for (const t of ['server', 'group', 'datacenter', 'service']) {
 								if (t in c) {
 									caseType = t;
 									break;
@@ -220,6 +222,19 @@ export default withStyles(styles)(
 									}
 									break;
 								}
+								case 'service': {
+									const { services, loading } = this.state;
+									if (services) {
+										caseKey = (
+											<TextField select label="Service" value={c.service} {...commonProps}>
+												{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
+											</TextField>
+										);
+									} else if (loading.services) {
+										caseKey = <CircularProgress/>;
+									}
+									break;
+								}
 							}
 
 							return (
@@ -241,6 +256,7 @@ export default withStyles(styles)(
 											<MenuItem value="server">Server</MenuItem>
 											<MenuItem value="group">Group</MenuItem>
 											<MenuItem value="datacenter">Datacenter</MenuItem>
+											<MenuItem value="service">Service</MenuItem>
 										</TextField>
 										{caseKey}
 									</div>

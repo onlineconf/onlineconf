@@ -3,12 +3,15 @@ package resolver
 import (
 	"context"
 	"encoding/json"
-	"github.com/gobwas/glob"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/gobwas/glob"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
 var serverSortRe = regexp.MustCompile(`(?:[\*\?]+|\{.*?\}|\[.*?\])`)
@@ -49,12 +52,13 @@ type serverCaseResolver struct {
 	server     Server
 	datacenter string
 	groups     []string
+	service    string
 	shortname  string
 	ip         string
 }
 
 func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverCaseResolver {
-	var datacenter string
+	var datacenter, service string
 dcloop:
 	for _, dc := range t.datacenters {
 		for _, ipnet := range dc.ipnets {
@@ -73,12 +77,17 @@ dcloop:
 			}
 		}
 	}
+	username := common.Username(ctx)
+	if _, ok := t.services[username]; ok {
+		service = username
+	}
+
 	if e := log.Ctx(ctx).Debug(); e.Enabled() {
 		arr := zerolog.Arr()
 		for _, group := range groups {
 			arr.Str(group)
 		}
-		e.Str("datacenter", datacenter).Array("groups", arr).Msg("")
+		e.Str("datacenter", datacenter).Str("service", service).Array("groups", arr).Msg("")
 	}
 	dot := strings.IndexRune(server.Host, '.')
 	if dot == -1 {
@@ -88,6 +97,7 @@ dcloop:
 		server:     server,
 		datacenter: datacenter,
 		groups:     groups,
+		service:    service,
 		shortname:  server.Host[:dot],
 		ip:         server.IP.String(),
 	}
@@ -104,6 +114,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	byServer := make([]Case, 0)
 	byGroup := make(map[string]Case, 0)
 	byDatacenter := make(map[string]Case, 0)
+	byService := make(map[string]Case, 0)
 	var defaultCase Case
 	hasDefaultCase := false
 	for _, cs := range data {
@@ -113,6 +124,8 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 			byGroup[cs.Group] = cs
 		} else if cs.Datacenter != "" {
 			byDatacenter[cs.Datacenter] = cs
+		} else if cs.Service != "" {
+			byService[cs.Service] = cs
 		} else if !hasDefaultCase {
 			defaultCase = cs
 			hasDefaultCase = true
@@ -152,6 +165,10 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	}
 
 	if cs, ok := byDatacenter[cr.datacenter]; ok {
+		return &cs
+	}
+
+	if cs, ok := byService[cr.service]; ok {
 		return &cs
 	}
 

@@ -342,7 +342,10 @@ $(function () {
                     $span,
                     $value;
 
-                if ('datacenter' in value) {
+                if ('service' in value) {
+                    $key.text(value.service);
+                    resolveList('service', $key);
+                } else if ('datacenter' in value) {
                     $key.text(value.datacenter);
                     resolveList('datacenter', $key);
                 } else if ('group' in value) {
@@ -400,7 +403,10 @@ $(function () {
                         .append(': '),
                     vspan = $('<span class="case-value case-value-block"/>');
 
-                if ('datacenter' in value) {
+                if ('service' in value) {
+                    $key.text(value.service);
+                    resolveList('service', $key);
+                } else if ('datacenter' in value) {
                     $key.text(value.datacenter);
                     resolveList('datacenter', $key);
                 } else if ('group' in value) {
@@ -466,7 +472,16 @@ $(function () {
                     $dc;
 
                 $kvSpan.empty();
-                if ($(this).val() === 'datacenter') {
+                if ($(this).val() === 'service') {
+                    $dc = $('<select name="service"/>').appendTo($kvSpan);
+                    getCached('/config/onlineconf/service?symlink=resolve', function (data) {
+                        $dc.empty();
+                        $.each(data.children, function (id, param) {
+                            $('<option/>').val(param.name).text(param.summary || param.name).appendTo($dc);
+                        });
+                        $dc.val(val);
+                    });
+                } else if ($(this).val() === 'datacenter') {
                     $dc = $('<select name="datacenter"/>').appendTo($kvSpan);
                     getCached('/config/onlineconf/datacenter?symlink=resolve', function (data) {
                         $dc.empty();
@@ -503,6 +518,7 @@ $(function () {
                         .append('<option value="server">Сервер</option>')
                         .append('<option value="group">Группа</option>')
                         .append('<option value="datacenter">Датацентр</option>')
+                        .append('<option value="service">Сервис</option>')
                         .change(changeKey)
                         .val(kt);
                 if (span.find('> div > div > div > span > select > option[value=default]:selected').length) {
@@ -550,6 +566,7 @@ $(function () {
                         var key = "server" in value ? 'server'
                             : "group" in value ? 'group'
                             : "datacenter" in value ? 'datacenter'
+                            : "service" in value ? 'service'
                             : "default";
                         ok = true;
                         addFunc(key, value[key], value.mime, value.value);
@@ -571,7 +588,9 @@ $(function () {
                     value: $(this).find('span.value.getter').data('getter')()
                 };
                 var key = $(this).find('select[name=key]').val();
-                if (key == 'datacenter') {
+                if (key == 'service') {
+                    data.service = $(this).find('select[name=service]').val();
+                } else if (key == 'datacenter') {
                     data.datacenter = $(this).find('select[name=datacenter]').val();
                 } else if (key == 'group') {
                     data.group = $(this).find('select[name=group]').val();
@@ -582,7 +601,7 @@ $(function () {
                 else cases.push(data);
             });
             if (change) {
-                var def = $.map(cases, function (v) { return !("server" in v || "group" in v || "datacenter" in v) ? v.value : null });
+                var def = $.map(cases, function (v) { return !("server" in v || "group" in v || "datacenter" in v || "service" in v) ? v.value : null });
                 if (def.length) return def[0];
                 var star = $.map(cases, function (v) { return v.server == "*" ? v.value : null });
                 return star[0];
