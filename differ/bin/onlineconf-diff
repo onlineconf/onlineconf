@@ -5,7 +5,30 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../../client/lib";
 use MR::OnlineConf;
+use Getopt::Long;
 use Test::More;
+
+GetOptions("num" => \my $num);
+
+if ($num) {
+    require Convert::Scalar;
+
+    my $equal_nonrefs = \&Test::More::_equal_nonrefs;
+    *Test::More::_equal_nonrefs = sub {
+        my ($e1, $e2) = @_;
+        return if defined $e1 && defined $e2
+            && (Convert::Scalar::niok($e1) xor Convert::Scalar::niok($e2));
+        goto &$equal_nonrefs;
+    };
+
+    my $deep_check = \&Test::More::_deep_check;
+    *Test::More::_deep_check = sub {
+        my ($e1, $e2) = @_;
+        return 0 if defined $e1 && defined $e2 && !ref $e1 && !ref $e2
+            && (Convert::Scalar::niok($e1) xor Convert::Scalar::niok($e2));
+        goto &$deep_check;
+    };
+}
 
 my ($old, $new) = @ARGV;
 $old .= "/" unless $old =~ /\/$/;
