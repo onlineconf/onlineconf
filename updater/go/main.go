@@ -17,6 +17,7 @@ import (
 const version = "VERSION"
 
 var configFile = flag.String("config", "/usr/local/etc/onlineconf.yaml", "config file")
+var once = flag.Bool("once", false, "fetch configuration once and exit")
 
 type AdminConfig struct {
 	Host     string
@@ -35,8 +36,16 @@ type ConfigFile struct {
 func main() {
 	flag.Parse()
 	config := readConfigFile(*configFile)
-	log.Info().Msg("onlineconf-updater started")
 
+	if *once {
+		var mtime string
+		if update(config, &mtime) != nil {
+			os.Exit(1)
+		}
+		return
+	}
+
+	log.Info().Msg("onlineconf-updater started")
 	done := make(chan struct{})
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
@@ -76,21 +85,22 @@ func readConfigFile(filename string) *ConfigFile {
 	return &config
 }
 
-func update(config *ConfigFile, mtime *string) {
+func update(config *ConfigFile, mtime *string) error {
 	respMtime, modules, err := getModules(config.Admin, config.Hostname, *mtime)
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")
 		}
-		return
+		return err
 	}
 	err = writeModules(config.DataDir, modules, respMtime)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write config files")
-		return
+		return err
 	}
 	*mtime = respMtime
 	log.Info().Str("mtime", *mtime).Msg("configuration updated")
+	return nil
 }
 
 func writeModules(dir string, modules map[string][]moduleParam, mtime string) error {
