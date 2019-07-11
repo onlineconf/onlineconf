@@ -50,22 +50,15 @@ sed -i '4s/#FFFFFF/#D6F3D6/; 32s/background: white; //' $RPM_BUILD_ROOT/usr/loca
 %endif
 %{__cp} -f etc/nginx.conf $RPM_BUILD_ROOT/etc/nginx/onlineconf.conf
 echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
-#%{__mv} %{buildroot}/%{_bindir} %{buildroot}/%{_localbindir}
-#%{__chmod} -R u+w %{buildroot}/*
-#%_fixperms %{buildroot}/*
 
 %files
 %defattr(-,root,root,-)
-#%{perl_vendorlib}/MR/OnlineConf/Admin
-#%{perl_vendorlib}/Plack/Handler/OnlineConf.pm
 %{_localbindir}/onlineconf-admin
-#%{_localbindir}/onlineconf-import
 %{_initrddir}/%{name}
 %config(noreplace) %{_localetcdir}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/nginx/*
 /usr/local/www/onlineconf/*
 %{_sysconfdir}/cron.d/%{name}
-#%{_mandir}/*/*
 
 %post
 chkconfig --add %{name}
@@ -76,20 +69,6 @@ if [ $1 -eq 0 ]; then
     service %{name} stop > /dev/null
     chkconfig --del %{name}
 fi
-
-#%package -n onlineconf-selftest
-#Summary:    onlineconf monitoring support script
-#Group:      MAILRU
-#Requires:   perl-Log-Dispatch
-#Requires:   onlineconf-admin >= %{__version}
-#Requires:   perl-YAML
-
-#%description -n onlineconf-selftest
-#onlineconf-selftest - onlineconf monitoring support script.
-
-#%files -n onlineconf-selftest
-#%defattr(-,root,root,-)
-#%{_localbindir}/onlineconf-selftest
 
 %changelog
 * Mon Mar 19 2012 Aleksey Mashanov <a.mashanov@corp.mail.ru>

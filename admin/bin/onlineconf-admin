@@ -1,2 +1,0 @@
-#!/bin/sh
-exec /usr/bin/plackup -s OnlineConf -E deployment --preload-app -M MR::OnlineConf::Admin::Web -e 'MR::OnlineConf::Admin::Web->start()' $*
