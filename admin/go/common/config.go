@@ -19,8 +19,14 @@ type DatabaseConfig struct {
 
 type ConfigFile struct {
 	HTTP struct {
-		Listen             string
-		BehindReverseProxy bool `yaml:"behind_reverse_proxy"`
+		Listen string
+		TLS    struct {
+			Cert             string
+			Key              string
+			RedirectFromHTTP string `yaml:"redirect_from_http"`
+		}
+		BehindReverseProxy bool   `yaml:"behind_reverse_proxy"`
+		StaticRoot         string `yaml:"static_root"`
 	}
 	Auth struct {
 		DatabaseConfig `yaml:",inline"`
