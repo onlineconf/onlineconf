@@ -2,13 +2,14 @@ package resolver
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 var treeI tree
 
-func init() {
+func Initialize() {
 	var ctx = context.Background()
 	ctx = log.Logger.WithContext(ctx)
 	if err := treeI.update(ctx); err != nil {

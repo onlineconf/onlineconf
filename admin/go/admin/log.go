@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"regexp"
 	"strings"
+
+	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
 type LogEntry struct {
@@ -41,7 +42,7 @@ type logNotifyEntry struct {
 	Deleted     bool       `json:"deleted"`
 }
 
-var notifyDB = OpenDatabase(AdminConfig.NotificationDatabase)
+var notifyDB *sql.DB
 
 var ErrNoSuchVersion = errors.New("no such version")
 

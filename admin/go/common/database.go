@@ -2,13 +2,14 @@ package common
 
 import (
 	"database/sql"
-	"github.com/go-sql-driver/mysql"
-	"github.com/rs/zerolog/log"
 	"net"
 	"time"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/rs/zerolog/log"
 )
 
-var DB = OpenDatabase(AdminConfig.Database)
+var DB *sql.DB
 
 // github.com/go-sql-driver/mysql v1.3 compatibility
 func mysqlNewConfig() *mysql.Config {
@@ -20,7 +21,7 @@ func mysqlNewConfig() *mysql.Config {
 	}
 }
 
-func mysqlInitConfig(config DatabaseConfig) *mysql.Config {
+func MysqlInitConfig(config DatabaseConfig) *mysql.Config {
 	mysqlConfig := mysqlNewConfig()
 	mysqlConfig.User = config.User
 	mysqlConfig.Passwd = config.Password
@@ -32,7 +33,7 @@ func mysqlInitConfig(config DatabaseConfig) *mysql.Config {
 }
 
 func OpenDatabase(config DatabaseConfig) *sql.DB {
-	mysqlConfig := mysqlInitConfig(config)
+	mysqlConfig := MysqlInitConfig(config)
 	mysqlConfig.Params["charset"] = "utf8mb4"
 	mysqlConfig.Params["collation"] = "utf8mb4_general_ci"
 	db, err := sql.Open("mysql", mysqlConfig.FormatDSN())

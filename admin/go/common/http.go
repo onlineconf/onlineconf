@@ -39,8 +39,3 @@ func AddUsernameToRequest(req *http.Request, username string) *http.Request {
 	req.URL.User = url.User(username)
 	return req
 }
-
-func SetStatusUnauthorized(w http.ResponseWriter) {
-	w.Header().Add("WWW-Authenticate", "Basic realm="+url.PathEscape(AdminConfig.Auth.Realm))
-	w.WriteHeader(401)
-}

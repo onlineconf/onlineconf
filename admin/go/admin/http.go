@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -33,7 +34,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		SetStatusUnauthorized(w)
+		w.Header().Add("WWW-Authenticate", "Basic realm="+url.PathEscape(adminConfig.Auth.Realm))
+		w.WriteHeader(401)
 	})
 }
 

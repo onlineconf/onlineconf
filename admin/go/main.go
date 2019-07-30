@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -12,12 +14,39 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
+
 	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/admin"
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/resolver"
 )
 
+var configFile = flag.String("config", "/usr/local/etc/onlineconf-admin.yaml", "config file")
+
+type ConfigFile struct {
+	HTTP struct {
+		Listen string
+		TLS    struct {
+			Cert             string
+			Key              string
+			RedirectFromHTTP string `yaml:"redirect_from_http"`
+		}
+		BehindReverseProxy bool   `yaml:"behind_reverse_proxy"`
+		StaticRoot         string `yaml:"static_root"`
+	}
+	CommonConfig      `yaml:",inline"`
+	admin.AdminConfig `yaml:",inline"`
+}
+
+var config *ConfigFile
+
 func main() {
+	flag.Parse()
+	config = readConfigFile(*configFile)
+	CommonInitialize(config.CommonConfig)
+	admin.Initialize(config.AdminConfig)
+	resolver.Initialize()
+
 	r := mux.NewRouter()
 
 	registerPProf(r.PathPrefix("/debug/pprof/").Subrouter())
@@ -33,19 +62,19 @@ func main() {
 	registerStaticFileServer(r.PathPrefix("/").Subrouter())
 
 	handler := hlog.AccessHandler(writeAccessLog)(r)
-	if AdminConfig.HTTP.BehindReverseProxy {
+	if config.HTTP.BehindReverseProxy {
 		handler = handlers.ProxyHeaders(handler)
 	}
 	handler = hlog.RequestIDHandler("reqid", "")(handler)
 	handler = hlog.NewHandler(log.Logger)(handler)
 
 	server := http.Server{
-		Addr:    AdminConfig.HTTP.Listen,
+		Addr:    config.HTTP.Listen,
 		Handler: handler,
 	}
-	if AdminConfig.HTTP.TLS.Cert != "" {
+	if config.HTTP.TLS.Cert != "" {
 		startHTTPRedirectionServer()
-		if err := server.ListenAndServeTLS(AdminConfig.HTTP.TLS.Cert, AdminConfig.HTTP.TLS.Key); err != nil {
+		if err := server.ListenAndServeTLS(config.HTTP.TLS.Cert, config.HTTP.TLS.Key); err != nil {
 			log.Fatal().Err(err).Msg("failed to start HTTPS server")
 		}
 	} else {
@@ -53,6 +82,18 @@ func main() {
 			log.Fatal().Err(err).Msg("failed to start HTTP server")
 		}
 	}
+}
+
+func readConfigFile(filename string) *ConfigFile {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatal().Err(err).Str("file", filename).Msg("failed to read config file")
+	}
+	var config ConfigFile
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		log.Fatal().Err(err).Str("file", filename).Msg("failed to parse config file")
+	}
+	return &config
 }
 
 func writeAccessLog(r *http.Request, status, size int, duration time.Duration) {
@@ -80,8 +121,8 @@ func registerPProf(r *mux.Router) {
 }
 
 func registerStaticFileServer(r *mux.Router) {
-	if AdminConfig.HTTP.StaticRoot != "" {
-		handler := &staticFileHandler{http.FileServer(staticFileSystem{http.Dir(AdminConfig.HTTP.StaticRoot)})}
+	if config.HTTP.StaticRoot != "" {
+		handler := &staticFileHandler{http.FileServer(staticFileSystem{http.Dir(config.HTTP.StaticRoot)})}
 		r.PathPrefix("/").Methods("GET").Handler(handler)
 	}
 }
@@ -129,12 +170,12 @@ func (fs staticFileSystem) Open(name string) (http.File, error) {
 }
 
 func startHTTPRedirectionServer() {
-	if AdminConfig.HTTP.TLS.RedirectFromHTTP == "" {
+	if config.HTTP.TLS.RedirectFromHTTP == "" {
 		return
 	}
 	go func() {
-		_, port, _ := net.SplitHostPort(AdminConfig.HTTP.Listen)
-		err := http.ListenAndServe(AdminConfig.HTTP.TLS.RedirectFromHTTP, &httpRedirectionHandler{port})
+		_, port, _ := net.SplitHostPort(config.HTTP.Listen)
+		err := http.ListenAndServe(config.HTTP.TLS.RedirectFromHTTP, &httpRedirectionHandler{port})
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to start HTTP->HTTPS redirection")
 		}

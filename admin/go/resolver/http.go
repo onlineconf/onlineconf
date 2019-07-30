@@ -38,7 +38,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 		}
-		SetStatusUnauthorized(w)
+		w.Header().Add("WWW-Authenticate", "Basic realm=onlineconf-updater")
+		w.WriteHeader(401)
 	})
 }
 

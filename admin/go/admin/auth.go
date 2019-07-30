@@ -1,4 +1,4 @@
-package common
+package admin
 
 import (
 	"context"
@@ -10,25 +10,27 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"gitlab.com/nyarla/go-crypt"
+
+	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
-var authDB = openAuthDatabase()
+var authDB *sql.DB
 
-func openAuthDatabase() *sql.DB {
-	mysqlConfig := mysqlInitConfig(AdminConfig.Auth.DatabaseConfig)
+func openAuthDatabase(config DatabaseConfig) *sql.DB {
+	mysqlConfig := MysqlInitConfig(config)
 	mysqlConfig.Params["allowOldPasswords"] = "1"
 	db, err := sql.Open("mysql", mysqlConfig.FormatDSN())
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open authentication database")
 	}
-	db.SetConnMaxLifetime(time.Duration(AdminConfig.Auth.DatabaseConfig.MaxLifetime) * time.Second)
+	db.SetConnMaxLifetime(time.Duration(config.MaxLifetime) * time.Second)
 	return db
 }
 
 func CheckUserPassword(ctx context.Context, user, password string) (bool, error) {
-	query := fmt.Sprintf("SELECT `%s` FROM `%s` WHERE `%s` = ?", AdminConfig.Auth.PasswordField, AdminConfig.Auth.Table, AdminConfig.Auth.NameField)
-	if AdminConfig.Auth.Condition != "" {
-		query += " AND " + AdminConfig.Auth.Condition
+	query := fmt.Sprintf("SELECT `%s` FROM `%s` WHERE `%s` = ?", adminConfig.Auth.PasswordField, adminConfig.Auth.Table, adminConfig.Auth.NameField)
+	if adminConfig.Auth.Condition != "" {
+		query += " AND " + adminConfig.Auth.Condition
 	}
 	row := authDB.QueryRowContext(ctx, query, user)
 	var pwd string
@@ -48,15 +50,15 @@ func SelectUsers(ctx context.Context, term string) ([]string, error) {
 	order := "1"
 	condition := make([]string, 0)
 	bind := make([]interface{}, 0)
-	if AdminConfig.Auth.Condition != "" {
-		condition = append(condition, AdminConfig.Auth.Condition)
+	if adminConfig.Auth.Condition != "" {
+		condition = append(condition, adminConfig.Auth.Condition)
 	}
 	if term != "" {
-		condition = append(condition, fmt.Sprintf("`%s` LIKE ?", AdminConfig.Auth.NameField))
+		condition = append(condition, fmt.Sprintf("`%s` LIKE ?", adminConfig.Auth.NameField))
 		bind = append(bind, "%"+termRe.ReplaceAllString(term, "\\$1")+"%", term)
-		order = fmt.Sprintf("INSTR(`%s`, ?), 1", AdminConfig.Auth.NameField)
+		order = fmt.Sprintf("INSTR(`%s`, ?), 1", adminConfig.Auth.NameField)
 	}
-	query := fmt.Sprintf("SELECT `%s` FROM `%s`", AdminConfig.Auth.NameField, AdminConfig.Auth.Table)
+	query := fmt.Sprintf("SELECT `%s` FROM `%s`", adminConfig.Auth.NameField, adminConfig.Auth.Table)
 	if len(condition) > 0 {
 		query += " WHERE " + strings.Join(condition, " AND ")
 	}
