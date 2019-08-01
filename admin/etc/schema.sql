@@ -3,13 +3,14 @@ CREATE TABLE `my_config_tree` (
     `Name` varchar(256) character set ascii collate ascii_bin NOT NULL,
     `ParentID` bigint(20) unsigned default NULL,
     `Path` varchar(512) character set ascii collate ascii_bin NOT NULL,
-    `Value` text collate utf8_bin,
-    `ContentType` varchar(256) NOT NULL default 'application/x-null',
-    `Summary` varchar(256) NOT NULL default '',
+    `Value` mediumtext character set utf8mb4 collate utf8mb4_bin,
+    `ContentType` varchar(255) character set ascii NOT NULL default 'application/x-null',
+    `Summary` varchar(255) NOT NULL default '',
     `Description` varchar(8192) NOT NULL default '',
     `Version` int(11) NOT NULL default '1',
     `MTime` timestamp NOT NULL default CURRENT_TIMESTAMP,
     `Deleted` tinyint(1) NOT NULL default '0',
+    `Notification` enum('none','no-value','with-value') character set ascii default NULL,
     PRIMARY KEY  (`ID`),
     UNIQUE KEY `ID` (`ID`),
     UNIQUE KEY `Path` (`Path`),
@@ -21,16 +22,32 @@ CREATE TABLE `my_config_tree_log` (
     `ID` bigint(20) unsigned NOT NULL auto_increment,
     `NodeID` bigint(20) unsigned NOT NULL,
     `Version` int(11) NOT NULL,
-    `Value` text collate utf8_bin,
-    `ContentType` varchar(256) NOT NULL default 'application/x-null',
+    `Value` mediumtext character set utf8mb4 collate utf8mb4_bin,
+    `ContentType` varchar(255) character set ascii NOT NULL default 'application/x-null',
     `Author` varchar(128) character set ascii NOT NULL,
     `MTime` timestamp NOT NULL default CURRENT_TIMESTAMP,
-    `Comment` varchar(256) default NULL,
+    `Comment` varchar(512) default NULL,
     `Deleted` tinyint(1) NOT NULL default '0',
     PRIMARY KEY  (`ID`),
     UNIQUE KEY `NodeID` (`NodeID`,`Version`),
     KEY `MTime` (`MTime`),
     CONSTRAINT `my_config_tree_log_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `my_config_group` (
+    `ID` int(11) NOT NULL auto_increment,
+    `Name` varchar(128) NOT NULL,
+    PRIMARY KEY  (`ID`),
+    UNIQUE KEY `Name` (`Name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `my_config_user_group` (
+    `User` varchar(128) character set ascii NOT NULL,
+    `GroupID` int(11) NOT NULL,
+    UNIQUE KEY `User_Group` (`User`,`GroupID`),
+    KEY `User` (`User`),
+    KEY `GroupID` (`GroupID`),
+    CONSTRAINT `my_config_user_group_ibfk_1` FOREIGN KEY (`GroupID`) REFERENCES `my_config_group` (`ID`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `my_config_tree_group` (
@@ -39,8 +56,16 @@ CREATE TABLE `my_config_tree_group` (
     `RW` tinyint(1) default '0',
     PRIMARY KEY  (`NodeID`,`GroupID`),
     KEY `GroupID` (`GroupID`),
-    CONSTRAINT `my_config_tree_group_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`),
-    CONSTRAINT `my_config_tree_group_ibfk_2` FOREIGN KEY (`GroupID`) REFERENCES `my_config_group` (`ID`)
+    CONSTRAINT `my_config_tree_group_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`) ON DELETE CASCADE,
+    CONSTRAINT `my_config_tree_group_ibfk_2` FOREIGN KEY (`GroupID`) REFERENCES `my_config_group` (`ID`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `my_config_activity` (
+    `Host` varchar(255) character set ascii NOT NULL,
+    `Time` datetime NOT NULL,
+    `Online` timestamp NOT NULL default CURRENT_TIMESTAMP,
+    `Package` varchar(32) default NULL,
+    PRIMARY KEY  (`Host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 delimiter $$
@@ -81,27 +106,53 @@ BEGIN
         END IF;
     END IF;
 END;$$
- 
+
 CREATE FUNCTION `my_config_tree_access` (`node_id` bigint(20) unsigned, `username` varchar(256)) RETURNS boolean
 READS SQL DATA
 BEGIN
     DECLARE `result` boolean;
-    DECLARE `overridden` boolean;
+    DECLARE `current_node_id` bigint(20) unsigned;
+    DECLARE `group_id` int(11);
+    DECLARE `rw` boolean;
+    DECLARE `done` boolean DEFAULT false;
+    DECLARE `group_cur` CURSOR FOR
+        SELECT ug.`GroupID`
+        FROM `my_config_user_group` ug
+        WHERE ug.`User` = `username`;
 
-    WHILE `node_id` IS NOT NULL DO
-        SELECT `RW`, true INTO `result`, `overridden`
-        FROM `my_config_tree_group` tg
-        JOIN `my_config_user_group` ug ON ug.`GroupID` = tg.`GroupID`
-        WHERE tg.`NodeID` = `node_id` AND ug.`User` = `username`
-        ORDER BY `RW` DESC
-        LIMIT 1;
-
-        IF `overridden` THEN
-            RETURN `result`;
+    OPEN `group_cur`;
+    group_loop: LOOP
+        BEGIN
+            DECLARE EXIT HANDLER FOR NOT FOUND BEGIN SET `done` = true; END;
+            FETCH `group_cur` INTO `group_id`;
+        END;
+        IF `done` THEN
+            LEAVE group_loop;
         END IF;
 
-        SELECT `ParentID` INTO `node_id` FROM `my_config_tree` WHERE `ID` = `node_id`;
-    END WHILE;
+        SET `current_node_id` = `node_id`;
+        node_loop: WHILE `current_node_id` IS NOT NULL DO
+            BEGIN
+                DECLARE `current_result` boolean;
+                DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;
+
+                SELECT tg.`RW` INTO `current_result`
+                FROM `my_config_tree_group` tg
+                WHERE tg.`NodeID` = `current_node_id`
+                AND tg.`GroupID` = `group_id`;
+
+                IF `current_result` IS NOT NULL AND (`result` IS NULL OR `current_result` > `result`) THEN
+                    SET `result` = `current_result`;
+                    IF `result` THEN
+                        LEAVE group_loop;
+                    END IF;
+                END IF;
+                LEAVE node_loop;
+            END;
+            SELECT `ParentID` INTO `current_node_id` FROM `my_config_tree` WHERE `ID` = `current_node_id`;
+        END WHILE;
+    END LOOP;
+    CLOSE `group_cur`;
 
     RETURN `result`;
 END;$$
@@ -110,18 +161,19 @@ CREATE FUNCTION `my_config_tree_group_access` (`node_id` bigint(20) unsigned, `g
 READS SQL DATA
 BEGIN
     DECLARE `result` boolean;
-    DECLARE `overridden` boolean;
 
     WHILE `node_id` IS NOT NULL DO
-        SELECT `RW`, true INTO `result`, `overridden`
-        FROM `my_config_tree_group` tg
-        WHERE tg.`NodeID` = `node_id` AND tg.`GroupID` = `group_id`
-        ORDER BY `RW` DESC
-        LIMIT 1;
+        BEGIN
+            DECLARE EXIT HANDLER FOR SQLSTATE '02000' BEGIN END;
 
-        IF `overridden` THEN
+            SELECT `RW` INTO `result`
+            FROM `my_config_tree_group` tg
+            WHERE tg.`NodeID` = `node_id` AND tg.`GroupID` = `group_id`
+            ORDER BY `RW` DESC
+            LIMIT 1;
+
             RETURN `result`;
-        END IF;
+        END;
 
         SELECT `ParentID` INTO `node_id` FROM `my_config_tree` WHERE `ID` = `node_id`;
     END WHILE;
@@ -129,11 +181,35 @@ BEGIN
     RETURN `result`;
 END;$$
 
+CREATE FUNCTION `my_config_tree_notification` (`node_id` bigint(20) unsigned) RETURNS enum('none','no-value','with-value')
+READS SQL DATA
+BEGIN
+    DECLARE `notification` enum('none', 'no-value', 'with-value');
+
+    WHILE `node_id` IS NOT NULL DO
+        SELECT t.`ParentID`, t.`Notification` INTO `node_id`, `notification`
+        FROM `my_config_tree` t
+        WHERE t.`ID` = `node_id`;
+
+        IF `notification` IS NOT NULL THEN
+            RETURN `notification`;
+        END IF;
+    END WHILE;
+
+    RETURN NULL;
+END;$$
+
 delimiter ;
 
-INSERT INTO `my_config_tree` (`Name`) VALUES ('');
+INSERT INTO `my_config_tree` (`Name`, `Notification`) VALUES ('', 'none');
 INSERT INTO `my_config_tree_log` (`NodeID`, `Version`, `Value`, `ContentType`, `Author`, `MTime`, `Comment`, `Deleted`)
 SELECT `ID`, `Version`, `Value`, `ContentType`, 'onlineconf', `MTime`, NULL, `Deleted` FROM `my_config_tree` WHERE `Name` = '';
 
-ALTER TABLE `my_config_activity` ADD COLUMN `Online` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE `my_config_activity` ADD COLUMN `Package` varchar(32);
+INSERT INTO `my_config_group` (`Name`) VALUES ('root');
+
+INSERT INTO `my_config_tree_group` (`NodeID`, `GroupID`, `RW`)
+VALUES (
+    (SELECT `ID` from `my_config_tree` WHERE `Path` = '/'),
+    (SELECT `ID` from `my_config_group` WHERE `Name` = 'root'),
+    true
+);
