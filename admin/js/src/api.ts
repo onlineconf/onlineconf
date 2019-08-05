@@ -149,7 +149,7 @@ export async function getGlobalLog(filter: GlobalLogFilter, options: AxiosReques
 
 export interface Server {
 	host: string;
-	mtime: string;
+	mtime: string | null;
 	mtime_alert: boolean;
 	online: string;
 	online_alert: boolean;

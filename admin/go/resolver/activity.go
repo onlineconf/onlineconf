@@ -2,10 +2,15 @@ package resolver
 
 import (
 	"context"
+
 	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 )
 
 func updateServerActivity(ctx context.Context, server *Server, mtime string, version string) error {
+	var nullMtime NullString
+	nullMtime.String = mtime
+	nullMtime.Valid = mtime != ""
+
 	_, err := DB.ExecContext(ctx, `
 		REPLACE INTO my_config_activity (Host, Time, Online, Package)
 		SELECT n.Host, n.Time, n.Online, n.Package
@@ -23,6 +28,6 @@ func updateServerActivity(ctx context.Context, server *Server, mtime string, ver
 			AND o.Package = n.Package
 			AND o.Online > SUBTIME(n.Online, '00:01:00')
 		)
-	`, server.Host, mtime, version)
+	`, server.Host, nullMtime, version)
 	return err
 }

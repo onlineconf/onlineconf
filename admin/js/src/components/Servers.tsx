@@ -77,7 +77,11 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 		let sort = (a: API.Server, b: API.Server) => smartCompare(a.host, b.host);
 		if (orderBy !== 'host') {
 			const sortByHost = sort;
-			sort = (a, b) => (a[orderBy] === b[orderBy] ? sortByHost(a, b) : a[orderBy] < b[orderBy] ? -1 : 1);
+			sort = (a, b) => {
+				const av = a[orderBy];
+				const bv = b[orderBy];
+				return av === bv ? sortByHost(a, b) : bv !== null && (av === null || av < bv) ? -1 : 1;
+			};
 		}
 		if (order === 'desc') {
 			const sortAsc = sort;

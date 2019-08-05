@@ -62,9 +62,9 @@ CREATE TABLE `my_config_tree_group` (
 
 CREATE TABLE `my_config_activity` (
     `Host` varchar(255) character set ascii NOT NULL,
-    `Time` datetime NOT NULL,
+    `Time` timestamp NULL default NULL,
     `Online` timestamp NOT NULL default CURRENT_TIMESTAMP,
-    `Package` varchar(32) default NULL,
+    `Package` varchar(32) NOT NULL,
     PRIMARY KEY  (`Host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

@@ -246,7 +246,7 @@ $(function() {
                 }
                 $('<tr/>')
                     .append($host)
-                    .append($('<td/>').text(host.mtime).addClass(host.mtime_alert ? 'monitoring-alert' : ''))
+                    .append($('<td/>').text(host.mtime !== null ? host.mtime : '').addClass(host.mtime_alert ? 'monitoring-alert' : ''))
                     .append($('<td/>').text(host.online).addClass(host.online_alert ? 'monitoring-alert' : ''))
                     .append($('<td/>').text(host.package))
                     .appendTo('#monitoring-list');
