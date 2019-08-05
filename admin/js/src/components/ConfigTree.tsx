@@ -464,14 +464,21 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 	handleAddChildDone = (param: API.IParam) => {
 		this.setState(({ root }) => {
 			const parent = getNode(root!, parentPath(param.path));
-			if (parent !== undefined && parent.children !== undefined) {
-				if (parent.children[param.name] === undefined) {
-					parent.num_children++;
-				}
-				parent.children[param.name] = paramNode(param);
-				return { root };
+			if (parent === undefined) {
+				return null;
 			}
-			return null;
+			if (parent.children === undefined) {
+				if (parent.num_children !== 0) {
+					return null;
+				}
+				parent.children = {};
+				parent.state = 'open';
+			}
+			if (parent.children[param.name] === undefined) {
+				parent.num_children++;
+			}
+			parent.children[param.name] = paramNode(param);
+			return { root };
 		});
 	}
 
