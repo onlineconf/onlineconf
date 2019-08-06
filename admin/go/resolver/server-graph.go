@@ -40,6 +40,9 @@ func (graph *serverGraph) suspended(ctx context.Context) bool {
 
 func (graph *serverGraph) modules(ctx context.Context) map[string]*Param {
 	node := graph.get(ctx, "/onlineconf/module")
+	if node == nil {
+		return nil
+	}
 	graph.resolveChildren(ctx, &node)
 	modules := make(map[string]*Param, len(node.Children))
 	for name, childPtr := range node.Children {

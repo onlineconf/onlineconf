@@ -40,7 +40,6 @@ func (g *graph) get(ctx context.Context, path string) *Param {
 		if childPtr := (*nodePtr).Children[name]; childPtr != nil && *childPtr != nil {
 			nodePtr = childPtr
 		} else {
-			log.Ctx(ctx).Warn().Str("param", path).Str("segment", name).Msg("segment not found")
 			return nil
 		}
 	}
