@@ -1,0 +1,17 @@
+version: '3'
+services:
+  onlineconf-updater:
+    build: .
+    image: onlineconf-updater
+    volumes:
+      - ./data:/usr/local/etc/onlineconf
+    environment:
+      ONLINECONF_ADMIN_HOST: onlineconf-admin
+      ONLINECONF_ADMIN_PORT: 80
+      ONLINECONF_UPDATER_USER: gopher
+      ONLINECONF_UPDATER_PASSWORD: gopher
+    restart: always
+networks:
+  default:
+    external:
+      name: admin_default

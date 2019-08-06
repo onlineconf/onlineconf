@@ -1,0 +1,32 @@
+version: '3'
+services:
+  onlineconf-admin:
+    build: .
+    image: onlineconf-admin
+    depends_on:
+      - onlineconf-database
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ONLINECONF_DATABASE_HOST: onlineconf-database
+      ONLINECONF_DATABASE_BASE: onlineconf
+      ONLINECONF_DATABASE_USER: onlineconf
+      ONLINECONF_DATABASE_PASSWORD: onlineconf
+    restart: always
+  onlineconf-database:
+    image: mysql:5.7
+    volumes:
+      - data:/var/lib/mysql
+      - ./etc/charset.cnf:/etc/mysql/conf.d/charset.cnf
+      - ./etc/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./etc/notification.sql:/docker-entrypoint-initdb.d/2-notification.sql
+      - ./etc/auth.sql:/docker-entrypoint-initdb.d/3-auth.sql
+      - ./etc/example.sql:/docker-entrypoint-initdb.d/4-example.sql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+      MYSQL_DATABASE: onlineconf
+      MYSQL_USER: onlineconf
+      MYSQL_PASSWORD: onlineconf
+volumes:
+  data: {}

@@ -201,9 +201,14 @@ END;$$
 
 delimiter ;
 
-INSERT INTO `my_config_tree` (`Name`, `Notification`) VALUES ('', 'none');
+INSERT INTO `my_config_tree` (`ID`, `Name`, `ParentID`, `Notification`) VALUES
+    (1, '', NULL, 'none'),
+    (2, 'onlineconf', 1, NULL),
+    (3, 'module', 2, NULL),
+    (4, 'service', 2, NULL);
+
 INSERT INTO `my_config_tree_log` (`NodeID`, `Version`, `Value`, `ContentType`, `Author`, `MTime`, `Comment`, `Deleted`)
-SELECT `ID`, `Version`, `Value`, `ContentType`, 'onlineconf', `MTime`, NULL, `Deleted` FROM `my_config_tree` WHERE `Name` = '';
+SELECT `ID`, `Version`, `Value`, `ContentType`, 'onlineconf', `MTime`, 'Init onlineconf', `Deleted` FROM `my_config_tree` ORDER BY `ID`;
 
 INSERT INTO `my_config_group` (`Name`) VALUES ('root');
 

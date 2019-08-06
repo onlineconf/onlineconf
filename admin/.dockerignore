@@ -1,0 +1,7 @@
+etc
+init.d
+SPECS
+go/onlineconf-admin
+go/vendor
+js/build
+js/node_modules
