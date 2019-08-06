@@ -1,10 +1,18 @@
 import * as React from 'react';
+import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
 import { NonNullValueProps } from '../common';
 import TextValueView from './text/TextValueView';
 import TextValueEdit from './text/TextValueEdit';
 
-const TemplateValuePreview = (props: NonNullValueProps) => {
+const previewStyles = (theme: Theme) => createStyles({
+	variable: {
+		textDecoration: 'none',
+		color: '#0055aa',
+	},
+});
+
+const TemplateValuePreview = (props: NonNullValueProps & WithStyles<typeof previewStyles>) => {
 	const tokens = props.value.split(/(\$\{.*?\})/g);
 	return (
 		<span>
@@ -13,8 +21,8 @@ const TemplateValuePreview = (props: NonNullValueProps) => {
 					return <span key={i}>{token}</span>;
 				} else {
 					const m = tokens[i].match(/^\$\{(\/.*)\}$/);
-					return m ? <a key={i} href={'#' + m[1]} className="template" onClick={event => event.stopPropagation()}>{m[0]}</a>
-						: <span key={i} className="template">{token}</span>;
+					return m ? <a key={i} href={'#' + m[1]} className={props.classes.variable} onClick={event => event.stopPropagation()}>{m[0]}</a>
+						: <span key={i} className={props.classes.variable}>{token}</span>;
 				}
 			})}
 		</span>
@@ -22,7 +30,7 @@ const TemplateValuePreview = (props: NonNullValueProps) => {
 };
 
 export default {
-	preview: TemplateValuePreview,
+	preview: withStyles(previewStyles)(TemplateValuePreview),
 	view: TextValueView,
 	edit: TextValueEdit,
 };
