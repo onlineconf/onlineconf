@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
 import Collapse from '@material-ui/core/Collapse';

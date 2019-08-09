@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogActions, Button, TextField, FormControlLabel, Checkbox } from '@material-ui/core';
 
 import { postParam } from '../api';
@@ -19,7 +20,7 @@ interface ParamMoveState {
 	comment: string;
 }
 
-export default class ParamMove extends React.Component<ParamMoveProps, ParamMoveState> {
+class ParamMove extends React.Component<ParamMoveProps & WithTranslation, ParamMoveState> {
 
 	state: ParamMoveState = {
 		path: '',
@@ -56,20 +57,23 @@ export default class ParamMove extends React.Component<ParamMoveProps, ParamMove
 	}
 
 	render() {
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
-				<ParamDialogTitle path={this.props.path}>Move</ParamDialogTitle>
+				<ParamDialogTitle path={this.props.path}>{t('param.menu.move')}</ParamDialogTitle>
 				<DialogContent>
-					<PathField label="Move to" required value={this.state.path} onChange={this.handlePathChange} variant="outlined" fullWidth autoFocus margin="dense"/>
-					<FormControlLabel label="Leave symlink" control={<Checkbox value="1" checked={this.state.symlink} onChange={this.handleSymlinkChange}/>}/>
-					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" fullWidth margin="dense"/>
+					<PathField label={t('param.move.to')} required value={this.state.path} onChange={this.handlePathChange} variant="outlined" fullWidth autoFocus margin="dense"/>
+					<FormControlLabel label={t('param.move.symlink')} control={<Checkbox value="1" checked={this.state.symlink} onChange={this.handleSymlinkChange}/>}/>
+					<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" fullWidth margin="dense"/>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>Cancel</Button>
-					<Button color="primary" type="submit">OK</Button>
+					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+					<Button color="primary" type="submit">{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
 	}
 
 }
+
+export default withTranslation()(ParamMove);

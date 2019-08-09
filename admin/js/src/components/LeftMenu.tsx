@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, LinkProps, Route } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Drawer from '@material-ui/core/Drawer';
 import { SvgIconProps } from '@material-ui/core/SvgIcon';
 import { List, ListItem, ListItemIcon, ListItemText, Theme, withStyles, WithStyles, createStyles, withWidth, Divider, Typography } from '@material-ui/core';
@@ -70,6 +71,7 @@ interface LeftMenuProps {
 const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
 	const { classes, ...rest } = props;
 	const { toolbar: toolbarClassName, classicIcon, classicText, ...restClasses } = classes;
+	const { t } = useTranslation();
 	return (
 		<Drawer {...rest} classes={restClasses} variant={isWidthUp('sm', props.width) ? 'persistent' : 'temporary'}>
 			<div className={toolbarClassName}>
@@ -77,10 +79,10 @@ const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
 			</div>
 			<Divider/>
 			<List component="nav">
-				<ListLink to="/" Icon={SettingsIcon}>Configuration</ListLink>
-				<ListLink to="/history/" Icon={HistoryIcon}>History</ListLink>
-				<ListLink to="/server/" Icon={StorageIcon}>Servers</ListLink>
-				<ListLink to="/access-group/" Icon={GroupIcon}>Access</ListLink>
+				<ListLink to="/" Icon={SettingsIcon}>{t('left.configuration')}</ListLink>
+				<ListLink to="/history/" Icon={HistoryIcon}>{t('left.history')}</ListLink>
+				<ListLink to="/server/" Icon={StorageIcon}>{t('left.servers')}</ListLink>
+				<ListLink to="/access-group/" Icon={GroupIcon}>{t('left.access')}</ListLink>
 				<ListItem button component={ClassicLink}>
 					<img src="/classic/css/type/default.png" className={classicIcon}/>
 					<ListItemText className={classicText}>Classic</ListItemText>

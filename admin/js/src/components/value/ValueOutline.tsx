@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { withStyles, createStyles, WithStyles, Theme } from '@material-ui/core';
 
 const styles = (theme: Theme) => createStyles({
@@ -23,11 +24,14 @@ const styles = (theme: Theme) => createStyles({
 	},
 });
 
-const ValueOutline = (props: { children?: React.ReactNode } & WithStyles<typeof styles>) => (
-	<fieldset className={props.classes.root}>
-		<legend className={props.classes.legend}>Value</legend>
-		{props.children}
-	</fieldset>
-);
+function ValueOutline(props: { children?: React.ReactNode } & WithStyles<typeof styles>) {
+	const { t } = useTranslation();
+	return (
+		<fieldset className={props.classes.root}>
+			<legend className={props.classes.legend}>{t('param.value')}</legend>
+			{props.children}
+		</fieldset>
+	);
+}
 
 export default withStyles(styles)(ValueOutline);

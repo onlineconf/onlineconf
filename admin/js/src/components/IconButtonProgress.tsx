@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import { CircularProgress, createStyles, withStyles, WithStyles } from '@material-ui/core';
 
 const styles = createStyles({

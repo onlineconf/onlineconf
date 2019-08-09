@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Table, TableHead, TableBody, TableRow, TableCell, TableSortLabel, withStyles, WithStyles, IconButton, createStyles, DialogTitle, DialogContent, Dialog, DialogContentText, DialogActions, Button, Theme } from '@material-ui/core';
 
 import * as API from '../api';
@@ -38,7 +39,7 @@ interface ServersState {
 	confirmDeleteServer?: API.Server;
 }
 
-class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, ServersState> {
+class Servers extends React.Component<ServersProps & WithStyles<typeof styles> & WithTranslation, ServersState> {
 
 	state: ServersState = {
 		servers: [],
@@ -119,33 +120,34 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 		const handleCloseDialog = () => {
 			this.setState({ confirmDeleteServer: undefined });
 		};
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={handleCloseDialog}>
-				<DialogTitle>Delete server?</DialogTitle>
+				<DialogTitle>{t('server.delete.title')}</DialogTitle>
 				<DialogContent>
-					<DialogContentText>Delete {server.host} from monitoring?</DialogContentText>
+					<DialogContentText>{t('server.delete.message', { server: server.host })}</DialogContentText>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={handleCloseDialog}>Cancel</Button>
-					<Button color="primary" onClick={() => this.deleteServerNow(server.host)}>OK</Button>
+					<Button color="primary" onClick={handleCloseDialog}>{t('button.cancel')}</Button>
+					<Button color="primary" onClick={() => this.deleteServerNow(server.host)}>{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
 	}
 
 	render() {
-		const { classes } = this.props;
+		const { classes, t } = this.props;
 		const { servers, orderBy, order } = this.state;
 		return (
 			<div className={classes.root}>
 				<Table padding="dense">
 					<TableHead>
 						<TableRow className={classes.head}>
-							<TableCell><TableSortLabel active={orderBy === 'host'} direction={order} onClick={this.createSortHandler('host')}>Server</TableSortLabel></TableCell>
+							<TableCell><TableSortLabel active={orderBy === 'host'} direction={order} onClick={this.createSortHandler('host')}>{t('server.host')}</TableSortLabel></TableCell>
 							<TableCell padding="none"/>
-							<TableCell><TableSortLabel active={orderBy === 'mtime'} direction={order} onClick={this.createSortHandler('mtime')}>Modifiation</TableSortLabel></TableCell>
-							<TableCell><TableSortLabel active={orderBy === 'online'} direction={order} onClick={this.createSortHandler('online')}>Online</TableSortLabel></TableCell>
-							<TableCell><TableSortLabel active={orderBy === 'package'} direction={order} onClick={this.createSortHandler('package')}>Version</TableSortLabel></TableCell>
+							<TableCell><TableSortLabel active={orderBy === 'mtime'} direction={order} onClick={this.createSortHandler('mtime')}>{t('server.mtime')}</TableSortLabel></TableCell>
+							<TableCell><TableSortLabel active={orderBy === 'online'} direction={order} onClick={this.createSortHandler('online')}>{t('server.online')}</TableSortLabel></TableCell>
+							<TableCell><TableSortLabel active={orderBy === 'package'} direction={order} onClick={this.createSortHandler('package')}>{t('server.package')}</TableSortLabel></TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -173,4 +175,4 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles>, 
 
 }
 
-export default withStyles(styles)(Servers);
+export default withTranslation()(withStyles(styles)(Servers));

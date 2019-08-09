@@ -5,6 +5,7 @@
 		"module": "esnext",
 		"target": "es5",
 		"lib": ["es6", "dom"],
+		"esModuleInterop": true,
 		"sourceMap": true,
 		"allowJs": true,
 		"jsx": "react",

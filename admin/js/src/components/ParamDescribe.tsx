@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogActions, Button } from '@material-ui/core';
 
 import { postParam, IParam } from '../api';
@@ -19,9 +20,9 @@ interface ParamDescribeState {
 	description: string;
 }
 
-export default class ParamDescribe extends React.Component<ParamDescribeProps, ParamDescribeState> {
+class ParamDescribe extends React.Component<ParamDescribeProps & WithTranslation, ParamDescribeState> {
 
-	constructor(props: ParamDescribeProps) {
+	constructor(props: ParamDescribeProps & WithTranslation) {
 		super(props);
 		this.state = {
 			summary: props.summary,
@@ -45,18 +46,21 @@ export default class ParamDescribe extends React.Component<ParamDescribeProps, P
 	}
 
 	render() {
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleSubmit }}>
-				<ParamDialogTitle path={this.props.path}>Describe</ParamDialogTitle>
+				<ParamDialogTitle path={this.props.path}>{t('param.menu.describe')}</ParamDialogTitle>
 				<DialogContent>
 					<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleChange}/>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>Cancel</Button>
-					<Button color="primary" type="submit">OK</Button>
+					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+					<Button color="primary" type="submit">{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
 	}
 
 }
+
+export default withTranslation()(ParamDescribe);

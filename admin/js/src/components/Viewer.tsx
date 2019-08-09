@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Theme, createStyles, withStyles, WithStyles, withMobileDialog } from '@material-ui/core';
 
 import { IParamNode } from './common';
@@ -30,7 +31,7 @@ interface ViewerProps {
 	onClose: () => void;
 }
 
-const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof styles>) => (
+const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof styles> & WithTranslation) => (
 	<Dialog open onClose={props.onClose} fullScreen={props.fullScreen}>
 		<DialogTitle className={classes.title}>
 			{param.path}
@@ -45,11 +46,11 @@ const Viewer = ({ param, classes, ...props }: ViewerProps & WithStyles<typeof st
 			</div>
 		</DialogContent>
 		<DialogActions>
-			<Button onClick={props.onDescribe}>Describe</Button>
-			<Button onClick={props.onEdit}>Edit</Button>
-			<Button color="primary" onClick={props.onClose}>Close</Button>
+			<Button onClick={props.onDescribe}>{t('param.menu.describe')}</Button>
+			<Button onClick={props.onEdit}>{t('param.menu.edit')}</Button>
+			<Button color="primary" onClick={props.onClose}>{t('button.close')}</Button>
 		</DialogActions>
 	</Dialog>
 );
 
-export default withStyles(styles)(withMobileDialog<ViewerProps>()(Viewer));
+export default withStyles(styles)(withMobileDialog<ViewerProps>()(withTranslation()(Viewer)));

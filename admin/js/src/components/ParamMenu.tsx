@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Theme, createStyles, withStyles, WithStyles, Menu, MenuItem, ListItemIcon, ListItemText } from '@material-ui/core';
 
 import NotesIcon from '@material-ui/icons/Notes';
@@ -41,7 +42,7 @@ export interface ParamMenuProps {
 	onDescribe: () => void;
 }
 
-const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
+const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles> & WithTranslation) => (
 	<Menu
 		open
 		onClose={props.onClose}
@@ -54,12 +55,12 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 					<RefreshIcon/>
 				</IconButtonProgress>
 			</ListItemIcon>
-			<ListItemText primary="Reload"/>
+			<ListItemText primary={props.t('param.menu.reload')}/>
 		</MenuItem>
 
 		<MenuItem onClick={props.onView}>
 			<ListItemIcon><NotesIcon/></ListItemIcon>
-			<ListItemText primary="View"/>
+			<ListItemText primary={props.t('param.menu.view')}/>
 		</MenuItem>
 		<MenuItem onClick={props.onLog} divider>
 			<ListItemIcon>
@@ -67,24 +68,24 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 					<HistoryIcon/>
 				</IconButtonProgress>
 			</ListItemIcon>
-			<ListItemText primary="History"/>
+			<ListItemText primary={props.t('param.menu.history')}/>
 		</MenuItem>
 
 		<MenuItem onClick={props.onEdit} disabled={props.param.rw !== true}>
 			<ListItemIcon><EditIcon/></ListItemIcon>
-			<ListItemText primary="Edit"/>
+			<ListItemText primary={props.t('param.menu.edit')}/>
 		</MenuItem>
 		<MenuItem onClick={props.onDescribe} disabled={props.param.rw !== true}>
 			<ListItemIcon><InsertCommentIcon/></ListItemIcon>
-			<ListItemText primary="Describe"/>
+			<ListItemText primary={props.t('param.menu.describe')}/>
 		</MenuItem>
 		<MenuItem onClick={props.onMove} disabled={props.param.rw !== true}>
 			<ListItemIcon><LowPriorityIcon/></ListItemIcon>
-			<ListItemText primary="Move"/>
+			<ListItemText primary={props.t('param.menu.move')}/>
 		</MenuItem>
 		<MenuItem onClick={props.onDelete} disabled={props.param.rw !== true || props.param.num_children !== 0} divider>
 			<ListItemIcon><DeleteIcon/></ListItemIcon>
-			<ListItemText primary="Delete"/>
+			<ListItemText primary={props.t('param.menu.delete')}/>
 		</MenuItem>
 
 		<MenuItem onClick={props.onAccess} disabled={props.param.rw !== true && !props.userIsRoot}>
@@ -93,18 +94,18 @@ const ParamMenu = (props: ParamMenuProps & WithStyles<typeof styles>) => (
 					<LockOpenIcon/>
 				</IconButtonProgress>
 			</ListItemIcon>
-			<ListItemText primary="Access"/>
+			<ListItemText primary={props.t('param.menu.access')}/>
 		</MenuItem>
 		<MenuItem onClick={props.onNotification} disabled={props.param.rw !== true} divider>
 			<ListItemIcon><NotificationsIcon/></ListItemIcon>
-			<ListItemText primary="Notifications"/>
+			<ListItemText primary={props.t('param.menu.notifications')}/>
 		</MenuItem>
 
 		<MenuItem onClick={props.onAddChild} disabled={props.param.rw !== true || props.param.mime === 'application/x-symlink'}>
 			<ListItemIcon><PlaylistAddIcon/></ListItemIcon>
-			<ListItemText primary="Create"/>
+			<ListItemText primary={props.t('param.menu.create')}/>
 		</MenuItem>
 	</Menu>
 );
 
-export default withStyles(styles)(ParamMenu);
+export default withTranslation()(withStyles(styles)(ParamMenu));

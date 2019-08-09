@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { InputBaseComponentProps } from '@material-ui/core/InputBase';
 import { TextField, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
@@ -23,8 +24,8 @@ const styles = createStyles({
 	},
 });
 
-export default withStyles(styles)(
-	class TextValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles>> {
+export default withTranslation()(withStyles(styles)(
+	class TextValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles> & WithTranslation> {
 
 		codeMirrorEditor = (props: InputBaseComponentProps) => {
 			const { onFocus, onBlur } = props;
@@ -41,12 +42,13 @@ export default withStyles(styles)(
 		}
 
 		helperText() {
+			const { t } = this.props;
 			return this.props.type === 'application/x-template' ? (
 				<ul className={this.props.classes.helper}>
-					<li>{'${hostname} - полное имя хоста'}</li>
-					<li>{'${short_hostname} - сокращенное имя хоста'}</li>
-					<li>{'${ip} - ip-адрес, соответствующий хосту'}</li>
-					<li>{'${/path/of/parameter} - значение параметра'}</li>
+					<li>{'${hostname}'} - {t('param.template.hostname')}</li>
+					<li>{'${short_hostname}'} - {t('param.template.shortHostname')}</li>
+					<li>{'${ip}'} - {t('param.template.ip')}</li>
+					<li>{'${/path/of/parameter}'} - {t('param.template.param')}</li>
 				</ul>
 			) : undefined;
 		}
@@ -55,7 +57,7 @@ export default withStyles(styles)(
 			return (
 				<TextField
 					id="value"
-					label="Value"
+					label={this.props.t('param.value')}
 					fullWidth
 					variant="outlined"
 					margin="dense"
@@ -67,4 +69,4 @@ export default withStyles(styles)(
 		}
 
 	}
-);
+));

@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 import { EditNonnullValueProps, NonNullValueProps } from '../common';
 import PathField from '../PathField';
-import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
 const viewStyles = (theme: Theme) => createStyles({
 	root: {
@@ -14,9 +15,12 @@ const SymlinkValueView = (props: NonNullValueProps & WithStyles<typeof viewStyle
 	<a className={props.classes.root} href={'/#' + props.value} onClick={event => event.stopPropagation()}>{props.value}</a>
 );
 
-const SymlinkValueEdit = (props: EditNonnullValueProps) => (
-	<PathField {...props} label="Value" symlink="resolve" fullWidth variant="outlined" margin="dense"/>
-);
+const SymlinkValueEdit = (props: EditNonnullValueProps) => {
+	const { t } = useTranslation();
+	return (
+		<PathField {...props} label={t('param.value')} symlink="resolve" fullWidth variant="outlined" margin="dense"/>
+	);
+};
 
 const SymlinkValueViewStyled = withStyles(viewStyles)(SymlinkValueView);
 

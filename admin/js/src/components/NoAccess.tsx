@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { WithStyles, createStyles, Theme, withStyles } from '@material-ui/core';
 
 const styles = (theme: Theme) => createStyles({
@@ -9,8 +10,11 @@ const styles = (theme: Theme) => createStyles({
 	},
 });
 
-const NoAccess = (props: WithStyles<typeof styles>) => (
-	<span className={props.classes.root}>нет доступа</span>
-);
+function NoAccess(props: WithStyles<typeof styles>) {
+	const { t } = useTranslation();
+	return (
+		<span className={props.classes.root}>{t('param.noAccess')}</span>
+	);
+}
 
 export default withStyles(styles)(NoAccess);

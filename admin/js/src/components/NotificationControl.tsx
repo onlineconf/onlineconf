@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { RadioGroup, Checkbox, FormControlLabel, Radio, createStyles, withStyles, WithStyles, Theme, TextField, MenuItem, InputAdornment } from '@material-ui/core';
 
 import { Notification } from '../api';
@@ -30,7 +31,7 @@ interface NotificationControlState {
 	indeterminate: boolean;
 }
 
-class NotificationControl extends React.Component<NotificationControlProps & WithStyles<typeof styles>, NotificationControlState> {
+class NotificationControl extends React.Component<NotificationControlProps & WithStyles<typeof styles> & WithTranslation, NotificationControlState> {
 
 	state: NotificationControlState = {
 		indeterminate: false,
@@ -52,12 +53,13 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 	}
 
 	render() {
+		const { t } = this.props;
 		const overridden = this.props.overridden || this.state.indeterminate;
 		if (this.props.compact) {
 			return (
 				<TextField
 					select
-					label="Notifications"
+					label={t('param.notifications.label')}
 					value={this.props.value}
 					disabled={!overridden}
 					onChange={this.handleChange}
@@ -78,9 +80,9 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						)
 					}}
 				>
-					<MenuItem value="none" disabled={!this.props.allowNone}>None</MenuItem>
-					<MenuItem value="no-value">Without value</MenuItem>
-					<MenuItem value="with-value">With value</MenuItem>
+					<MenuItem value="none" disabled={!this.props.allowNone}>{t('param.notifications.none')}</MenuItem>
+					<MenuItem value="no-value">{t('param.notifications.noValue')}</MenuItem>
+					<MenuItem value="with-value">{t('param.notifications.withValue')}</MenuItem>
 				</TextField>
 			);
 		} else {
@@ -92,9 +94,9 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						onChange={this.handleOverride}
 					/>
 					<RadioGroup value={this.props.value} className={this.props.classes.radioGroup} onChange={this.handleChange}>
-						<FormControlLabel value="none" label="None" disabled={!overridden || !this.props.allowNone} control={<Radio/>}/>
-						<FormControlLabel value="no-value" label="Without value" disabled={!overridden} control={<Radio/>}/>
-						<FormControlLabel value="with-value" label="With value" disabled={!overridden} control={<Radio/>}/>
+						<FormControlLabel value="none" label={t('param.notifications.none')} disabled={!overridden || !this.props.allowNone} control={<Radio/>}/>
+						<FormControlLabel value="no-value" label={t('param.notifications.noValue')} disabled={!overridden} control={<Radio/>}/>
+						<FormControlLabel value="with-value" label={t('param.notifications.withValue')} disabled={!overridden} control={<Radio/>}/>
 					</RadioGroup>
 				</div>
 			);
@@ -103,4 +105,4 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 
 }
 
-export default withStyles(styles)(NotificationControl);
+export default withTranslation()(withStyles(styles)(NotificationControl));

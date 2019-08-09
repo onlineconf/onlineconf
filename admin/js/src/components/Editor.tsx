@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -52,9 +53,9 @@ interface EditorState extends ValueProps {
 	comment: string;
 }
 
-class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, EditorState> {
+class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & WithTranslation, EditorState> {
 
-	constructor(props: EditorProps & WithStyles<typeof styles>) {
+	constructor(props: EditorProps & WithStyles<typeof styles> & WithTranslation) {
 		super(props);
 		this.state = {
 			type: props.type !== undefined ? props.type : 'application/x-null',
@@ -125,9 +126,10 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 	}
 
 	render() {
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={this.handleClose} fullWidth fullScreen={this.props.fullScreen}>
-				{this.props.create ? <DialogTitle>Create</DialogTitle> : (
+				{this.props.create ? <DialogTitle>{t('param.menu.create')}</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
 						{this.props.summary !== '' && <Typography color="textSecondary">{this.props.summary}</Typography>}
@@ -137,7 +139,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 					{this.props.create ? (
 						<React.Fragment>
 							<TextField
-								label="Path"
+								label={t('param.path')}
 								autoFocus
 								variant="outlined"
 								fullWidth
@@ -167,11 +169,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 							onChange={this.handleNotificationChange}
 						/>
 					)}
-					<TextField label="Comment" variant="outlined" margin="dense" fullWidth required value={this.state.comment} onChange={this.handleCommentChange} />
+					<TextField label={t('param.comment')} variant="outlined" margin="dense" fullWidth required value={this.state.comment} onChange={this.handleCommentChange} />
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={this.handleClose}>Cancel</Button>
-					<Button color="primary" onClick={this.handleSave}>Save</Button>
+					<Button color="primary" onClick={this.handleClose}>{t('button.cancel')}</Button>
+					<Button color="primary" onClick={this.handleSave}>{t('button.save')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
@@ -179,4 +181,4 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles>, Ed
 
 }
 
-export default withStyles(styles)(withMobileDialog<EditorProps>()(Editor));
+export default withStyles(styles)(withMobileDialog<EditorProps>()(withTranslation()(Editor)));

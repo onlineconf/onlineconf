@@ -7,13 +7,16 @@
 		"@material-ui/icons": "^3.0.2",
 		"axios": "^0.18.0",
 		"codemirror": "^5.43.0",
-		"react": "^16.7.0",
+		"i18next": "^17.0.9",
+		"i18next-browser-languagedetector": "^3.0.3",
+		"react": "^16.8.6",
 		"react-codemirror2": "^5.1.0",
-		"react-dom": "^16.7.0",
+		"react-dom": "^16.8.6",
+		"react-i18next": "^10.11.5",
 		"react-router-dom": "^4.3.1",
 		"react-scripts-ts": "^4.0.8",
-		"scroll-into-view-if-needed": "^2.2.20",
-		"typeface-roboto": "0.0.54"
+		"roboto-fontface": "^0.10.0",
+		"scroll-into-view-if-needed": "^2.2.20"
 	},
 	"scripts": {
 		"start": "react-scripts-ts start",

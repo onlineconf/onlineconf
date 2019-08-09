@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { TextField, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
 // Workaround for bug in outlined dense multiline TextField
@@ -15,10 +16,10 @@ interface SummaryDescriptionFieldsProps {
 	onChange: (value: { summary?: string, description?: string }) => void;
 }
 
-const SummaryDescriptionFields = (props: SummaryDescriptionFieldsProps & WithStyles<typeof styles>) => (
+const SummaryDescriptionFields = ({ t, ...props }: SummaryDescriptionFieldsProps & WithStyles<typeof styles> & WithTranslation) => (
 	<React.Fragment>
 		<TextField
-			label="Summary"
+			label={t('param.summary')}
 			value={props.summary}
 			onChange={event => props.onChange({ summary: event.target.value })}
 			variant="outlined"
@@ -26,7 +27,7 @@ const SummaryDescriptionFields = (props: SummaryDescriptionFieldsProps & WithSty
 			margin="dense"
 		/>
 		<TextField
-			label="Description"
+			label={t('param.description')}
 			value={props.description}
 			onChange={event => props.onChange({ description: event.target.value })}
 			multiline
@@ -38,4 +39,4 @@ const SummaryDescriptionFields = (props: SummaryDescriptionFieldsProps & WithSty
 	</React.Fragment>
 );
 
-export default withStyles(styles)(SummaryDescriptionFields);
+export default withStyles(styles)(withTranslation()(SummaryDescriptionFields));

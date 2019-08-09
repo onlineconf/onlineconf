@@ -1,5 +1,6 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { ListItem, List, Button, ListItemText, Checkbox, createStyles, Theme, withStyles, WithStyles, ListItemSecondaryAction, Dialog, DialogContent, DialogActions, withMobileDialog } from '@material-ui/core';
 
 import ParamDialogTitle from './ParamDialogTitle';
@@ -39,7 +40,7 @@ interface ParamAccessState {
 	access: ParamAccessGroup[];
 }
 
-class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof styles>, ParamAccessState> {
+class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof styles> & WithTranslation, ParamAccessState> {
 
 	state: ParamAccessState = {
 		open: false,
@@ -145,7 +146,7 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 		const size: { maxWidth?: false, fullWidth?: true } = this.state.access.length > 20 ? { maxWidth: false, fullWidth: true } : {};
 		return (
 			<Dialog open={this.state.open} onClose={this.props.onClose} fullScreen={this.props.fullScreen} {...size}>
-				<ParamDialogTitle path={this.props.path}>Access</ParamDialogTitle>
+				<ParamDialogTitle path={this.props.path}>{this.props.t('param.menu.access')}</ParamDialogTitle>
 				<DialogContent>
 					<List className={this.props.classes.list}>
 						{this.state.access.map(group => (
@@ -188,7 +189,7 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 					</List>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>Close</Button>
+					<Button color="primary" onClick={this.props.onClose}>{this.props.t('button.close')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
@@ -196,4 +197,4 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 
 }
 
-export default withStyles(styles)(withMobileDialog<ParamDialogProps>()(ParamAccess));
+export default withStyles(styles)(withMobileDialog<ParamDialogProps>()(withTranslation()(ParamAccess)));

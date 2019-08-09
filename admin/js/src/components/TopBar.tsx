@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import AppBar from '@material-ui/core/AppBar';
 import { WithStyles, withStyles, Theme } from '@material-ui/core/styles';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -21,7 +22,7 @@ interface SearchState {
 	value: string;
 }
 
-class Search extends React.Component<SearchProps, SearchState> {
+class SearchBase extends React.Component<SearchProps & WithTranslation, SearchState> {
 
 	state = {
 		value: '',
@@ -42,7 +43,7 @@ class Search extends React.Component<SearchProps, SearchState> {
 	render() {
 		return (
 			<TextField
-				placeholder="Search"
+				placeholder={this.props.t('search')}
 				type="search"
 				margin="none"
 				value={this.state.value}
@@ -66,6 +67,8 @@ class Search extends React.Component<SearchProps, SearchState> {
 	}
 
 }
+
+const Search = withTranslation()(SearchBase);
 
 const styles = (theme: Theme) => ({
 	root: {

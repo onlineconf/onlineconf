@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogContentText, DialogActions, Button, TextField } from '@material-ui/core';
 
 import { deleteParam } from '../api';
@@ -16,7 +17,7 @@ interface ParamDeleteConfirmState {
 	comment: string;
 }
 
-export default class ParamDeleteConfirm extends React.Component<ParamDeleteConfirmProps, ParamDeleteConfirmState> {
+class ParamDeleteConfirm extends React.Component<ParamDeleteConfirmProps & WithTranslation, ParamDeleteConfirmState> {
 
 	state: ParamDeleteConfirmState = {
 		comment: '',
@@ -38,19 +39,22 @@ export default class ParamDeleteConfirm extends React.Component<ParamDeleteConfi
 	}
 
 	render() {
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
-				<ParamDialogTitle path={this.props.path}>Delete</ParamDialogTitle>
+				<ParamDialogTitle path={this.props.path}>{t('param.menu.delete')}</ParamDialogTitle>
 				<DialogContent>
-					<DialogContentText>Are you really want to delete {this.props.path}?</DialogContentText>
-					<TextField label="Comment" required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" margin="dense" fullWidth autoFocus/>
+					<DialogContentText>{t('param.delete.confirm', { param: this.props.path })}</DialogContentText>
+					<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" margin="dense" fullWidth autoFocus/>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>Cancel</Button>
-					<Button color="primary" type="submit">OK</Button>
+					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+					<Button color="primary" type="submit">{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
 	}
 
 }
+
+export default withTranslation()(ParamDeleteConfirm);

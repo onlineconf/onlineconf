@@ -42,18 +42,19 @@ export interface IParamNode extends Omit<IParam, 'children'> {
 	accessLoading?: boolean;
 }
 
-export const typeNames: { [P in ParamType]: string } = {
-	'application/x-null': 'Null',
-	'text/plain': 'Text',
-	'application/x-template': 'Template',
-	'application/json': 'JSON',
-	'application/x-yaml': 'YAML',
-	'application/x-symlink': 'Symbolic link',
-	'application/x-case': 'Case',
-	'application/x-list': 'Список',
-	'application/x-server': 'Список пар ip:port',
-	'application/x-server2': 'Список портов для ip',
+const typesObj: { [P in ParamType]: null } = {
+	'application/x-null': null,
+	'text/plain': null,
+	'application/x-template': null,
+	'application/json': null,
+	'application/x-yaml': null,
+	'application/x-symlink': null,
+	'application/x-case': null,
+	'application/x-list': null,
+	'application/x-server': null,
+	'application/x-server2': null,
 };
+export const types = Object.keys(typesObj) as ParamType[];
 
 export interface ParamDialogProps {
 	path: string;

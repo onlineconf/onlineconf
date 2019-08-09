@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { Chip, List, ListItem, createStyles, WithStyles, withStyles, Theme, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@material-ui/core';
 
 import AddIcon from '@material-ui/icons/AddCircle';
@@ -31,7 +32,7 @@ interface AccessState {
 	user?: string;
 }
 
-class Access extends React.Component<AccessProps & WithStyles<typeof styles>, AccessState> {
+class Access extends React.Component<AccessProps & WithStyles<typeof styles> & WithTranslation, AccessState> {
 
 	state: AccessState = {
 		access: {},
@@ -78,15 +79,16 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 				this.props.onError(error);
 			}
 		};
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={handleClose}>
-				<DialogTitle>Create group</DialogTitle>
+				<DialogTitle>{t('access.createGroup')}</DialogTitle>
 				<DialogContent>
-					<TextField placeholder="Group" value={this.state.group} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
+					<TextField placeholder={t('access.group')} value={this.state.group} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={handleClose}>Cancel</Button>
-					<Button color="primary" onClick={handleCreate} disabled={this.state.group.length === 0}>OK</Button>
+					<Button color="primary" onClick={handleClose}>{t('button.cancel')}</Button>
+					<Button color="primary" onClick={handleCreate} disabled={this.state.group.length === 0}>{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
@@ -134,15 +136,16 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 				this.props.onError(error);
 			}
 		};
+		const { t } = this.props;
 		return (
 			<Dialog open onClose={handleClose}>
-				<DialogTitle>Add user to group "{this.state.group}"</DialogTitle>
+				<DialogTitle>{t('access.addUser', { group: this.state.group })}</DialogTitle>
 				<DialogContent>
-					<UserField placeholder="User" value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
+					<UserField placeholder={t('access.user')} value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
 				</DialogContent>
 				<DialogActions>
-					<Button color="primary" onClick={handleClose}>Cancel</Button>
-					<Button color="primary" onClick={handleAdd} disabled={this.state.user!.length === 0}>OK</Button>
+					<Button color="primary" onClick={handleClose}>{t('button.cancel')}</Button>
+					<Button color="primary" onClick={handleAdd} disabled={this.state.user!.length === 0}>{t('button.ok')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
@@ -212,4 +215,4 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles>, Ac
 
 }
 
-export default withStyles(styles)(Access);
+export default withTranslation()(withStyles(styles)(Access));

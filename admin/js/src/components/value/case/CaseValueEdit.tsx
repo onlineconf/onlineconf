@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { createStyles, Theme, WithStyles, withStyles, IconButton, CircularProgress, TextField, MenuItem } from '@material-ui/core';
+import { TextFieldProps } from '@material-ui/core/TextField';
 
 import AddIcon from '@material-ui/icons/AddCircle';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
@@ -9,7 +11,6 @@ import { Case, EditNonnullValueProps } from '../../common';
 import { ParamType } from '../../../api';
 import TypeValueFields from '../../TypeValueFields';
 import ValueOutline from '../ValueOutline';
-import { TextFieldProps } from '@material-ui/core/TextField';
 
 const styles = (theme: Theme) => createStyles({
 	label: {
@@ -61,8 +62,8 @@ interface CaseValueEditState {
 	services?: { [K: string]: string };
 }
 
-export default withStyles(styles)(
-	class CaseValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles>, CaseValueEditState> {
+export default withStyles(styles)(withTranslation()(
+	class CaseValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles> & WithTranslation, CaseValueEditState> {
 
 		state: CaseValueEditState = {
 			loading: {},
@@ -170,7 +171,7 @@ export default withStyles(styles)(
 		}
 
 		render() {
-			const { classes } = this.props;
+			const { classes, t } = this.props;
 			const cases: Case[] = JSON.parse(this.props.value);
 			return (
 				<ValueOutline>
@@ -193,14 +194,14 @@ export default withStyles(styles)(
 							};
 							switch (caseType) {
 								case 'server': {
-									caseKey = <TextField label="Server" value={c.server} {...commonProps}/>;
+									caseKey = <TextField label={t('param.case.server')} value={c.server} {...commonProps}/>;
 									break;
 								}
 								case 'group': {
 									const { groups, loading } = this.state;
 									if (groups) {
 										caseKey = (
-											<TextField select label="Group" value={c.group} {...commonProps}>
+											<TextField select label={t('param.case.group')} value={c.group} {...commonProps}>
 												{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
 											</TextField>
 										);
@@ -213,7 +214,7 @@ export default withStyles(styles)(
 									const { datacenters, loading } = this.state;
 									if (datacenters) {
 										caseKey = (
-											<TextField select label="Datacenter" value={c.datacenter} {...commonProps}>
+											<TextField select label={t('param.case.datacenter')} value={c.datacenter} {...commonProps}>
 												{Object.keys(datacenters).map(key => <MenuItem key={key} value={key}>{datacenters[key]}</MenuItem>)}
 											</TextField>)
 										;
@@ -226,7 +227,7 @@ export default withStyles(styles)(
 									const { services, loading } = this.state;
 									if (services) {
 										caseKey = (
-											<TextField select label="Service" value={c.service} {...commonProps}>
+											<TextField select label={t('param.case.service')} value={c.service} {...commonProps}>
 												{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
 											</TextField>
 										);
@@ -245,18 +246,18 @@ export default withStyles(styles)(
 										</IconButton>
 										<TextField
 											select
-											label="Case by"
+											label={t('param.case.by')}
 											value={caseType}
 											variant="outlined"
 											margin="dense"
 											className={classes.caseField}
 											onChange={this.createCaseTypeHandler(i)}
 										>
-											<MenuItem value="default">Default</MenuItem>
-											<MenuItem value="server">Server</MenuItem>
-											<MenuItem value="group">Group</MenuItem>
-											<MenuItem value="datacenter">Datacenter</MenuItem>
-											<MenuItem value="service">Service</MenuItem>
+											<MenuItem value="default">{t('param.case.default')}</MenuItem>
+											<MenuItem value="server">{t('param.case.server')}</MenuItem>
+											<MenuItem value="group">{t('param.case.group')}</MenuItem>
+											<MenuItem value="datacenter">{t('param.case.datacenter')}</MenuItem>
+											<MenuItem value="service">{t('param.case.service')}</MenuItem>
 										</TextField>
 										{caseKey}
 									</div>
@@ -277,4 +278,4 @@ export default withStyles(styles)(
 		}
 
 	}
-);
+));

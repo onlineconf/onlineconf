@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { TextField, MenuItem } from '@material-ui/core';
 
-import { typeNames, Case } from './common';
+import { types, Case } from './common';
 import { ParamType } from '../api';
 import ValueEdit from './ValueEdit';
 
@@ -12,7 +13,7 @@ interface TypeValueFieldsProps {
 	onError: (error: Error) => void;
 }
 
-export default class TypeValueFields extends React.Component<TypeValueFieldsProps> {
+class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTranslation> {
 
 	handleTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const type = event.target.value as ParamType;
@@ -42,15 +43,15 @@ export default class TypeValueFields extends React.Component<TypeValueFieldsProp
 				<TextField
 					id="mime"
 					select
-					label="Type"
+					label={this.props.t('param.type')}
 					value={this.props.type}
 					variant="outlined"
 					margin="dense"
 					fullWidth
 					onChange={this.handleTypeChange}
 				>
-					{Object.keys(typeNames).map((type: ParamType) => (
-						<MenuItem key={type} value={type}>{typeNames[type]}</MenuItem>
+					{types.map((type: ParamType) => (
+						<MenuItem key={type} value={type}>{this.props.t(`param.types.${type}`)}</MenuItem>
 					))}
 				</TextField>
 				<ValueEdit type={this.props.type} value={this.props.value} onChange={this.handleValueChange} onError={this.props.onError} />
@@ -59,3 +60,5 @@ export default class TypeValueFields extends React.Component<TypeValueFieldsProp
 	}
 
 }
+
+export default withTranslation()(TypeValueFields);

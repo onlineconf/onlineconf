@@ -1,5 +1,6 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import { TextField, withStyles, createStyles, WithStyles, Theme, Checkbox, FormControlLabel, Button } from '@material-ui/core';
 
 import * as API from '../api';
@@ -59,7 +60,7 @@ interface GlobalLogState {
 	data: API.IParamLog[];
 }
 
-class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof styles>, GlobalLogState> {
+class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof styles> & WithTranslation, GlobalLogState> {
 
 	state: GlobalLogState = {
 		author: '',
@@ -114,12 +115,13 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 	}
 
 	render() {
+		const { t } = this.props;
 		return (
 			<div>
 				<div className={this.props.classes.filter}>
 					<div className={this.props.classes.subgroup}>
 						<UserField
-							label="Author"
+							label={t('log.author')}
 							value={this.state.author}
 							onChange={event => this.setState({ author: event.target.value })}
 							variant="filled"
@@ -127,7 +129,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 							className={this.props.classes.field}
 						/>
 						<PathField
-							label="Branch"
+							label={t('log.branch')}
 							value={this.state.branch}
 							onChange={event => this.setState({ branch: event.target.value })}
 							variant="filled"
@@ -137,7 +139,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 					</div>
 					<div className={this.props.classes.subgroup}>
 						<TextField
-							label="From"
+							label={t('log.from')}
 							value={this.state.from}
 							onChange={event => this.setState({ from: event.target.value })}
 							variant="filled"
@@ -145,7 +147,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 							className={this.props.classes.field}
 						/>
 						<TextField
-							label="Till"
+							label={t('log.till')}
 							value={this.state.till}
 							onChange={event => this.setState({ till: event.target.value })}
 							variant="filled"
@@ -156,7 +158,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 					<div className={this.props.classes.loadGroup}>
 						<FormControlLabel
 							value="all"
-							label="All"
+							label={t('log.all')}
 							control={<Checkbox />}
 							checked={this.state.all}
 							onChange={(event, checked) => this.setState({ all: checked })}
@@ -175,4 +177,4 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 
 }
 
-export default withStyles(styles)(GlobalLog);
+export default withTranslation()(withStyles(styles)(GlobalLog));

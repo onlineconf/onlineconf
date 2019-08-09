@@ -1,5 +1,6 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
+import { withTranslation, WithTranslation } from 'react-i18next';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -16,8 +17,8 @@ interface ParamLogState {
 	data: API.IParamLog[];
 }
 
-export default withMobileDialog<ParamDialogProps>()(
-	class ParamLog extends React.Component<ParamDialogProps, ParamLogState> {
+export default withMobileDialog<ParamDialogProps>()(withTranslation()(
+	class ParamLog extends React.Component<ParamDialogProps & WithTranslation, ParamLogState> {
 
 		state: ParamLogState = {
 			open: false,
@@ -66,7 +67,7 @@ export default withMobileDialog<ParamDialogProps>()(
 		}
 
 		render() {
-			const { path, onClose } = this.props;
+			const { path, onClose, t } = this.props;
 			const { data, open } = this.state;
 
 			return (
@@ -76,16 +77,16 @@ export default withMobileDialog<ParamDialogProps>()(
 					maxWidth="md"
 					fullScreen={this.props.fullScreen}
 				>
-					<ParamDialogTitle path={path}>Log</ParamDialogTitle>
+					<ParamDialogTitle path={path}>{t('param.menu.history')}</ParamDialogTitle>
 					<DialogContent>
 						{data.map(row => <LogCard key={row.version} {...row}/>)}
 					</DialogContent>
 					<DialogActions>
-						<Button color="primary" onClick={onClose}>Close</Button>
+						<Button color="primary" onClick={onClose}>{t('button.close')}</Button>
 					</DialogActions>
 				</Dialog>
 			);
 		}
 
 	}
-);
+));

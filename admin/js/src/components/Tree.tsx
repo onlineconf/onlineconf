@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as classNames from 'classnames';
+import classNames from 'classnames';
 import { StandardProps, createStyles } from '@material-ui/core';
 import { withStyles, WithStyles, Theme } from '@material-ui/core/styles';
 
