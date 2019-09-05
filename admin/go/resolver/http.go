@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"net"
@@ -29,13 +30,9 @@ var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		treeI.rw.RLock()
-		defer treeI.rw.RUnlock()
-
 		if username, password, ok := req.BasicAuth(); ok {
-			h := sha256.New()
-			h.Write([]byte(password))
-			if pwdHash, ok := treeI.services[username]; ok && bytes.Equal(pwdHash, h.Sum(nil)) {
+			pwdHash, usernameExists := treeI.getServicePwdHash(username)
+			if usernameExists && pwdHashEquals(req.Context(), pwdHash, password) {
 				req = AddUsernameToRequest(req, username)
 				next.ServeHTTP(w, req)
 				return
@@ -169,4 +166,13 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 	}
 
 	return &Server{Host: strings.TrimSuffix(host, "."), IP: ip}, nil
+}
+
+func pwdHashEquals(ctx context.Context, pwdHash []byte, password string) bool {
+	h := sha256.New()
+	if _, err := h.Write([]byte(password)); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to calculate sha256 hash")
+		return false
+	}
+	return bytes.Equal(pwdHash, h.Sum(nil))
 }

@@ -118,34 +118,59 @@ func selectTree(ctx context.Context) (*Param, error) {
 }
 
 func (t *tree) update(ctx context.Context) error {
-	t.rw.Lock()
-	defer t.rw.Unlock()
-
-	mtime, err := getTreeMTime(ctx)
+	isReadyToUpdate, mtime, err := t.readyToUpdate(ctx)
 	if err != nil {
 		return err
 	}
-	if mtime <= t.mtime {
+	if !isReadyToUpdate {
 		return nil
 	}
 	log.Ctx(ctx).Info().Str("mtime", mtime).Msg("updating graph")
 
-	t.root, err = selectTree(ctx)
+	var root *Param
+	var datacenters []datacenter
+	var groups []group
+	var services services
+
+	root, err = selectTree(ctx)
 	if err != nil {
 		return err
 	}
 
-	cg := newCommonGraph(t.root.deepClone())
-	if t.datacenters, err = cg.readDatacenters(ctx); err != nil {
+	cg := newCommonGraph(root.deepClone())
+	if datacenters, err = cg.readDatacenters(ctx); err != nil {
 		return err
 	}
-	if t.groups, err = cg.readGroups(ctx); err != nil {
+	if groups, err = cg.readGroups(ctx); err != nil {
 		return err
 	}
-	if t.services, err = cg.readServices(ctx); err != nil {
+	if services, err = cg.readServices(ctx); err != nil {
 		return err
 	}
 
+	t.rw.Lock()
+	t.root = root
+	t.datacenters = datacenters
+	t.groups = groups
+	t.services = services
 	t.mtime = mtime
+	t.rw.Unlock()
 	return nil
+}
+
+func (t *tree) readyToUpdate(ctx context.Context) (res bool, mtime string, err error) {
+	if mtime, err = getTreeMTime(ctx); err != nil {
+		return false, mtime, err
+	}
+	t.rw.RLock()
+	res = mtime > t.mtime
+	t.rw.RUnlock()
+	return
+}
+
+func (t *tree) getServicePwdHash(username string) (pwdHash []byte, exists bool) {
+	t.rw.RLock()
+	pwdHash, exists = t.services[username]
+	t.rw.RUnlock()
+	return
 }
