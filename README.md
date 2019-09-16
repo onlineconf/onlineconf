@@ -6,6 +6,8 @@ OnlineConf is developed with horizontal scalability and fault tolerance in mind,
 
 OnlineConf is developed by Mail.Ru where it is used since 2011 to configure high load projects deployed on thousands of servers.
 
+![Screenshot](screenshot.png)
+
 ## Features
 
 * Configuration availability irrespective of availability of OnlineConf itself;
