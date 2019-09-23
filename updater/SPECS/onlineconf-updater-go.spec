@@ -7,7 +7,7 @@
 
 # required for glide
 %define gopath %{_builddir}/onlineconf/updater
-%define gosrcdir %{gopath}/src/gitlab.corp.mail.ru/mydev/onlineconf/updater
+%define gosrcdir %{gopath}/src/github.com/onlineconf/onlineconf/updater
 
 # do not create debuginfo packages
 %define _enable_debug_packages 0

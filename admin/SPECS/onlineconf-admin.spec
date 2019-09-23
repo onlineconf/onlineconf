@@ -27,11 +27,11 @@ sed -i 's/\(<link href="[^"]*\.css\|<script src="[^"]*\.js\)"/\1?%{version}"/' s
 
 %build
 %{__rm}   -rf %{_builddir}/onlineconf-admin-build
-%{__mkdir} -p %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev
-%{__cp}    -r %{_builddir}/onlineconf %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/
+%{__mkdir} -p %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf
+%{__cp}    -r %{_builddir}/onlineconf %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/
 
 export GOPATH=%{_builddir}/onlineconf-admin-build
-cd %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go
+cd %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/go
 go build -o %{name} ./
 
 cd ../js
@@ -39,11 +39,11 @@ npm run build%{?with_green:-green}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
-%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}/%{name}
+%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}/%{name}
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
-%{__cp} -r %{_builddir}/onlineconf-admin-build/src/gitlab.corp.mail.ru/mydev/onlineconf/admin/js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
+%{__cp} -r %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
 %{__cp} -r static $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic
 %if %{with green}
 sed -i '4s/#FFFFFF/#D6F3D6/; 32s/background: white; //' $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic/css/main.css

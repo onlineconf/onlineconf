@@ -3,7 +3,7 @@ package resolver
 import (
 	"context"
 
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 func updateServerActivity(ctx context.Context, server *Server, mtime string, version string) error {

@@ -5,10 +5,11 @@ package resolver
 import (
 	pkg2_sql "database/sql"
 	"errors"
-	codec1978 "github.com/ugorji/go/codec"
-	pkg1_common "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"runtime"
 	"strconv"
+
+	pkg1_common "github.com/onlineconf/onlineconf/admin/go/common"
+	codec1978 "github.com/ugorji/go/codec"
 )
 
 const (

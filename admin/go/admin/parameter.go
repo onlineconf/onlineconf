@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"gopkg.in/yaml.v2"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 var (

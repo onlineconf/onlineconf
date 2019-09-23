@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 type LogEntry struct {

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/nyarla/go-crypt"
 
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 var authDB *sql.DB

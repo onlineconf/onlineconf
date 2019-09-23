@@ -4,10 +4,12 @@ package resolver
 
 import (
 	"context"
-	"github.com/ugorji/go/codec"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
 	"runtime"
 	"strings"
+
+	"github.com/ugorji/go/codec"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 var cborHandle codec.CborHandle = codec.CborHandle{BasicHandle: codec.BasicHandle{EncodeOptions: codec.EncodeOptions{Raw: true}}}

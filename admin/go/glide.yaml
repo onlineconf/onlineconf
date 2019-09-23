@@ -1,4 +1,4 @@
-package: gitlab.corp.mail.ru/mydev/onlineconf/admin/go
+package: github.com/onlineconf/onlineconf/admin/go
 import:
 - package: github.com/go-sql-driver/mysql
   version: ^1.3.0

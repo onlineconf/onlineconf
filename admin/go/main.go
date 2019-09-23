@@ -16,9 +16,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
-	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/admin"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
-	"gitlab.corp.mail.ru/mydev/onlineconf/admin/go/resolver"
+	"github.com/onlineconf/onlineconf/admin/go/admin"
+	. "github.com/onlineconf/onlineconf/admin/go/common"
+	"github.com/onlineconf/onlineconf/admin/go/resolver"
 )
 
 var configFile = flag.String("config", "/usr/local/etc/onlineconf-admin.yaml", "config file")

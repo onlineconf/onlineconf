@@ -2,7 +2,8 @@ package admin
 
 import (
 	"context"
-	. "gitlab.corp.mail.ru/mydev/onlineconf/admin/go/common"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 func SelectGroups(ctx context.Context) ([]string, error) {
