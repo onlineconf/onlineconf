@@ -36,7 +36,7 @@ INSERT INTO `my_config_tree` VALUES (6,'squirrel',4,'/onlineconf/service/squirre
 INSERT INTO `my_config_tree` VALUES (7,'gopher',1,'/gopher',NULL,'application/x-null','Gopher project','',1,'2019-08-05 17:17:01',0,NULL);
 INSERT INTO `my_config_tree` VALUES (8,'squirrel',1,'/squirrel',NULL,'application/x-null','Squirrel project','',1,'2019-08-05 17:17:16',0,NULL);
 INSERT INTO `my_config_tree` VALUES (9,'chroot',2,'/onlineconf/chroot',NULL,'application/x-null','','',1,'2019-08-05 17:17:50',0,NULL);
-INSERT INTO `my_config_tree` VALUES (10,'gopher',9,'/onlineconf/chroot/gopher',NULL,'application/x-null','','',1,'2019-08-05 17:18:12',0,NULL);
+INSERT INTO `my_config_tree` VALUES (10,'gopher',9,'/onlineconf/chroot/gopher','delimiter: /','application/x-yaml','','',1,'2019-08-05 17:18:12',0,NULL);
 INSERT INTO `my_config_tree` VALUES (11,'TREE',10,'/onlineconf/chroot/gopher/TREE',NULL,'application/x-null','','',1,'2019-08-05 17:19:38',0,NULL);
 INSERT INTO `my_config_tree` VALUES (12,'gopher',11,'/onlineconf/chroot/gopher/TREE/gopher','/gopher','application/x-symlink','','',1,'2019-08-05 17:20:15',0,NULL);
 INSERT INTO `my_config_tree` VALUES (13,'infrastructure',1,'/infrastructure',NULL,'application/x-null','Sysadmin stuff','All IP addresses, hosts, credentials and offer infrastructure information should live here.\nParameters from this hierarchy should not be used directly but through symlinks in project subtrees only.',1,'2019-08-05 17:24:45',0,NULL);
@@ -58,7 +58,7 @@ INSERT INTO `my_config_tree` VALUES (28,'user',7,'/gopher/user',NULL,'applicatio
 INSERT INTO `my_config_tree` VALUES (29,'box',28,'/gopher/user/box','/infrastructure/tarantool/gopher-user','application/x-symlink','','',1,'2019-08-05 17:35:34',0,NULL);
 INSERT INTO `my_config_tree` VALUES (30,'statistics',7,'/gopher/statistics',NULL,'application/x-null','','',1,'2019-08-05 17:36:02',0,NULL);
 INSERT INTO `my_config_tree` VALUES (31,'database',30,'/gopher/statistics/database','/infrastructure/postgresql/gopher-stat','application/x-symlink','','',1,'2019-08-05 17:36:24',0,NULL);
-INSERT INTO `my_config_tree` VALUES (32,'squirrel',9,'/onlineconf/chroot/squirrel',NULL,'application/x-null','','',1,'2019-08-05 17:38:49',0,NULL);
+INSERT INTO `my_config_tree` VALUES (32,'squirrel',9,'/onlineconf/chroot/squirrel','delimiter: /','application/x-yaml','','',1,'2019-08-05 17:38:49',0,NULL);
 INSERT INTO `my_config_tree` VALUES (33,'graphite',13,'/infrastructure/graphite',NULL,'application/x-null','','',1,'2019-08-05 17:50:37',0,NULL);
 INSERT INTO `my_config_tree` VALUES (34,'host',33,'/infrastructure/graphite/host','graphite1.example.com','text/plain','','',1,'2019-08-05 17:51:06',0,NULL);
 INSERT INTO `my_config_tree` VALUES (35,'port',33,'/infrastructure/graphite/port',NULL,'application/x-null','','',1,'2019-08-05 17:51:19',0,NULL);
@@ -121,7 +121,7 @@ INSERT INTO `my_config_tree_log` VALUES (6,6,1,'960a38ace75a2fe9426aa5d48b536cc6
 INSERT INTO `my_config_tree_log` VALUES (7,7,1,NULL,'application/x-null','admin','2019-08-05 17:17:01','Initialize gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (8,8,1,NULL,'application/x-null','admin','2019-08-05 17:17:16','Squirrel project root',0);
 INSERT INTO `my_config_tree_log` VALUES (9,9,1,NULL,'application/x-null','admin','2019-08-05 17:17:50','Initialize chroot',0);
-INSERT INTO `my_config_tree_log` VALUES (10,10,1,NULL,'application/x-null','admin','2019-08-05 17:18:12','Initialize gopher',0);
+INSERT INTO `my_config_tree_log` VALUES (10,10,1,'delimiter: /','application/x-yaml','admin','2019-08-05 17:18:12','Initialize gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (11,11,1,NULL,'application/x-null','admin','2019-08-05 17:19:38','Initialize gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (12,12,1,'/gopher','application/x-symlink','admin','2019-08-05 17:20:15','Initialize gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (13,13,1,NULL,'application/x-null','admin','2019-08-05 17:24:45','Init infra',0);
@@ -143,7 +143,7 @@ INSERT INTO `my_config_tree_log` VALUES (28,28,1,NULL,'application/x-null','admi
 INSERT INTO `my_config_tree_log` VALUES (29,29,1,'/infrastructure/tarantool/gopher-user','application/x-symlink','admin','2019-08-05 17:35:34','Init gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (30,30,1,NULL,'application/x-null','admin','2019-08-05 17:36:02','Init gopher',0);
 INSERT INTO `my_config_tree_log` VALUES (31,31,1,'/infrastructure/postgresql/gopher-stat','application/x-symlink','admin','2019-08-05 17:36:24','Init gopher',0);
-INSERT INTO `my_config_tree_log` VALUES (32,32,1,NULL,'application/x-null','admin','2019-08-05 17:38:49','Init squirrel',0);
+INSERT INTO `my_config_tree_log` VALUES (32,32,1,'delimiter: /','application/x-yaml','admin','2019-08-05 17:38:49','Init squirrel',0);
 INSERT INTO `my_config_tree_log` VALUES (33,3,2,'[{\"mime\":\"application/x-symlink\",\"value\":\"/onlineconf/chroot/gopher\",\"service\":\"gopher\"},{\"mime\":\"application/x-symlink\",\"value\":\"/onlineconf/chroot/squirrel\",\"service\":\"squirrel\"}]','application/x-case','admin','2019-08-05 17:39:43','Init chrooted module',0);
 INSERT INTO `my_config_tree_log` VALUES (34,33,1,NULL,'application/x-null','admin','2019-08-05 17:50:37','Init infra',0);
 INSERT INTO `my_config_tree_log` VALUES (35,34,1,'graphite1.example.com','text/plain','admin','2019-08-05 17:51:06','Init infra',0);

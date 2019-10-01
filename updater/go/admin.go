@@ -75,10 +75,14 @@ func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
 	sort.Slice(data.Nodes, func(i, j int) bool {
 		return data.Nodes[i].Path < data.Nodes[j].Path
 	})
+	defaultDelimiter := ""
+	delimiter := defaultDelimiter
 	for _, param := range data.Nodes {
 		if !strings.HasPrefix(param.Path, "/onlineconf/module/") {
 			switch param.Path {
-			case "/", "/onlineconf", "/onlineconf/module":
+			case "/", "/onlineconf":
+			case "/onlineconf/module":
+				defaultDelimiter = readModuleConfig(param).Delimiter
 			default:
 				log.Warn().Str("path", param.Path).Msg("parameter is out of '/onlineconf/module/' subtree")
 			}
@@ -91,6 +95,16 @@ func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
 			modules[moduleName] = []moduleParam{}
 		}
 		if len(pc) == 4 {
+			delimiter = readModuleConfig(param).Delimiter
+			if delimiter == "" {
+				if defaultDelimiter != "" {
+					delimiter = defaultDelimiter
+				} else if moduleName == "TREE" {
+					delimiter = "/"
+				} else {
+					delimiter = "."
+				}
+			}
 			continue
 		}
 		if param.ContentType == "application/x-null" {
@@ -98,7 +112,7 @@ func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
 		}
 
 		var mParam moduleParam
-		if moduleName == "TREE" {
+		if delimiter == "/" {
 			mParam.path = strings.Join(append([]string{""}, pc[4:]...), "/")
 		} else {
 			mParam.path = strings.Join(pc[4:], ".")
@@ -133,6 +147,30 @@ func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
 		}
 
 		modules[moduleName] = append(modules[moduleName], mParam)
+	}
+	return
+}
+
+type moduleConfig struct {
+	Delimiter string
+}
+
+func readModuleConfig(param ConfigParam) (cfg moduleConfig) {
+	var err error
+	value := []byte(param.Value.String)
+	switch param.ContentType {
+	case "application/x-yaml":
+		value, err = YAMLToJSON(value)
+		if err != nil {
+			log.Warn().Err(err).Str("param", param.Path).Str("value", param.Value.String).Msg("failed to convert yaml to json")
+			break
+		}
+		fallthrough
+	case "application/json":
+		err = json.Unmarshal(value, &cfg)
+		if err != nil {
+			log.Warn().Err(err).Str("param", param.Path).Str("value", string(value)).Msg("failed to parse json")
+		}
 	}
 	return
 }

@@ -114,6 +114,9 @@ For example, the parameter can contain a *case* value which depending on a group
 
 If several services are run on one managed server and they must have their own configuration files then `/onlineconf/module` can contain several children one for each service.
 
+Values of parameters `/onlineconf/module` and `/onlineconf/module/${modulename}` are used by *onlineconf-updater* to customize a generation of configuration files. `/onlineconf/module` is used to configure a default behavior used for all modules whereas `/onlineconf/module/${modulename}` for a `${modulename}` only. The value must be of YAML or JSON type and contain a map of parameters.
+Right now the only one parameter is supported - `delimiter`. It is used to configure a delimiter used in names of configuration parameters. For new installations of OnlineConf it is highly recommended to configure it explicitly (in `/onlineconf/module`), in the other case the compatibility mode will be used in which the delimiter `/` will be used for the module `TREE` and the delimiter `.` for other modules.
+
 ### /onlineconf/service
 
 `/onlineconf/service` contains a list of accounts which is used by *onlineconf-updater* to authorize in *onlineconf-admin*. It also can be used as a condition in a *case*. The name of a parameter is the name of a user, the value is password's SHA256.
