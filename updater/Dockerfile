@@ -1,11 +1,9 @@
 FROM golang
 
-RUN curl https://glide.sh/get | sh
-
 WORKDIR /go/src/github.com/onlineconf/onlineconf/updater/go
 
-COPY go/glide.* ./
-RUN glide install
+COPY go/go.* ./
+RUN go mod download
 
 COPY go .
 RUN go build -o onlineconf-updater
