@@ -14,8 +14,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "VERSION"
-
 var configFile = flag.String("config", "/usr/local/etc/onlineconf.yaml", "config file")
 var once = flag.Bool("once", false, "fetch configuration once and exit")
 

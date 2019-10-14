@@ -53,7 +53,7 @@ GoLang flavour of onlineconf-updater. Built from revision %{__revision}.
 export GOPATH="%{gopath}"
 cd %{gosrcdir}/go
 # Set proper version of app
-%{__sed} -i 's|const version = "VERSION"|const version = "%{version}"|' main.go
+%{__sed} -i 's|const version = ".*"|const version = "%{version}"|' version.go
 glide install
 go build
 
