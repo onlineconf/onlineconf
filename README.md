@@ -137,7 +137,7 @@ Right now the only one parameter is supported - `delimiter`. It is used to confi
 
 ## Reading a configuration from an application
 
-Several languages already have libraries to work with configuration files: Go, Swift, Perl and Python.
+Several languages already have libraries to work with configuration files: [Go](https://github.com/onlineconf/onlineconf-go), [Swift](https://github.com/onlineconf/onlineconf-swift), [Perl](https://github.com/onlineconf/onlineconf-perl), [Python](https://github.com/onlineconf/onlineconf-python) and [Node.js](https://github.com/onlineconf/onlineconf-nodejs).
 
 For all other languages which have libraries to read CDB files it is quite simple, too. The algorithm is following:
 
