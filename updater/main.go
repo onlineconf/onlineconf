@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
-	"github.com/onlineconf/onlineconf/updater/updater"
+	"github.com/onlineconf/onlineconf/updater/v3/updater"
 )
 
 var configFile = flag.String("config", "/usr/local/etc/onlineconf.yaml", "config file")
