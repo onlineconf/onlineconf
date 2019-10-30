@@ -1,4 +1,4 @@
-package main
+package updater
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -26,17 +25,7 @@ func getModules(config AdminConfig, hostname, mtime string) (string, map[string]
 func getConfigData(config AdminConfig, hostname, mtime string) (string, *ConfigData, error) {
 	client := http.Client{}
 
-	var uri string
-	switch config.Port {
-	case 80:
-		uri = "http://" + config.Host
-	case 443:
-		uri = "https://" + config.Host
-	default:
-		uri = "http://" + config.Host + ":" + strconv.Itoa(config.Port)
-	}
-	uri += "/client/config"
-	req, err := http.NewRequest("GET", uri, nil)
+	req, err := http.NewRequest("GET", config.URI+"/client/config", nil)
 	if err != nil {
 		return "", nil, err
 	}

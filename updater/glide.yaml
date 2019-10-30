@@ -1,4 +1,4 @@
-package: github.com/onlineconf/onlineconf/updater/go
+package: github.com/onlineconf/onlineconf/updater
 import:
 - package: github.com/colinmarc/cdb
 - package: github.com/rs/zerolog

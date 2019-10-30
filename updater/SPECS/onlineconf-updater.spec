@@ -5,10 +5,6 @@
 %bcond_with systemd
 %endif
 
-# required for glide
-%define gopath %{_builddir}/onlineconf/updater
-%define gosrcdir %{gopath}/src/github.com/onlineconf/onlineconf/updater
-
 # do not create debuginfo packages
 %define _enable_debug_packages 0
 %define debug_package %{nil}
@@ -45,17 +41,15 @@ Conflicts:      perl-MR-Onlineconf < 20120328.1753
 GoLang flavour of onlineconf-updater. Built from revision %{__revision}.
 
 %prep
-%setup -n onlineconf/updater
-%{__mkdir_p} %{gosrcdir}
-%{__mv} go %{gosrcdir}
+%setup -c -n go/src/github.com/onlineconf
+%setup -T -D -n go/src/github.com/onlineconf/onlineconf/updater
 
 %build
-export GOPATH="%{gopath}"
-cd %{gosrcdir}/go
+export GOPATH="%{_builddir}/go"
 # Set proper version of app
-%{__sed} -i 's|const version = ".*"|const version = "%{version}"|' version.go
+%{__sed} -i 's|const version = ".*"|const version = "%{version}"|' updater/version.go
 glide install
-go build
+go build -o onlineconf-updater
 
 %install
 %{__mkdir_p} %{buildroot}%{_localetcdir}/onlineconf
@@ -67,7 +61,7 @@ go build
 %{__install} -pD -m 755 etc/onlineconf.init %{buildroot}%{_initrddir}/onlineconf
 %endif
 
-%{__install} -pD -m 755 %{gosrcdir}/go/go %{buildroot}%{_localbindir}/onlineconf-updater
+%{__install} -pD -m 755 onlineconf-updater %{buildroot}%{_localbindir}/onlineconf-updater
 
 %if !%{with systemd}
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}

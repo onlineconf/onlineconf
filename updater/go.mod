@@ -1,4 +1,4 @@
-module github.com/onlineconf/onlineconf/updater/go
+module github.com/onlineconf/onlineconf/updater
 
 go 1.8
 
