@@ -29,7 +29,7 @@ type Server struct {
 
 var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
 
-func AuthMiddleware(next http.Handler) http.Handler {
+func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if username, password, ok := req.BasicAuth(); ok {
 			pwdHash, usernameExists := treeI.getServicePwdHash(username)
@@ -45,6 +45,8 @@ func AuthMiddleware(next http.Handler) http.Handler {
 }
 
 func RegisterRoutes(r *mux.Router) {
+	r.Use(authMiddleware)
+
 	r.Path("/config").Methods("GET").HandlerFunc(serveConfig)
 	r.Path("/activity").Methods("POST").HandlerFunc(serveActivity)
 }

@@ -52,11 +52,9 @@ func main() {
 	registerPProf(r.PathPrefix("/debug/pprof/").Subrouter())
 
 	resolverRouter := r.PathPrefix("/client/").Subrouter()
-	resolverRouter.Use(resolver.AuthMiddleware)
 	resolver.RegisterRoutes(resolverRouter)
 
 	adminRouter := r.PathPrefix("/").Subrouter()
-	adminRouter.Use(admin.AuthMiddleware)
 	admin.RegisterRoutes(adminRouter)
 
 	registerStaticFileServer(r.PathPrefix("/").Subrouter())
@@ -93,6 +91,11 @@ func readConfigFile(filename string) *ConfigFile {
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		log.Fatal().Err(err).Str("file", filename).Msg("failed to parse config file")
 	}
+
+	if config.Auth.Method == "header" && !config.HTTP.BehindReverseProxy {
+		log.Fatal().Msg("header authenticator can be used behind reverse proxy only")
+	}
+
 	return &config
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -21,26 +20,8 @@ var clientError = map[error]int{
 	ErrNotEmpty:        400,
 }
 
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if username, password, ok := req.BasicAuth(); ok {
-			ok, err := CheckUserPassword(req.Context(), username, password)
-			if err != nil {
-				WriteServerError(req.Context(), w, err)
-				return
-			}
-			if ok {
-				req = AddUsernameToRequest(req, username)
-				next.ServeHTTP(w, req)
-				return
-			}
-		}
-		w.Header().Add("WWW-Authenticate", "Basic realm="+url.PathEscape(adminConfig.Auth.Realm))
-		w.WriteHeader(401)
-	})
-}
-
 func RegisterRoutes(r *mux.Router) {
+	r.Use(authMiddleware)
 	r.Use(csrfProtection)
 
 	c := r.Path("/config{path:(?:/|(?:/[^/]+)+)}").Subrouter()
@@ -191,7 +172,7 @@ func serveWhoami(w http.ResponseWriter, req *http.Request) {
 }
 
 func serveGetUsers(w http.ResponseWriter, req *http.Request) {
-	list, err := SelectUsers(req.Context(), req.URL.Query().Get("term"))
+	list, err := authenticator.SelectUsers(req.Context(), req.URL.Query().Get("term"))
 	writeResponse(req.Context(), w, list, err)
 }
 

@@ -7,14 +7,7 @@ import (
 )
 
 type AdminConfig struct {
-	Auth struct {
-		DatabaseConfig `yaml:",inline"`
-		Table          string
-		NameField      string `yaml:"name_field"`
-		PasswordField  string `yaml:"password_field"`
-		Condition      string
-		Realm          string
-	}
+	Auth                 AuthenticatorConfig
 	NotificationDatabase DatabaseConfig `yaml:"notification_database"`
 }
 
@@ -22,7 +15,7 @@ var adminConfig *AdminConfig
 
 func Initialize(config AdminConfig) {
 	adminConfig = &config
-	authDB = openAuthDatabase(config.Auth.DatabaseConfig)
+	initAuthenticator(config.Auth)
 	notifyDB = OpenDatabase(config.NotificationDatabase)
 }
 

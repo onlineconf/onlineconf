@@ -2,70 +2,51 @@ package admin
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
-	"regexp"
-	"strings"
-	"time"
-
-	"github.com/rs/zerolog/log"
-	"gitlab.com/nyarla/go-crypt"
+	"net/http"
+	"net/url"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
+	"github.com/rs/zerolog/log"
 )
 
-var authDB *sql.DB
-
-func openAuthDatabase(config DatabaseConfig) *sql.DB {
-	mysqlConfig := MysqlInitConfig(config)
-	mysqlConfig.Params["allowOldPasswords"] = "1"
-	db, err := sql.Open("mysql", mysqlConfig.FormatDSN())
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to open authentication database")
-	}
-	db.SetConnMaxLifetime(time.Duration(config.MaxLifetime) * time.Second)
-	return db
+type AuthenticatorConfig struct {
+	Method     string
+	MySQLAuth  MySQLAuthenticatorConfig  `yaml:",inline"`
+	HeaderAuth HeaderAuthenticatorConfig `yaml:",inline"`
+	Realm      string
 }
 
-func CheckUserPassword(ctx context.Context, user, password string) (bool, error) {
-	query := fmt.Sprintf("SELECT `%s` FROM `%s` WHERE `%s` = ?", adminConfig.Auth.PasswordField, adminConfig.Auth.Table, adminConfig.Auth.NameField)
-	if adminConfig.Auth.Condition != "" {
-		query += " AND " + adminConfig.Auth.Condition
-	}
-	row := authDB.QueryRowContext(ctx, query, user)
-	var pwd string
-	switch err := row.Scan(&pwd); err {
-	case sql.ErrNoRows:
-		return false, nil
-	case nil:
-		return crypt.Crypt(password, pwd) == pwd, nil
+type Authenticator interface {
+	Authenticate(req *http.Request) (string, error)
+	SelectUsers(ctx context.Context, term string) ([]string, error)
+}
+
+var authenticator Authenticator
+
+func initAuthenticator(config AuthenticatorConfig) {
+	switch config.Method {
+	case "mysql", "":
+		authenticator = NewMySQLAuthenticator(config.MySQLAuth)
+	case "header":
+		authenticator = NewHeaderAuthenticator(config.HeaderAuth)
 	default:
-		return false, err
+		log.Fatal().Str("method", config.Method).Msg("unknown authentication method")
 	}
 }
 
-var termRe = regexp.MustCompile("([%_])")
-
-func SelectUsers(ctx context.Context, term string) ([]string, error) {
-	order := "1"
-	condition := make([]string, 0)
-	bind := make([]interface{}, 0)
-	if adminConfig.Auth.Condition != "" {
-		condition = append(condition, adminConfig.Auth.Condition)
-	}
-	if term != "" {
-		condition = append(condition, fmt.Sprintf("`%s` LIKE ?", adminConfig.Auth.NameField))
-		bind = append(bind, "%"+termRe.ReplaceAllString(term, "\\$1")+"%", term)
-		order = fmt.Sprintf("INSTR(`%s`, ?), 1", adminConfig.Auth.NameField)
-	}
-	query := fmt.Sprintf("SELECT `%s` FROM `%s`", adminConfig.Auth.NameField, adminConfig.Auth.Table)
-	if len(condition) > 0 {
-		query += " WHERE " + strings.Join(condition, " AND ")
-	}
-	query += " ORDER BY " + order
-	rows, err := authDB.QueryContext(ctx, query, bind...)
-	if err != nil {
-		return nil, err
-	}
-	return ReadStrings(rows)
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		username, err := authenticator.Authenticate(req)
+		if err != nil {
+			WriteServerError(req.Context(), w, err)
+			return
+		}
+		if username == "" {
+			w.Header().Add("WWW-Authenticate", "Basic realm="+url.PathEscape(adminConfig.Auth.Realm))
+			w.WriteHeader(401)
+			return
+		}
+		req = AddUsernameToRequest(req, username)
+		next.ServeHTTP(w, req)
+	})
 }
