@@ -3,6 +3,7 @@ package resolver
 import (
 	"context"
 	"database/sql"
+	"net"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -61,12 +62,13 @@ func (node *Param) deepClone() *Param {
 }
 
 type tree struct {
-	root        *Param
-	mtime       string
-	rw          sync.RWMutex
-	datacenters []datacenter
-	groups      []group
-	services    services
+	root         *Param
+	mtime        string
+	rw           sync.RWMutex
+	ephemeralIPs []net.IPNet
+	datacenters  []datacenter
+	groups       []group
+	services     services
 }
 
 func getTreeMTime(ctx context.Context) (string, error) {
@@ -129,6 +131,7 @@ func (t *tree) update(ctx context.Context) error {
 	log.Ctx(ctx).Info().Str("mtime", mtime).Msg("updating graph")
 
 	var root *Param
+	var ephemeralIPs []net.IPNet
 	var datacenters []datacenter
 	var groups []group
 	var services services
@@ -139,6 +142,9 @@ func (t *tree) update(ctx context.Context) error {
 	}
 
 	cg := newCommonGraph(root.deepClone())
+	if ephemeralIPs, err = cg.readEphemeralIPs(ctx); err != nil {
+		return err
+	}
 	if datacenters, err = cg.readDatacenters(ctx); err != nil {
 		return err
 	}
@@ -151,6 +157,7 @@ func (t *tree) update(ctx context.Context) error {
 
 	t.rw.Lock()
 	t.root = root
+	t.ephemeralIPs = ephemeralIPs
 	t.datacenters = datacenters
 	t.groups = groups
 	t.services = services
@@ -174,4 +181,10 @@ func (t *tree) getServicePwdHash(username string) (pwdHash []byte, exists bool) 
 	pwdHash, exists = t.services[username]
 	t.rw.RUnlock()
 	return
+}
+
+func (t *tree) getEphemeralIPs() []net.IPNet {
+	t.rw.RLock()
+	defer t.rw.RUnlock()
+	return t.ephemeralIPs
 }

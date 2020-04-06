@@ -113,7 +113,7 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 
 	clientMTime := req.Header.Get("X-OnlineConf-Client-MTime")
 
-	if clientVersion != "TEST" {
+	if clientVersion != "TEST" && server.Host != "" {
 		err = updateServerActivity(req.Context(), server, clientMTime, clientVersion)
 		if err != nil {
 			WriteServerError(req.Context(), w, err)
@@ -132,6 +132,13 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
 		return nil, ErrParseIP
+	}
+
+	ephemeralIPs := treeI.getEphemeralIPs()
+	for _, ipnet := range ephemeralIPs {
+		if ipnet.Contains(ip) {
+			return &Server{IP: ip}, nil
+		}
 	}
 
 	host := req.Header.Get("X-OnlineConf-Client-Host")

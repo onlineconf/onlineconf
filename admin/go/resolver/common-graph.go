@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	ErrInvalidDatacenter = errors.New("Invalid datacenter configuration")
-	ErrInvalidGroup      = errors.New("Invalid group configuration")
+	ErrInvalidIPNets = errors.New("Invalid IP networks list")
 )
 
 type datacenter struct {
@@ -37,6 +36,14 @@ func newCommonGraph(root *Param) *commonGraph {
 	return &commonGraph{graph: graph{root: root, caseResolver: commonCaseResolver{}}}
 }
 
+func (graph *commonGraph) readEphemeralIPs(ctx context.Context) ([]net.IPNet, error) {
+	param := graph.get(ctx, "/onlineconf/ephemeral-ip")
+	if param == nil {
+		return nil, nil
+	}
+	return readIPNets(param)
+}
+
 func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, error) {
 	dcroot := graph.get(ctx, "/onlineconf/datacenter")
 	if dcroot == nil {
@@ -52,17 +59,9 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	sort.Strings(sortedNames)
 	datacenters := make([]datacenter, 0, len(dcroot.Children))
 	for _, name := range sortedNames {
-		dc := *dcroot.Children[name]
-		if !(dc.Value.Valid && (dc.ContentType == "text/plain" || dc.ContentType == "application/x-list")) {
-			return nil, ErrInvalidDatacenter
-		}
-		ipnets := []net.IPNet{}
-		for _, ipstr := range strings.Split(dc.Value.String, ",") {
-			_, ipnet, err := net.ParseCIDR(ipstr)
-			if err != nil {
-				return nil, err
-			}
-			ipnets = append(ipnets, *ipnet)
+		ipnets, err := readIPNets(*dcroot.Children[name])
+		if err != nil {
+			return nil, err
 		}
 		datacenters = append(datacenters, datacenter{name, ipnets})
 	}
@@ -160,6 +159,21 @@ func (cr commonCaseResolver) resolveCase(context.Context, *Param) *Case {
 
 func (cr commonCaseResolver) getTemplateVar(string) string {
 	panic("Dummy")
+}
+
+func readIPNets(param *Param) ([]net.IPNet, error) {
+	if !(param.Value.Valid && (param.ContentType == "text/plain" || param.ContentType == "application/x-list")) {
+		return nil, ErrInvalidIPNets
+	}
+	ipnets := []net.IPNet{}
+	for _, ipstr := range strings.Split(param.Value.String, ",") {
+		_, ipnet, err := net.ParseCIDR(ipstr)
+		if err != nil {
+			return nil, err
+		}
+		ipnets = append(ipnets, *ipnet)
+	}
+	return ipnets, nil
 }
 
 func groupsSortedByPriority(groups []string, priority []string) []string {
