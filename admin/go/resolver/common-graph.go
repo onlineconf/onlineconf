@@ -26,8 +26,6 @@ type group struct {
 	globs []glob.Glob
 }
 
-type services map[string][]byte
-
 type commonGraph struct {
 	graph
 }
@@ -128,27 +126,33 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 	return result, nil
 }
 
-func (graph *commonGraph) readServices(ctx context.Context) (services, error) {
+func (graph *commonGraph) readServices(ctx context.Context) (map[string][]byte, error) {
 	uroot := graph.get(ctx, "/onlineconf/service")
 	if uroot == nil {
 		return nil, nil
 	}
 	graph.resolveChildren(ctx, &uroot)
 
-	res := services{}
-	for name, childPtr := range uroot.Children {
+	res := map[string][]byte{}
+	graph.fillServices(ctx, res, uroot, "")
+	return res, nil
+}
+
+func (graph *commonGraph) fillServices(ctx context.Context, services map[string][]byte, node *Param, prefix string) {
+	for name, childPtr := range node.Children {
 		child := *childPtr
 		if child == nil {
 			continue
 		}
+		serviceName := prefix + name
 		pwdHash, err := hex.DecodeString(child.Value.String)
 		if err != nil {
-			log.Ctx(ctx).Warn().Err(err).Str("service", name).Msg("invalid password string")
+			log.Ctx(ctx).Warn().Err(err).Str("service", serviceName).Msg("invalid password string")
 			continue
 		}
-		res[name] = pwdHash
+		services[serviceName] = pwdHash
+		graph.fillServices(ctx, services, child, serviceName+"/")
 	}
-	return res, nil
 }
 
 type commonCaseResolver struct{}

@@ -55,13 +55,13 @@ type serverCaseResolver struct {
 	server     Server
 	datacenter string
 	groups     []string
-	service    string
+	services   []string
 	shortname  string
 	ip         string
 }
 
 func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverCaseResolver {
-	var datacenter, service string
+	var datacenter string
 dcloop:
 	for _, dc := range t.datacenters {
 		for _, ipnet := range dc.ipnets {
@@ -80,9 +80,12 @@ dcloop:
 			}
 		}
 	}
-	username := common.Username(ctx)
-	if _, ok := t.services[username]; ok {
-		service = username
+	service := common.Username(ctx)
+	services := []string{service}
+	for i := len(service) - 1; i >= 0; i-- {
+		if service[i] == '/' {
+			services = append(services, service[:i])
+		}
 	}
 
 	if e := log.Ctx(ctx).Debug(); e.Enabled() {
@@ -100,7 +103,7 @@ dcloop:
 		server:     server,
 		datacenter: datacenter,
 		groups:     groups,
-		service:    service,
+		services:   services,
 		shortname:  server.Host[:dot],
 		ip:         server.IP.String(),
 	}
@@ -171,8 +174,10 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 		return &cs
 	}
 
-	if cs, ok := byService[cr.service]; ok {
-		return &cs
+	for _, service := range cr.services {
+		if cs, ok := byService[service]; ok {
+			return &cs
+		}
 	}
 
 	if hasDefaultCase {

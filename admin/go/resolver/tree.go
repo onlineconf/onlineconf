@@ -68,7 +68,7 @@ type tree struct {
 	ephemeralIPs []net.IPNet
 	datacenters  []datacenter
 	groups       []group
-	services     services
+	services     map[string][]byte
 }
 
 func getTreeMTime(ctx context.Context) (string, error) {
@@ -134,7 +134,7 @@ func (t *tree) update(ctx context.Context) error {
 	var ephemeralIPs []net.IPNet
 	var datacenters []datacenter
 	var groups []group
-	var services services
+	var services map[string][]byte
 
 	root, err = selectTree(ctx)
 	if err != nil {

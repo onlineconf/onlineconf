@@ -51,8 +51,9 @@ const commonUrlencodedOptions = {
 	headers: { ...commonOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
 };
 
-export async function getParam(path: string, symlink?: 'resolve' | 'follow') {
-	const response = await axios.get<IParam>('/config' + path, symlink ? { ...commonOptions, params: { symlink } } : commonOptions);
+export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree') {
+	const params = { symlink, depth };
+	const response = await axios.get<IParam>('/config' + path, { ...commonOptions, params });
 	return response.data;
 }
 

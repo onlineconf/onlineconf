@@ -76,36 +76,6 @@ func SelectParameter(ctx context.Context, path string) (*Parameter, error) {
 	return &p, nil
 }
 
-func (p *Parameter) Children(ctx context.Context) ([]Parameter, error) {
-	children := make([]Parameter, p.NumChildren)
-	query := selectFromConfig + `
-		WHERE ParentID = ? AND NOT Deleted
-		ORDER BY Name
-	`
-	rows, err := DB.QueryContext(ctx, query, Username(ctx), p.ID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	i := 0
-	for rows.Next() {
-		c := &children[i]
-		err := rows.Scan(
-			&c.ID, &c.Name, &c.ParentID, &c.Path, &c.Value, &c.ContentType,
-			&c.Summary, &c.Description, &c.Version, &c.MTime, &c.Deleted,
-			&c.NumChildren, &c.AccessModified, &c.RW, &c.Notification, &c.NotificationModified,
-		)
-		if err != nil {
-			return nil, err
-		}
-		if !c.RW.Valid {
-			c.Value = NullString{}
-		}
-		i += 1
-	}
-	return children, nil
-}
-
 func SelectParameterFollowingSymlink(ctx context.Context, path string) (*Parameter, error) {
 	return selectParameterFollowingSymlink(ctx, path, map[string]bool{})
 }
@@ -165,19 +135,131 @@ func selectParameterResolvingSymlink(ctx context.Context, path string, seen map[
 	return parameter, nil
 }
 
+type ParameterWithDescendants interface {
+	GetParameter() *Parameter
+	AddChild(Parameter)
+}
+
+func selectChildren(ctx context.Context, params []ParameterWithDescendants) error {
+	paramsMap := make(map[int]ParameterWithDescendants, len(params))
+	ids := make([]interface{}, 0, len(params))
+	for _, param := range params {
+		p := param.GetParameter()
+		if p.NumChildren != 0 {
+			ids = append(ids, p.ID)
+			paramsMap[p.ID] = param
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	marks := make([]string, len(ids))
+	for i := range marks {
+		marks[i] = "?"
+	}
+	marksStr := strings.Join(marks, ", ")
+	query := selectFromConfig + `
+		WHERE ParentID IN (` + marksStr + `) AND NOT Deleted
+		ORDER BY Name
+	`
+	binds := append([]interface{}{Username(ctx)}, ids...)
+	rows, err := DB.QueryContext(ctx, query, binds...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		c := Parameter{}
+		err := rows.Scan(
+			&c.ID, &c.Name, &c.ParentID, &c.Path, &c.Value, &c.ContentType,
+			&c.Summary, &c.Description, &c.Version, &c.MTime, &c.Deleted,
+			&c.NumChildren, &c.AccessModified, &c.RW, &c.Notification, &c.NotificationModified,
+		)
+		if err != nil {
+			return err
+		}
+		if !c.RW.Valid {
+			c.Value = NullString{}
+		}
+		parent := paramsMap[int(c.ParentID.Int64)]
+		parent.AddChild(c)
+	}
+	return nil
+}
+
 type ParameterWithChildren struct {
 	Parameter
 	Children []Parameter `json:"children"`
 }
 
+func (p *ParameterWithChildren) GetParameter() *Parameter {
+	return &p.Parameter
+}
+
+func (p *ParameterWithChildren) AddChild(child Parameter) {
+	p.Children = append(p.Children, child)
+}
+
+func SelectChildren(ctx context.Context, params []*ParameterWithChildren) error {
+	paramsIf := make([]ParameterWithDescendants, 0, len(params))
+	for _, p := range params {
+		p.Children = []Parameter{}
+		paramsIf = append(paramsIf, p)
+	}
+	return selectChildren(ctx, paramsIf)
+}
+
 func (p *Parameter) WithChildren(ctx context.Context) (*ParameterWithChildren, error) {
-	var err error
 	pc := ParameterWithChildren{Parameter: *p}
-	pc.Children, err = p.Children(ctx)
+	err := SelectChildren(ctx, []*ParameterWithChildren{&pc})
 	if err != nil {
 		return nil, err
 	}
 	return &pc, nil
+}
+
+type ParameterWithSubtree struct {
+	Parameter
+	Children []ParameterWithSubtree `json:"children"`
+}
+
+func (p *ParameterWithSubtree) GetParameter() *Parameter {
+	return &p.Parameter
+}
+
+func (p *ParameterWithSubtree) AddChild(child Parameter) {
+	p.Children = append(p.Children, ParameterWithSubtree{Parameter: child})
+}
+
+func SelectSubtree(ctx context.Context, params []*ParameterWithSubtree) error {
+	paramsIf := make([]ParameterWithDescendants, 0, len(params))
+	for _, p := range params {
+		p.Children = []ParameterWithSubtree{}
+		paramsIf = append(paramsIf, p)
+	}
+	err := selectChildren(ctx, paramsIf)
+	if err != nil {
+		return err
+	}
+	children := make([]*ParameterWithSubtree, 0)
+	for _, p := range params {
+		for i := range p.Children {
+			children = append(children, &p.Children[i])
+		}
+	}
+	if len(children) == 0 {
+		return nil
+	}
+	return SelectSubtree(ctx, children)
+}
+
+func (p *Parameter) WithSubtree(ctx context.Context) (*ParameterWithSubtree, error) {
+	ps := ParameterWithSubtree{Parameter: *p}
+	err := SelectSubtree(ctx, []*ParameterWithSubtree{&ps})
+	if err != nil {
+		return nil, err
+	}
+	return &ps, nil
 }
 
 func SelectWithChildrenMulti(ctx context.Context, paths []string) (map[string]*ParameterWithChildren, error) {

@@ -73,8 +73,16 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 		writeClientError(req.Context(), w, 404, "Parameter not exists")
 		return
 	}
-	pc, err := parameter.WithChildren(req.Context())
-	writeResponse(req.Context(), w, pc, err)
+	var data interface{}
+	switch req.URL.Query().Get("depth") {
+	case "", "children":
+		data, err = parameter.WithChildren(req.Context())
+	case "subtree":
+		data, err = parameter.WithSubtree(req.Context())
+	default:
+		data = parameter
+	}
+	writeResponse(req.Context(), w, data, err)
 }
 
 func serveSetConfig(w http.ResponseWriter, req *http.Request) {
