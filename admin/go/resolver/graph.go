@@ -24,7 +24,7 @@ type Case struct {
 
 type caseResolver interface {
 	resolveCase(context.Context, *Param) *Case
-	getTemplateVar(string) string
+	getTemplateVar(string) (string, bool)
 }
 
 type graph struct {
@@ -65,6 +65,7 @@ func (g *graph) resolve(ctx context.Context, paramPtr **Param) {
 			g.resolveCase(ctx, *paramPtr)
 		case "application/x-template":
 			g.resolveTemplate(ctx, *paramPtr)
+			return
 		default:
 			return
 		}
@@ -94,7 +95,7 @@ func (g *graph) resolveCase(ctx context.Context, param *Param) {
 }
 
 func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
-	param.ContentType = "text/plain"
+	expanded := true
 	param.Value.String = templateRe.ReplaceAllStringFunc(param.Value.String, func(match string) string {
 		name := match[2 : len(match)-1]
 		if strings.HasPrefix(name, "/") {
@@ -104,10 +105,16 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Str("var", name).Msg("failed to expand variable")
 				return ""
 			}
+		} else if value, ok := g.caseResolver.getTemplateVar(name); ok {
+			return value
 		} else {
-			return g.caseResolver.getTemplateVar(name)
+			expanded = false
+			return match
 		}
 	})
+	if expanded {
+		param.ContentType = "text/plain"
+	}
 }
 
 func (g *graph) resolveChildren(ctx context.Context, paramPtr **Param) {

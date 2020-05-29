@@ -161,7 +161,7 @@ func (cr commonCaseResolver) resolveCase(context.Context, *Param) *Case {
 	panic("Dummy")
 }
 
-func (cr commonCaseResolver) getTemplateVar(string) string {
+func (cr commonCaseResolver) getTemplateVar(string) (string, bool) {
 	panic("Dummy")
 }
 

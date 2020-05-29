@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,12 +14,14 @@ import (
 
 var ErrNotModified = errors.New("config not modified")
 
-func getModules(config AdminConfig, hostname, mtime string) (string, map[string][]moduleParam, error) {
+var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
+
+func getModules(config AdminConfig, hostname, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
 	respMtime, data, err := getConfigData(config, hostname, mtime)
 	if err != nil {
 		return "", nil, err
 	}
-	modules := prepareModules(data)
+	modules := prepareModules(data, vars)
 	return respMtime, modules, nil
 }
 
@@ -56,7 +59,7 @@ func getConfigData(config AdminConfig, hostname, mtime string) (string, *ConfigD
 	}
 }
 
-func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
+func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -131,6 +134,11 @@ func prepareModules(data *ConfigData) (modules map[string][]moduleParam) {
 			if mParam.value == "null" {
 				continue
 			}
+		case "application/x-template":
+			mParam.value = templateRe.ReplaceAllStringFunc(param.Value.String, func(match string) string {
+				name := match[2 : len(match)-1]
+				return vars[name]
+			})
 		default:
 			mParam.value = param.Value.String
 		}

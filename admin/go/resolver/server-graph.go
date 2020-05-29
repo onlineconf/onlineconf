@@ -187,15 +187,15 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	return &Case{ContentType: "application/x-null"}
 }
 
-func (cr serverCaseResolver) getTemplateVar(name string) string {
+func (cr serverCaseResolver) getTemplateVar(name string) (string, bool) {
 	switch name {
 	case "hostname":
-		return cr.server.Host
+		return cr.server.Host, true
 	case "hostname -s", "short_hostname":
-		return cr.shortname
+		return cr.shortname, true
 	case "hostname -i", "ip":
-		return cr.ip
+		return cr.ip, true
 	default:
-		return ""
+		return "", false
 	}
 }
