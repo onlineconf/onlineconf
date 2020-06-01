@@ -19,7 +19,8 @@ OnlineConf is developed by Mail.Ru where it is used since 2011 to configure high
 * Control panel to edit a configuration without developer, devops or system administrator skills;
 * API for scripted modification of parameters;
 * Access control applied to individual parameters and whole subtrees;
-* Log of parameters modifications and pluggable notifications.
+* Log of parameters modifications and pluggable notifications;
+* [Kubernetes integration](https://github.com/onlineconf/onlineconf-csi-driver).
 
 ## Installation
 
@@ -62,6 +63,8 @@ Building, configuring and running of `onlineconf-admin` and `onlineconf-updater`
 
 `onlineconf-admin` can either be placed behind reverse proxy (nginx, for example) or serve static and terminate TLS by itself. Anyway TLS MUST be used in production.
 
+If OnlineConf is used to configure applications deployed in Kubernetes then [onlineconf-csi-driver](https://github.com/onlineconf/onlineconf-csi-driver) is recommended to use instead of *onlineconf-updater*.
+
 ## Architecture
 
 OnlineConf consists of two components: `onlineconf-admin` and `onlineconf-updater`.
@@ -89,12 +92,20 @@ The daemon is written in Go, has no dependencies and easily deployed on any syst
 * Text - a text, can be multiline;
 * JSON - JSON-encoded field;
 * YAML - a field stored, edited and viewed as YAML. Applications will receive it transcoded to JSON to simplify usage;
-* Template - a text template where other parameters and a hostname/ip of a target server can be substituted;
+* Template - a text template where other parameters, a hostname/ip of a target server or variables from `variables` section of *onlineconf-updater* configuration file can be substituted;
 * Symlink - a symbolic link to another parameter similar to symlinks of Unix systems;
 * Case - a conditional value, works as the switch operator;
 * Various types of lists: a simple comma-separated list, *ip:port* pairs separated by a comma and *ip:ports* pairs separated by a semicolon (where ports are separated by a comma).
 
-## Access control
+## Authentication
+
+Right now two authentication methods are supported:
+
+* `mysql` - credentials are stored in MySQL table. Table structure and password hashing method are inherited and compatible with module `mod_auth_mysql` of Apache httpd.
+
+* `header` - authentication is performed by a reverse proxy deployed in front of *onlineconf-admin*. In case of success it adds additional HTTP header with username (and signature, optionally).
+
+## Authorization
 
 Any parameter of the tree can be configured to be readable and writable by a specific group of users. Access rights are inherited by children parameters from the parent. Any user who can edit a parameter can delegate an access to another group of users.
 
@@ -119,7 +130,9 @@ Right now the only one parameter is supported - `delimiter`. It is used to confi
 
 ### /onlineconf/service
 
-`/onlineconf/service` contains a list of accounts which is used by *onlineconf-updater* to authorize in *onlineconf-admin*. It also can be used as a condition in a *case*. The name of a parameter is the name of a user, the value is password's SHA256.
+`/onlineconf/service` contains a tree of accounts which are used by *onlineconf-updater* to authorize in *onlineconf-admin*. It also can be used as a condition in a *case*. The name of a parameter is the name of a user (or its last chunk), the value is password's SHA256. To be protected from the rainbow table attacks a password MUST be a long random string (16 characters at least).
+Nested services inherit configurations from their parents allowing to override some parameters by using more specific *cases*.
+A username of a nested service is a path without `/onlineconf/service/` prefix, for example, `gopher/alpha`.
 
 ### /onlineconf/group
 
@@ -134,6 +147,10 @@ Right now the only one parameter is supported - `delimiter`. It is used to confi
 ### /onlineconf/suspended
 
 `/onlineconf/suspended` suspends sending of configurations to managed servers if the value is true (the type is not `Null` and the value is not `""` and not `"0"`). Can be used to edit multiple parameters in one transaction. The beginning of a transaction is setting the parameter to true, the end - to false. It is also useful to test dangerous configuration modifications on a small subset of managed servers.
+
+### /onlineconf/ephemeral-ip
+
+`/onlineconf/ephemeral-ip` contains a list of networks where IP addresses are assigned dynamically and are valid only during a service lifetime (in Kubernetes cluster, for example). Reverse DNS query and monitoring are skipped for these networks.
 
 ## Reading a configuration from an application
 
