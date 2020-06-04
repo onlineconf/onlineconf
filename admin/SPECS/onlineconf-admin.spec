@@ -32,7 +32,7 @@ sed -i 's/\(<link href="[^"]*\.css\|<script src="[^"]*\.js\)"/\1?%{version}"/' s
 
 export GOPATH=%{_builddir}/onlineconf-admin-build
 cd %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/go
-go build -o %{name} ./
+go build -mod=vendor -o %{name} ./
 
 cd ../js
 npm run build%{?with_green:-green}
