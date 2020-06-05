@@ -95,6 +95,10 @@ func (g *graph) resolveCase(ctx context.Context, param *Param) {
 }
 
 func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
+	if param.seen {
+		return
+	}
+	param.seen = true
 	expanded := true
 	param.Value.String = templateRe.ReplaceAllStringFunc(param.Value.String, func(match string) string {
 		name := match[2 : len(match)-1]
@@ -115,6 +119,7 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 	if expanded {
 		param.ContentType = "text/plain"
 	}
+	param.seen = false
 }
 
 func (g *graph) resolveChildren(ctx context.Context, paramPtr **Param) {
