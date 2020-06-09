@@ -20,6 +20,8 @@ var (
 	ErrCommentRequired = errors.New("Comment required")
 	ErrInvalidValue    = errors.New("Invalid value")
 	ErrNotEmpty        = errors.New("Parameter has children")
+	ErrNotFound        = errors.New("Parameter not found")
+	ErrParentNotFound  = errors.New("Parent not found")
 )
 
 const selectFields string = `
@@ -393,6 +395,9 @@ func CreateParameter(ctx context.Context, path, contentType, value, summary, des
 	parent, err := selectParameterForUpdate(ctx, tx, parentPath)
 	if err != nil {
 		tx.Rollback()
+		if err == ErrNotFound {
+			return ErrParentNotFound
+		}
 		return err
 	}
 
@@ -473,6 +478,9 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 	newParent, err := selectParameterForUpdate(ctx, tx, newParentPath)
 	if err != nil {
 		tx.Rollback()
+		if err == ErrNotFound {
+			return ErrParentNotFound
+		}
 		return err
 	}
 	if p.Version != version {
@@ -602,7 +610,7 @@ func DeleteParameter(ctx context.Context, path string, version int, comment stri
 }
 
 func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Parameter, error) {
-	row := tx.QueryRowContext(ctx, selectFromConfig+"WHERE Path = ? FOR UPDATE", Username(ctx), path)
+	row := tx.QueryRowContext(ctx, selectFromConfig+"WHERE Path = ? AND NOT Deleted FOR UPDATE", Username(ctx), path)
 	p := Parameter{}
 	err := row.Scan(
 		&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
@@ -610,6 +618,9 @@ func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Pa
 		&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	if !(p.RW.Valid && p.RW.Bool) {
