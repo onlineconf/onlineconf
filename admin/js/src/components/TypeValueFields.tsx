@@ -19,15 +19,16 @@ class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTransla
 		const type = event.target.value as ParamType;
 		if (type !== this.props.type) {
 			const state: { type: ParamType, value?: string | null } = { type };
-			if (type === 'application/x-case') {
+			if (type === 'application/x-null') {
+				state.value = null;
+			} else if (type === 'application/x-case') {
 				state.value = JSON.stringify([{ mime: this.props.type, value: this.props.value }]);
+			} else if (this.props.value === null) {
+				state.value = '';
 			} else if (this.props.type === 'application/x-case') {
 				const cases: Case[] = JSON.parse(this.props.value || '[]');
-				state.value = cases.filter(c => (c.server === undefined && c.group === undefined && c.datacenter === undefined && c.service === undefined))[0].value;
-			} else if (type === 'application/x-null' && this.props.value !== null) {
-				state.value = null;
-			} else if (this.props.type === 'application/x-null' && this.props.value === null) {
-				state.value = '';
+				const defaultCase = cases.filter(c => (c.server === undefined && c.group === undefined && c.datacenter === undefined && c.service === undefined))[0];
+				state.value = defaultCase !== undefined && defaultCase.value !== null ? defaultCase.value : '';
 			}
 			this.props.onChange(state);
 		}
