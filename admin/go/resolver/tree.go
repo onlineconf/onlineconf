@@ -3,12 +3,18 @@ package resolver
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net"
 	"sync"
 
 	"github.com/rs/zerolog/log"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
+)
+
+var (
+	ErrParentNotFound = errors.New("Parent not found")
+	ErrDuplicateRoot  = errors.New("Duplicate root detected")
 )
 
 type Param struct {
@@ -99,19 +105,21 @@ func selectTree(ctx context.Context) (*Param, error) {
 		var parentID sql.NullInt64
 		err = rows.Scan(&param.ID, &param.Name, &param.Path, &param.MTime, &param.Version, &param.ContentType, &param.Value, &parentID)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 		paramByID[param.ID] = &param
 		if parentID.Valid {
 			parent, ok := paramByID[int(parentID.Int64)]
 			if !ok {
-				panic("Parent not found")
+				log.Error().Str("path", param.Path).Int64("parent_id", parentID.Int64).Msg("parent not found")
+				return nil, ErrParentNotFound
 			}
 			paramPtr := &param
 			parent.Children[param.Name] = &paramPtr
 		} else {
 			if root != nil {
-				panic("Duplicate root detected")
+				log.Error().Str("path", param.Path).Msg("duplicate root detected")
+				return nil, ErrDuplicateRoot
 			}
 			root = &param
 		}
