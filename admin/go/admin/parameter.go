@@ -491,7 +491,7 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ParentID = ?, Name = ?, Version = Version + 1, MTime = now() WHERE Path = ?", newParent.ID, newName, path)
 	if err == nil {
 		likePath := likeEscape(p.Path) + "/%"
-		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET Path = NULL WHERE Path LIKE ?", likePath)
+		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET Path = '' WHERE Path LIKE ?", likePath)
 	}
 
 	if err == nil {
