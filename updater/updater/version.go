@@ -1,3 +1,3 @@
 package updater
 
-const version = "3.3.0"
+const version = "3.4.0"
