@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"gopkg.in/yaml.v2"
 
@@ -332,16 +333,23 @@ func SelectWithChildrenMulti(ctx context.Context, paths []string) (map[string]*P
 
 func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 	like := "%" + likeEscape(term) + "%"
+	publicSearch := `Summary LIKE ? OR Description LIKE ?`
+	bind := []interface{}{Username(ctx), like, like, like, like, like}
+	isASCII := strings.IndexFunc(term, func(r rune) bool { return r > unicode.MaxASCII }) == -1
+	if isASCII {
+		publicSearch = `Name COLLATE ascii_general_ci LIKE ? OR ` + publicSearch
+		bind = append(bind, like, like)
+	}
 	rows, err := DB.QueryContext(ctx, `
 		SELECT * FROM (
 			`+selectFromConfig+`
 			WHERE NOT Deleted
-			AND (Name COLLATE ascii_general_ci LIKE ? OR Value COLLATE utf8mb4_unicode_ci LIKE ? OR Summary LIKE ? OR Description LIKE ?)
+			AND (`+publicSearch+` OR Value COLLATE utf8mb4_unicode_ci LIKE ?)
 			ORDER BY Path
 		) x
 		WHERE RW IS NOT NULL
-		OR (Name COLLATE ascii_general_ci LIKE ? OR Summary LIKE ? OR Description LIKE ?)
-	`, Username(ctx), like, like, like, like, like, like, like)
+		OR (`+publicSearch+`)
+	`, bind...)
 	if err != nil {
 		return nil, err
 	}
