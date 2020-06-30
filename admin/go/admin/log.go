@@ -200,11 +200,13 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 							message += ", "
 						}
 						if s, ok := c["server"]; ok {
-							message += "ⓢ«" + s + "»: "
+							message += "ⓗ«" + s + "»: "
 						} else if g, ok := c["group"]; ok {
 							message += "ⓖ«" + g + "»: "
 						} else if d, ok := c["datacenter"]; ok {
 							message += "ⓓ«" + d + "»: "
+						} else if s, ok := c["service"]; ok {
+							message += "ⓢ«" + s + "»: "
 						} else {
 							message += "☆️: "
 						}
