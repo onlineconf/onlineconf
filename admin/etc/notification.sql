@@ -5,4 +5,4 @@ CREATE TABLE `my_change_notification` (
     `Message` mediumtext NOT NULL,
     PRIMARY KEY (`ID`),
     UNIQUE KEY `ID` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

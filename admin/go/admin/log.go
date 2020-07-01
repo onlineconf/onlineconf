@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"hash/crc32"
 	"regexp"
 	"strings"
 
@@ -47,6 +48,9 @@ var notifyDB *sql.DB
 var ErrNoSuchVersion = errors.New("no such version")
 
 var tillRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
+var avatars = []rune("🐀🐁🐂🐃🐄🐅🐆🐇🐈🐉🐊🐋🐌🐍🐎🐏🐐🐑🐒🐓🐕🐖🐗🐘🐙🐛🐜🐝🐞🐟🐠🐡🐢🐥🐨🐩🐪🐫🐬🐭🐮🐯🐰🐱🐲🐳🐴🐵🐶🐷🐸🐹🐺🐻🐼" +
+	"🐿🦀🦁🦂🦃🦄🦅🦆🦇🦈🦉🦊🦋🦌🦍🦎🦏🦐🦑🦒🦓🦔🦕🦖🦗🦘🦙🦚🦛🦜🦝🦞🦟🦠🦡🦢🦥🦦🦧🦨🦩")
 
 func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	condition := make([]string, 0)
@@ -166,7 +170,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 	if err != nil {
 		return err
 	}
-	message := new.Author
+	message := string(avatars[int(crc32.ChecksumIEEE([]byte(new.Author)))%len(avatars)]) + " " + new.Author + "\n"
 	if rows.Next() {
 		var old logNotifyEntry
 		err := rows.Scan(&old.Version, &old.ContentType, &old.Value, &old.Author, &old.Comment, &old.Deleted)
@@ -174,18 +178,18 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 			return err
 		}
 		if new.Deleted {
-			message += " удалил "
+			message += "❌️"
 		} else if old.Deleted {
-			message += " создал "
+			message += "🆕️"
 		} else {
-			message += " изменил "
+			message += "✏️"
 		}
 	} else if new.Version == 1 {
-		message += " создал "
+		message += "🆕️"
 	} else {
 		return ErrNoSuchVersion
 	}
-	message += path
+	message += " " + path
 	if !new.Deleted && notification == "with-value" {
 		message += " ➾ "
 		if new.Value.Valid {
@@ -194,11 +198,8 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 				var data []map[string]string
 				err = json.Unmarshal([]byte(new.Value.String), &data)
 				if err == nil {
-					message += " "
-					for i, c := range data {
-						if i != 0 {
-							message += ", "
-						}
+					for _, c := range data {
+						message += "\n"
 						if s, ok := c["server"]; ok {
 							message += "ⓗ«" + s + "»: "
 						} else if g, ok := c["group"]; ok {
@@ -226,9 +227,8 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 			message += "∅"
 		}
 	}
-	message += "."
 	if new.Comment.Valid {
-		message += " " + new.Comment.String
+		message += "\n🗒 " + new.Comment.String
 	}
 	return insertNotification(ctx, message)
 }
