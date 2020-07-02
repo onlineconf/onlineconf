@@ -37,7 +37,6 @@ func NewMySQLAuthenticator(config MySQLAuthenticatorConfig) *mysqlAuthenticator 
 
 func openAuthDatabase(config DatabaseConfig) *sql.DB {
 	mysqlConfig := MysqlInitConfig(config)
-	mysqlConfig.Params["allowOldPasswords"] = "1"
 	db, err := sql.Open("mysql", mysqlConfig.FormatDSN())
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to open authentication database")

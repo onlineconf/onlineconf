@@ -16,7 +16,7 @@ CREATE TABLE `my_config_tree` (
     UNIQUE KEY `Path` (`Path`),
     UNIQUE KEY `Name` (`ParentID`,`Name`),
     CONSTRAINT `my_config_tree_ibfk_1` FOREIGN KEY (`ParentID`) REFERENCES `my_config_tree` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `my_config_tree_log` (
     `ID` bigint(20) unsigned NOT NULL auto_increment,
@@ -32,14 +32,14 @@ CREATE TABLE `my_config_tree_log` (
     UNIQUE KEY `NodeID` (`NodeID`,`Version`),
     KEY `MTime` (`MTime`),
     CONSTRAINT `my_config_tree_log_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `my_config_group` (
     `ID` int(11) NOT NULL auto_increment,
     `Name` varchar(128) NOT NULL,
     PRIMARY KEY  (`ID`),
     UNIQUE KEY `Name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `my_config_user_group` (
     `User` varchar(128) character set ascii NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE `my_config_user_group` (
     KEY `User` (`User`),
     KEY `GroupID` (`GroupID`),
     CONSTRAINT `my_config_user_group_ibfk_1` FOREIGN KEY (`GroupID`) REFERENCES `my_config_group` (`ID`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `my_config_tree_group` (
     `NodeID` bigint(20) unsigned NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE `my_config_tree_group` (
     KEY `GroupID` (`GroupID`),
     CONSTRAINT `my_config_tree_group_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`) ON DELETE CASCADE,
     CONSTRAINT `my_config_tree_group_ibfk_2` FOREIGN KEY (`GroupID`) REFERENCES `my_config_group` (`ID`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `my_config_activity` (
     `Host` varchar(255) character set ascii NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE `my_config_activity` (
     `Online` timestamp NOT NULL default CURRENT_TIMESTAMP,
     `Package` varchar(32) NOT NULL,
     PRIMARY KEY  (`Host`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 delimiter $$
 
