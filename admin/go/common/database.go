@@ -13,12 +13,15 @@ var DB *sql.DB
 
 func MysqlInitConfig(config DatabaseConfig) *mysql.Config {
 	mysqlConfig := mysql.NewConfig()
-	mysqlConfig.Collation = "utf8mb4_general_ci"
 	mysqlConfig.User = config.User
 	mysqlConfig.Passwd = config.Password
 	mysqlConfig.Net = "tcp"
 	mysqlConfig.Addr = net.JoinHostPort(config.Host, "3306")
 	mysqlConfig.DBName = config.Base
+	mysqlConfig.Params = map[string]string{
+		"charset":   "utf8mb4",
+		"collation": "utf8mb4_general_ci",
+	}
 	return mysqlConfig
 }
 
