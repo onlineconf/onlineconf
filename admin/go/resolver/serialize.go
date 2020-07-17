@@ -50,17 +50,13 @@ func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
 		ser.data.Modules = append(ser.data.Modules, name)
 	}
 
-	if tree := modules["TREE"]; tree != nil && (tree.Path == "/" || tree.Path == "/onlineconf/chroot/mrim/TREE") { // FIXME remove mrim
-		ser.writeParam("/", "", tree)
-	} else {
-		for _, path := range []string{"/", "/onlineconf", "/onlineconf/module"} {
-			if node := sg.get(ctx, path); node != nil {
-				ser.data.Nodes = append(ser.data.Nodes, newSerializerParam(path, node))
-			}
+	for _, path := range []string{"/", "/onlineconf", "/onlineconf/module"} {
+		if node := sg.get(ctx, path); node != nil {
+			ser.data.Nodes = append(ser.data.Nodes, newSerializerParam(path, node))
 		}
-		for name, module := range modules {
-			ser.writeParam("/onlineconf/module/"+name, name, module)
-		}
+	}
+	for name, module := range modules {
+		ser.writeParam("/onlineconf/module/"+name, name, module)
 	}
 
 	return &ser
