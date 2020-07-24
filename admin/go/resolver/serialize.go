@@ -36,7 +36,7 @@ type serializer struct {
 	pushed int
 }
 
-func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
+func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serializer {
 	modules := sg.modules(ctx)
 
 	ser := serializer{
@@ -48,6 +48,11 @@ func newSerializer(ctx context.Context, sg *serverGraph) *serializer {
 
 	for name := range modules {
 		ser.data.Modules = append(ser.data.Modules, name)
+	}
+
+	if tree := modules["TREE"]; tree != nil && tree.Path == "/" && compat {
+		ser.writeParam("/", "", tree)
+		return &ser
 	}
 
 	for _, path := range []string{"/", "/onlineconf", "/onlineconf/module"} {

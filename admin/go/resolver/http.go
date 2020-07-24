@@ -76,7 +76,7 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ser := newSerializer(req.Context(), sg)
+	ser := newSerializer(req.Context(), sg, strings.HasPrefix(req.UserAgent(), "libwww-perl"))
 	body, err := ser.serialize()
 	if err != nil {
 		WriteServerError(req.Context(), w, err)
