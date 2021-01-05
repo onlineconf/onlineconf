@@ -4,7 +4,7 @@
 	"dependencies": {
 		"@material-ui/core": "^3.9.2",
 		"@material-ui/icons": "^3.0.2",
-		"axios": "^0.18.1",
+		"axios": "^0.21.1",
 		"codemirror": "^5.43.0",
 		"i18next": "^17.0.9",
 		"i18next-browser-languagedetector": "^3.0.3",
