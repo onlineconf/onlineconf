@@ -35,7 +35,7 @@ function paramNode(param: API.IParam, options: { open?: boolean, selected?: stri
 		node.children = children.reduce((obj, param) => {
 			obj[param.name] = paramNode(param, options);
 			return obj;
-		}, {});
+		}, {} as { [k: string] : IParamNode });
 	}
 
 	if (node.path === options.selected) {
@@ -188,6 +188,7 @@ function showSelected(root: IParamNode, selected?: string) {
 }
 
 function parentPath(path: string) {
+	// eslint-disable-next-line no-useless-escape
 	let parentPath = path.replace(/\/[^\/]+$/, '');
 	if (parentPath === '') {
 		parentPath = '/';
@@ -219,7 +220,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		dialog: null,
 	};
 
-	historyUnlisten: () => void;
+	historyUnlisten?: () => void;
 
 	componentDidMount() {
 		const { history } = this.props;
@@ -240,7 +241,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 	}
 
 	componentWillUnmount() {
-		this.historyUnlisten();
+		this.historyUnlisten!();
 	}
 
 	componentDidUpdate(prevProps: ConfigTreeProps) {
@@ -625,7 +626,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		this.setState({ dialog: null });
 	}
 
-	handleValuePopoverOpen = (event: React.MouseEvent<{}>, param: IParamNode) => {
+	handleValuePopoverOpen = (event: React.MouseEvent<HTMLElement>, param: IParamNode) => {
 		this.setState({
 			popover: <ValuePopover type={param.mime} value={param.data} onClose={this.handleValuePopoverClose} anchorEl={event.currentTarget as HTMLElement} />
 		});

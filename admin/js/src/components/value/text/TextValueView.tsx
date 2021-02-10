@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { NonNullValueProps } from '../../common';
+import { NonNullValueProps } from '../common';
 import CodeMirror from '../../CodeMirror';
 
 const TextValueView = (props: NonNullValueProps) => (

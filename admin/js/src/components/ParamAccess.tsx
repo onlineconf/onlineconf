@@ -15,18 +15,18 @@ const styles = (theme: Theme) => createStyles({
 	},
 	item: {
 		flex: '400px',
-		margin: `0 ${theme.spacing.unit}px`,
+		margin: theme.spacing(0, 1),
 	},
 	checkbox: {
 		width: 32,
 		height: 32,
-		margin: `0 ${theme.spacing.unit / 2}px`,
+		margin: theme.spacing(0, 0.5),
 	},
 	button: {
-		padding: theme.spacing.unit / 2,
+		padding: theme.spacing(0.5),
 		minWidth: 32,
 		minHeight: 32,
-		margin: `0 ${theme.spacing.unit / 2}px`,
+		margin: theme.spacing(0, 0.5),
 		boxShadow: theme.shadows[0],
 	},
 });
@@ -153,36 +153,36 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 							<ListItem key={group.group} divider ContainerProps={{ className: this.props.classes.item }}>
 								<ListItemText>{group.group}</ListItemText>
 								<ListItemSecondaryAction>
-								<Checkbox
-									checked={group.overridden}
-									indeterminate={group.indeterminate}
-									onChange={this.overrideHandler(group.group)}
-									className={this.props.classes.checkbox}
-								/>
-								<Button
-									disabled={!group.overridden}
-									variant={group.rw === null ? 'contained' : 'text'}
-									className={this.props.classes.button}
-									onClick={this.rwHandler(group.group, null)}
-								>
-									NO
-								</Button>
-								<Button
-									disabled={!group.overridden}
-									variant={group.rw === false ? 'contained' : 'text'}
-									className={this.props.classes.button}
-									onClick={this.rwHandler(group.group, false)}
-								>
-									RO
-								</Button>
-								<Button
-									disabled={!group.overridden}
-									variant={group.rw === true ? 'contained' : 'text'}
-									className={this.props.classes.button}
-									onClick={this.rwHandler(group.group, true)}
-								>
-									RW
-								</Button>
+									<Checkbox
+										checked={group.overridden}
+										indeterminate={group.indeterminate}
+										onChange={this.overrideHandler(group.group)}
+										className={this.props.classes.checkbox}
+									/>
+									<Button
+										disabled={!group.overridden}
+										variant={group.rw === null ? 'contained' : 'text'}
+										className={this.props.classes.button}
+										onClick={this.rwHandler(group.group, null)}
+									>
+										NO
+									</Button>
+									<Button
+										disabled={!group.overridden}
+										variant={group.rw === false ? 'contained' : 'text'}
+										className={this.props.classes.button}
+										onClick={this.rwHandler(group.group, false)}
+									>
+										RO
+									</Button>
+									<Button
+										disabled={!group.overridden}
+										variant={group.rw === true ? 'contained' : 'text'}
+										className={this.props.classes.button}
+										onClick={this.rwHandler(group.group, true)}
+									>
+										RW
+									</Button>
 								</ListItemSecondaryAction>
 							</ListItem>
 						))}

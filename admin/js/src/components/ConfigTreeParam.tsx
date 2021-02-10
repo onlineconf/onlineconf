@@ -1,6 +1,6 @@
 import * as React from 'react';
-import classNames from 'classnames';
-import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
+import clsx from 'clsx';
+import { Theme, makeStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import { SvgIconProps } from '@material-ui/core/SvgIcon';
@@ -24,11 +24,12 @@ import Notifications from '@material-ui/icons/Notifications';
 
 import { ParamType } from '../api';
 import { IParamNode } from './common';
-import ValuePreview from './ValuePreview';
+import { ValuePreview } from './value';
 import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
 import NoAccess from './NoAccess';
+import { CSSProperties } from '@material-ui/core/styles/withStyles';
 
 export const spacingUnit = 2;
 export const buttonSize = 24;
@@ -47,11 +48,11 @@ const iconByType: { [P in ParamType]: React.ComponentType<SvgIconProps> } = {
 	'application/x-server2': ListIcon,
 };
 
-const previewStyles = (theme: Theme) => {
-	const overflow = {
+const usePreviewStyles = makeStyles((theme: Theme) => {
+	const overflow: CSSProperties = {
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
-		whiteSpace: 'nowrap' as any,
+		whiteSpace: 'nowrap',
 	};
 
 	return createStyles({
@@ -121,7 +122,7 @@ const previewStyles = (theme: Theme) => {
 			padding: iconButtonPadding,
 		},
 	});
-};
+});
 
 interface ConfigTreeParamPreviewProps {
 	param: IParamNode;
@@ -131,12 +132,13 @@ interface ConfigTreeParamPreviewProps {
 	onNotification: () => void;
 	onAccess: () => void;
 	onLog: () => void;
-	onValuePopoverOpen: React.MouseEventHandler<{}>;
+	onValuePopoverOpen: React.MouseEventHandler<HTMLElement>;
 	onValuePopoverClose: () => void;
 }
 
-const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<typeof previewStyles>) => {
-	const { param, classes, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
+function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
+	const { param, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
+	const classes = usePreviewStyles();
 	let Icon = iconByType[param.mime] || DefaultIcon;
 
 	if (param.mime === 'application/x-null') {
@@ -149,10 +151,10 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 		}
 	}
 
-	const className = classNames(classes.root, { [classes.matched]: param.match });
+	const className = clsx(classes.root, { [classes.matched]: param.match });
 
 	return (
-		<Typography component="div" className={className}>
+		<Typography component="div" variant="body2" className={className}>
 			<Icon className={classes.icon} color="action"/>
 			<div className={classes.name}>
 				{param.name}
@@ -182,9 +184,7 @@ const ConfigTreeParamPreview = (props: ConfigTreeParamPreviewProps & WithStyles<
 			<IconButton onClick={onViewOpen} className={classes.iconButton}><MoreHoriz/></IconButton>
 		</Typography>
 	);
-};
-
-const ConfigTreeParamPreviewStyled = withStyles(previewStyles)(ConfigTreeParamPreview);
+}
 
 interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorEl'> {
 	param: IParamNode;
@@ -193,7 +193,7 @@ interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorE
 	menuAnchorX?: number;
 	onMenuOpen: () => void;
 	onMenuClose: () => void;
-	onValuePopoverOpen: React.MouseEventHandler<{}>;
+	onValuePopoverOpen: React.MouseEventHandler<HTMLElement>;
 	onValuePopoverClose: () => void;
 }
 
@@ -225,7 +225,7 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 						onMove={this.props.onMove}
 					/>
 				)}
-				<ConfigTreeParamPreviewStyled
+				<ConfigTreeParamPreview
 					param={param}
 					userIsRoot={this.props.userIsRoot}
 					onMenuOpen={this.props.onMenuOpen}

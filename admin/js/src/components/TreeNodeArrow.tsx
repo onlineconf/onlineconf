@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
 
@@ -39,7 +39,7 @@ const TreeNodeArrow = (props: TreeNodeArrowProps & WithStyles<typeof arrowStyles
 		return <span className={className}/>;
 	}
 
-	const iconClassName = classNames(classes.icon, {
+	const iconClassName = clsx(classes.icon, {
 		[classes.openIcon]: state === 'open',
 		[classes.closedIcon]: state !== 'open',
 	});

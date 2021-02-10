@@ -3,14 +3,14 @@ import { Link, LinkProps, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Drawer from '@material-ui/core/Drawer';
 import { SvgIconProps } from '@material-ui/core/SvgIcon';
-import { List, ListItem, ListItemIcon, ListItemText, Theme, withStyles, WithStyles, createStyles, withWidth, Divider, Typography } from '@material-ui/core';
-import { isWidthUp } from '@material-ui/core/withWidth';
-import { Breakpoint } from '@material-ui/core/styles/createBreakpoints';
+import { List, ListItem, ListItemIcon, ListItemText, Theme, useTheme, makeStyles, Divider, Typography, useMediaQuery } from '@material-ui/core';
 
 import SettingsIcon from '@material-ui/icons/Settings';
 import HistoryIcon from '@material-ui/icons/History';
 import GroupIcon from '@material-ui/icons/Group';
 import StorageIcon from '@material-ui/icons/Storage';
+
+export const leftMenuWidth = 240;
 
 interface ListLinkProps extends LinkProps {
 	Icon: React.ComponentType<SvgIconProps>;
@@ -19,17 +19,12 @@ interface ListLinkProps extends LinkProps {
 }
 
 class ListLink extends React.Component<ListLinkProps> {
-
-	private renderLink = (props: LinkProps) => (
-		<Link to={this.props.to} {...props}/>
-	);
-
 	render() {
 		const { Icon, to, children } = this.props;
 		return (
 			<Route path={to} exact>
 				{({ match }) => (
-					<ListItem button component={this.renderLink} {...{ selected: match !== null }}>
+					<ListItem button component={Link} to={to} selected={ match !== null }>
 						<ListItemIcon><Icon/></ListItemIcon>
 						<ListItemText>{children}</ListItemText>
 					</ListItem>
@@ -37,43 +32,50 @@ class ListLink extends React.Component<ListLinkProps> {
 			</Route>
 		);
 	}
-
 }
 
-const ClassicLink = (props: LinkProps) => <a href="/classic/" {...props}/>;
+const ClassicLink = React.forwardRef(
+	function ClassicLink(props: LinkProps, ref: React.Ref<HTMLAnchorElement>) {
+		// eslint-disable-next-line jsx-a11y/anchor-has-content
+		return <a href="/classic/" {...props} ref={ref}/>;
+	}
+);
 
-const styles = (theme: Theme) => createStyles({
+const useStyles = makeStyles((theme: Theme) => ({
 	paper: {
+		width: leftMenuWidth,
 		zIndex: theme.zIndex.appBar - 1,
 	},
 	toolbar: {
 		...theme.mixins.toolbar,
-		paddingLeft: 2 * theme.spacing.unit,
-		paddingRight: 2 * theme.spacing.unit,
+		paddingLeft: theme.spacing(2),
+		paddingRight: theme.spacing(2),
 		display: 'flex',
 		alignItems: 'center',
 	},
 	classicIcon: {
-		margin: '4px 20px 4px 4px',
+		margin: 4,
+		width: 16,
+		height: 16,
 	},
 	classicText: {
 		fontStyle: 'italic',
 	},
-});
+}));
 
 interface LeftMenuProps {
 	className?: string;
 	open: boolean;
 	onClose: () => void;
-	width: Breakpoint;
 }
 
-const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
-	const { classes, ...rest } = props;
+export default function LeftMenu(props: LeftMenuProps) {
+	const classes = useStyles();
 	const { toolbar: toolbarClassName, classicIcon, classicText, ...restClasses } = classes;
+	const theme = useTheme();
 	const { t } = useTranslation();
 	return (
-		<Drawer {...rest} classes={restClasses} variant={isWidthUp('sm', props.width) ? 'persistent' : 'temporary'}>
+		<Drawer {...props} classes={restClasses} variant={useMediaQuery(theme.breakpoints.up('sm')) ? 'persistent' : 'temporary'}>
 			<div className={toolbarClassName}>
 				<Typography variant="h6" color="primary">OnlineConf</Typography>
 			</div>
@@ -83,13 +85,13 @@ const LeftMenu = (props: LeftMenuProps & WithStyles<typeof styles>) => {
 				<ListLink to="/history/" Icon={HistoryIcon}>{t('left.history')}</ListLink>
 				<ListLink to="/server/" Icon={StorageIcon}>{t('left.servers')}</ListLink>
 				<ListLink to="/access-group/" Icon={GroupIcon}>{t('left.access')}</ListLink>
-				<ListItem button component={ClassicLink}>
-					<img src="/classic/css/type/default.png" className={classicIcon}/>
+				<ListItem button component={ClassicLink} to="/classic/">
+					<ListItemIcon>
+						<img src="/classic/css/type/default.png" className={classicIcon} alt=""/>
+					</ListItemIcon>
 					<ListItemText className={classicText}>Classic</ListItemText>
 				</ListItem>
 			</List>
 		</Drawer>
 	);
-};
-
-export default withStyles(styles)(withWidth()(LeftMenu));
+}

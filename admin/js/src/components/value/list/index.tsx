@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
-import { NonNullValueProps } from '../../common';
+import { NonNullValueProps } from '../common';
 import ListValueEdit from './ListValueEdit';
 import TextValuePreview from '../text/TextValuePreview';
 
@@ -22,8 +22,9 @@ const ListValueView = (props: NonNullValueProps & WithStyles<typeof viewStyles>)
 	);
 };
 
-export default {
+const listValue = {
 	preview: TextValuePreview,
 	view: withStyles(viewStyles)(ListValueView),
 	edit: ListValueEdit,
 };
+export default listValue;

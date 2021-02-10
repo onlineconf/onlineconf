@@ -15,12 +15,12 @@ const styles = (theme: Theme) => createStyles({
 		flexWrap: 'wrap',
 		alignItems: 'center',
 		borderBottom: `1px solid ${theme.palette.divider}`,
-		padding: `${theme.spacing.unit}px`,
+		padding: theme.spacing(1),
 	},
 	field: {
 		flex: 'auto',
-		marginLeft: theme.spacing.unit,
-		marginRight: theme.spacing.unit,
+		marginLeft: theme.spacing(1),
+		marginRight: theme.spacing(1),
 	},
 	subgroup: {
 		flex: '100 1 auto',
@@ -38,10 +38,10 @@ const styles = (theme: Theme) => createStyles({
 		marginLeft: -6,
 	},
 	load: {
-		margin: theme.spacing.unit,
+		margin: theme.spacing(1),
 	},
 	body: {
-		padding: `${theme.spacing.unit}px ${2 * theme.spacing.unit}px`,
+		padding: theme.spacing(1, 2),
 	},
 });
 
@@ -123,7 +123,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 						<UserField
 							label={t('log.author')}
 							value={this.state.author}
-							onChange={event => this.setState({ author: event.target.value })}
+							onChange={value => this.setState({ author: value })}
 							variant="filled"
 							margin="dense"
 							className={this.props.classes.field}
@@ -131,7 +131,7 @@ class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof style
 						<PathField
 							label={t('log.branch')}
 							value={this.state.branch}
-							onChange={event => this.setState({ branch: event.target.value })}
+							onChange={value => this.setState({ branch: value })}
 							variant="filled"
 							margin="dense"
 							className={this.props.classes.field}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { CircularProgress, createStyles, withStyles, WithStyles } from '@material-ui/core';
 
 const styles = createStyles({
@@ -27,10 +27,10 @@ interface IconButtonProgressProps {
 
 const IconButtonProgress = (props: IconButtonProgressProps & WithStyles<typeof styles>) => {
 	const progress = props.size === 'inherit'
-		? <CircularProgress className={classNames(props.classes.progress, props.classes.inheritSize)} style={{ width: undefined, height: undefined }}/>
+		? <CircularProgress className={clsx(props.classes.progress, props.classes.inheritSize)} style={{ width: undefined, height: undefined }}/>
 		: <CircularProgress className={props.classes.progress} size={props.size || 48}/>;
 	return (
-		<div className={classNames(props.className, props.classes.wrapper)}>
+		<div className={clsx(props.className, props.classes.wrapper)}>
 			{props.children}
 			{props.loading && progress}
 		</div>

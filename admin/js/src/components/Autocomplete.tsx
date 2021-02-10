@@ -1,14 +1,14 @@
 import * as React from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { Theme, withStyles, WithStyles, TextField, createStyles, MenuItem, Popper, MenuList, Paper, ClickAwayListener, Omit } from '@material-ui/core';
-import { BaseTextFieldProps } from '@material-ui/core/TextField';
+import { TextFieldProps } from '@material-ui/core/TextField';
 
 const styles = (theme: Theme) => createStyles({
 	popper: {
 		zIndex: theme.zIndex.modal + 1,
 	},
 	paper: {
-		maxHeight: 48 * 8 + 2 * theme.spacing.unit,
+		maxHeight: 48 * 8 + theme.spacing(2),
 		overflowY: 'scroll',
 		scrollBehavior: 'smooth',
 	},
@@ -19,10 +19,9 @@ export interface AutocompleteOption {
 	value: string;
 }
 
-export interface AutocompleteProps extends Omit<BaseTextFieldProps, 'classes' | 'onError'> {
+export type AutocompleteProps = Omit<TextFieldProps, 'classes' | 'onChange' | 'onError'> & {
 	value: string;
-	onChange: (props: { target: { value: string } }) => void;
-	variant?: 'standard' | 'outlined' | 'filled';
+	onChange: (value: string) => void;
 	loadOptions: (value: string) => Promise<AutocompleteOption[]>;
 }
 
@@ -40,11 +39,11 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 	};
 
 	inputRef = React.createRef<HTMLElement>();
-	menuListRef = React.createRef<any>();
+	selectedRef = React.createRef<HTMLLIElement>();
 
 	componentDidUpdate() {
-		if (this.menuListRef.current) {
-			scrollIntoView(this.menuListRef.current.selectedItemRef, { scrollMode: 'if-needed' });
+		if (this.selectedRef.current) {
+			scrollIntoView(this.selectedRef.current, { scrollMode: 'if-needed' });
 		}
 	}
 
@@ -63,8 +62,8 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 	}
 
 	handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		this.props.onChange(event);
 		const value = event.target.value;
+		this.props.onChange(value);
 		const options = await this.props.loadOptions(value);
 		this.setState(({ selected }) => (
 			options.filter(o => o.value === selected).length > 0 ? { options, selected }
@@ -121,7 +120,7 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 	}
 
 	setValue(value: string) {
-		this.props.onChange({ target: { value } });
+		this.props.onChange(value);
 		this.closeMenu();
 		this.inputRef.current!.focus();
 	}
@@ -136,7 +135,6 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 			<React.Fragment>
 				<TextField
 					{...props}
-					variant={this.props.variant as any}
 					onChange={this.handleChange}
 					inputRef={this.inputRef}
 					onKeyDown={this.handleInputKeyDown}
@@ -153,11 +151,13 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 						style={this.inputRef.current !== null ? { width: this.inputRef.current!.clientWidth } : undefined}
 					>
 						<ClickAwayListener onClickAway={() => this.closeMenu()}>
-							<MenuList { ...{ ref: this.menuListRef } }>
+							<MenuList>
 								{this.state.options.map(option => (
 									<MenuItem
+										key={option.value}
 										onClick={() => this.setValue(option.value)}
 										selected={option.value === this.state.selected}
+										ref={option.value === this.state.selected ? this.selectedRef : undefined}
 									>
 										{option.label}
 									</MenuItem>

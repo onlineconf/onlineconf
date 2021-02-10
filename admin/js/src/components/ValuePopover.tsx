@@ -4,14 +4,14 @@ import { Theme, WithStyles, withStyles } from '@material-ui/core/styles';
 import { Typography } from '@material-ui/core';
 
 import { ValueProps } from './common';
-import ValueView from './ValueView';
+import { ValueView } from './value';
 
 const styles = (theme: Theme) => ({
 	popover: {
 		'pointer-events': 'none',
 	},
 	paper: {
-		'padding': theme.spacing.unit,
+		'padding': theme.spacing(1),
 	},
 });
 
@@ -31,7 +31,7 @@ const ValuePopover = (props: ValuePopoverProps & WithStyles<typeof styles>) => (
 		classes={{ paper: props.classes.paper }}
 		disableRestoreFocus
 	>
-		<Typography component="div">
+		<Typography component="div" variant="body2">
 			<ValueView type={props.type} value={props.value} accessible/>
 		</Typography>
 	</Popover>

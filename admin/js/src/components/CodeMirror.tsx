@@ -1,14 +1,14 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { Controlled, IControlledCodeMirror } from 'react-codemirror2';
-import { withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
+import { makeStyles } from '@material-ui/core/styles';
 
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/javascript/javascript.js';
 import 'codemirror/mode/yaml/yaml.js';
 import '../template';
 
-const styles = createStyles({
+const useStyles = makeStyles({
 	root: {
 		'& > .CodeMirror': {
 			height: 'auto',
@@ -24,10 +24,7 @@ const styles = createStyles({
 	},
 });
 
-const CodeMirror = (props: IControlledCodeMirror & WithStyles<typeof styles>) => {
-	const { classes, className: classNameProp, ...rest } = props;
-	const className = classNames(classes.root, classNameProp);
-	return <Controlled {...rest} className={className}/>;
-};
-
-export default withStyles(styles)(CodeMirror);
+export default function CodeMirror(props: IControlledCodeMirror) {
+	const classes = useStyles();
+	return <Controlled {...props} className={clsx(props.className, classes.root)} />;
+}

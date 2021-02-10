@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Theme, withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
+import { makeStyles } from '@material-ui/core/styles';
 
 import { IParamNode, smartCompare } from './common';
 import ConfigTreeParam, { buttonSize, spacingUnit, iconButtonPadding } from './ConfigTreeParam';
 import TreeNode from './TreeNode';
 
-const styles = (theme: Theme) => createStyles({
+const useStyles = makeStyles({
 	internalContainer: {
 		padding: spacingUnit,
 	},
@@ -39,13 +39,13 @@ interface ConfigTreeNodeProps {
 	onAddChild: (param: IParamNode) => void;
 	onReload: (param: IParamNode) => void;
 	onDelete: (param: IParamNode) => void;
-	onValuePopoverOpen: (event: React.MouseEvent<{}>, param: IParamNode) => void;
+	onValuePopoverOpen: (event: React.MouseEvent<HTMLElement>, param: IParamNode) => void;
 	onValuePopoverClose: () => void;
 }
 
-let ConfigTreeNode: React.ComponentType<ConfigTreeNodeProps>;
-ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
+export default function ConfigTreeNode(props: ConfigTreeNodeProps) {
 	const { param, ...rest } = props;
+	const classes = useStyles();
 
 	if (param.hidden) {
 		return null;
@@ -86,7 +86,7 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 				onValuePopoverOpen={event => props.onValuePopoverOpen(event, param)}
 				onValuePopoverClose={props.onValuePopoverClose}
 			/>}
-			classes={props.classes}
+			classes={classes}
 			divider
 		>
 			{param.children && Object.keys(param.children).sort(smartCompare).map(name => {
@@ -98,6 +98,4 @@ ConfigTreeNode = (props: ConfigTreeNodeProps & WithStyles<typeof styles>) => {
 			})}
 		</TreeNode>
 	);
-};
-
-export default ConfigTreeNode = withStyles(styles)(ConfigTreeNode);
+}

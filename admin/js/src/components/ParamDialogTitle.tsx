@@ -15,7 +15,7 @@ interface ParamDialogTitleProps {
 const ParamDialogTitle = (props: ParamDialogTitleProps & WithStyles<typeof styles>) => (
 	<DialogTitle>
 		{props.children}
-		<Typography color="textSecondary" className={props.classes.path}>{props.path}</Typography>
+		<Typography variant="body2" color="textSecondary" className={props.classes.path}>{props.path}</Typography>
 	</DialogTitle>
 );
 

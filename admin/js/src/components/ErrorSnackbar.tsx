@@ -66,7 +66,7 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 
 	render() {
 		const { error } = this.state;
-		let message: React.ReactElement<any> | undefined;
+		let message: React.ReactNode | undefined;
 		if (error !== undefined) {
 			const response = (error as AxiosError).response;
 			if (response !== undefined && typeof response.data === 'object' && response.data.message) {

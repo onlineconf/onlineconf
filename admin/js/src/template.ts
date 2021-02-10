@@ -16,4 +16,4 @@ CodeMirror.defineMode('template', () => ({
 		}
 	}
 }));
-(CodeMirror as any).defineMIME('application/x-template', 'template');
+CodeMirror.defineMIME('application/x-template', 'template');

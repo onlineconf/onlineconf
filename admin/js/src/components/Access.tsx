@@ -11,10 +11,10 @@ const styles = (theme: Theme) => createStyles({
 	group: {
 		display: 'flex',
 		flexWrap: 'wrap',
-		padding: `${theme.spacing.unit / 2}px ${theme.spacing.unit}px`,
+		padding: theme.spacing(0.5, 1),
 	},
 	chip: {
-		margin: theme.spacing.unit / 2,
+		margin: theme.spacing(0.5),
 	},
 	add: {
 		padding: 4,
@@ -114,8 +114,8 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 		if (this.state.user === undefined) {
 			return;
 		}
-		const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-			this.setState({ user: event.target.value });
+		const handleChange = (value: string) => {
+			this.setState({ user: value });
 		};
 		const handleClose = () => {
 			this.setState({ user: undefined, group: undefined });

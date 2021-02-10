@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { createStyles, withStyles, WithStyles, LinearProgress } from '@material-ui/core';
 
 const styles = createStyles({
@@ -29,7 +29,7 @@ interface ButtonProgressProps {
 }
 
 const ButtonProgress = (props: ButtonProgressProps & WithStyles<typeof styles>) => (
-	<div className={classNames(props.className, props.classes.wrapper)}>
+	<div className={clsx(props.className, props.classes.wrapper)}>
 		{props.children}
 		{props.loading && (
 			<React.Fragment>

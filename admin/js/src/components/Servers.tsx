@@ -61,7 +61,7 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 	}
 
 	private createSortHandler(column: ServerColumns) {
-		return (event: React.MouseEvent<{}>) => {
+		return (event: React.MouseEvent<HTMLElement>) => {
 			this.setState(({ servers, orderBy, order }) => {
 				if (orderBy === column) {
 					order = order === 'asc' ? 'desc' : 'asc';
@@ -140,7 +140,7 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 		const { servers, orderBy, order } = this.state;
 		return (
 			<div className={classes.root}>
-				<Table padding="dense">
+				<Table size="small">
 					<TableHead>
 						<TableRow className={classes.head}>
 							<TableCell><TableSortLabel active={orderBy === 'host'} direction={order} onClick={this.createSortHandler('host')}>{t('server.host')}</TableSortLabel></TableCell>

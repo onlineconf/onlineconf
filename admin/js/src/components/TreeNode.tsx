@@ -1,5 +1,5 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
 import Collapse from '@material-ui/core/Collapse';
@@ -22,14 +22,14 @@ const styles = (theme: Theme) => createStyles({
 	},
 	arrow: {
 		flex: 'none',
-		margin: theme.spacing.unit,
+		margin: theme.spacing(1),
 		padding: 12,
 		minWidth: 48,
 	},
 	internalContainer: {
 		flex: 'auto',
 		overflow: 'hidden',
-		padding: theme.spacing.unit,
+		padding: theme.spacing(1),
 		cursor: 'pointer',
 		transition: theme.transitions.create('background-color', {
 			duration: theme.transitions.duration.shortest,
@@ -43,7 +43,7 @@ const styles = (theme: Theme) => createStyles({
 		backgroundClip: 'padding-box',
 	},
 	children: {
-		paddingLeft: 48 + theme.spacing.unit,
+		paddingLeft: 48 + theme.spacing(1),
 	},
 	selected: {
 		'& > $externalContainer > $internalContainer': {
@@ -53,7 +53,7 @@ const styles = (theme: Theme) => createStyles({
 });
 
 interface TreeNodeProps {
-	component?: React.ReactType;
+	component?: React.ElementType;
 	className?: string;
 	item: React.ReactNode;
 	children?: React.ReactNode;
@@ -63,8 +63,8 @@ interface TreeNodeProps {
 	divider?: boolean;
 	onOpen: () => void;
 	onClose: () => void;
-	onClick?: React.MouseEventHandler<{}>;
-	onDoubleClick?: React.MouseEventHandler<{}>;
+	onClick?: React.MouseEventHandler<HTMLElement>;
+	onDoubleClick?: React.MouseEventHandler<HTMLElement>;
 	onContextMenu?: React.MouseEventHandler<HTMLElement>;
 }
 
@@ -87,8 +87,8 @@ class TreeNode extends React.Component<TreeNodeProps & WithStyles<typeof styles>
 	render() {
 		const { item, children, state, onOpen, onClose, onClick, onDoubleClick, onContextMenu, component, classes, className: classNameProp, selected, disabled, divider, ...rest } = this.props;
 
-		const Component: any = component || 'li';
-		const className = classNames(classes.root, { [classes.selected]: selected, [classes.divider]: divider }, classNameProp);
+		const Component = component || 'li';
+		const className = clsx(classes.root, { [classes.selected]: selected, [classes.divider]: divider }, classNameProp);
 		const componentProps = { className, disabled, ...rest };
 
 		return (

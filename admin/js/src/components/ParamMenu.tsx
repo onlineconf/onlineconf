@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { Theme, createStyles, withStyles, WithStyles, Menu, MenuItem, ListItemIcon, ListItemText } from '@material-ui/core';
+import { Theme, createStyles, withStyles, WithStyles, Menu, MenuProps, MenuItem, ListItemIcon, ListItemText } from '@material-ui/core';
 
 import NotesIcon from '@material-ui/icons/Notes';
 import EditIcon from '@material-ui/icons/Edit';
@@ -24,8 +24,7 @@ const styles = (theme: Theme) => createStyles({
 	}
 });
 
-export interface ParamMenuProps {
-	anchorEl: HTMLElement | ((elem: HTMLElement) => HTMLElement) | null;
+export interface ParamMenuProps extends Pick<MenuProps, 'anchorEl'> {
 	anchorX?: number;
 	param: IParamNode;
 	userIsRoot: boolean;

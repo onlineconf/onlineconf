@@ -1,15 +1,14 @@
 import * as React from 'react';
-import { withTranslation, WithTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { InputBaseComponentProps } from '@material-ui/core/InputBase';
-import { TextField, createStyles, WithStyles, withStyles } from '@material-ui/core';
+import { TextField, makeStyles } from '@material-ui/core';
 
-import { EditNonnullValueProps } from '../../common';
-import CodeMirror from '../../CodeMirror';
+import { EditNonnullValueProps } from '../common';
+import CodeMirrorComponent from '../../CodeMirror';
 
-const styles = createStyles({
+const useStyles = makeStyles({
 	codemirror: {
 		width: 'inherit',
-		padding: '15px 14px',
 		'& > .CodeMirror': {
 			maxHeight: '300px',
 			'& .CodeMirror-scroll': {
@@ -24,49 +23,65 @@ const styles = createStyles({
 	},
 });
 
-export default withTranslation()(withStyles(styles)(
-	class TextValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles> & WithTranslation> {
+function CodeMirrorEditor(props: InputBaseComponentProps) {
+	const { className, inputRef, onFocus, onBlur, onBeforeChange, type, value } = props;
+	const classes = useStyles();
 
-		codeMirrorEditor = (props: InputBaseComponentProps) => {
-			const { onFocus, onBlur } = props;
-			return (
-				<CodeMirror
-					value={props.value}
-					options={{ mode: this.props.type, scrollbarStyle: 'null' }}
-					onBeforeChange={(editor, data, value) => this.props.onChange({ target: { value } })}
-					onFocus={onFocus ? (editor, event) => onFocus(event as any) : undefined}
-					onBlur={onBlur ? (editor, event) => onBlur(event as any) : undefined}
-					className={this.props.classes.codemirror}
-				/>
-			);
-		}
+	const editorRef = React.useRef<CodeMirror.Editor>();
+	React.useImperativeHandle(inputRef, () => ({
+		focus: () => editorRef.current?.focus(),
+		value,
+	}));
 
-		helperText() {
-			const { t } = this.props;
-			return this.props.type === 'application/x-template' ? (
-				<ul className={this.props.classes.helper}>
-					<li>{'${hostname}'} - {t('param.template.hostname')}</li>
-					<li>{'${short_hostname}'} - {t('param.template.shortHostname')}</li>
-					<li>{'${ip}'} - {t('param.template.ip')}</li>
-					<li>{'${/path/of/parameter}'} - {t('param.template.param')}</li>
-				</ul>
-			) : undefined;
-		}
+	return (
+		<div className={className} onClick={() => editorRef.current?.focus()}>
+			<CodeMirrorComponent
+				value={value as string}
+				options={{ mode: type, scrollbarStyle: 'null' }}
+				className={classes.codemirror}
+				editorDidMount={(editor) => { editorRef.current = editor; }}
+				onBeforeChange={onBeforeChange ? (editor, data, value) => onBeforeChange(value) : () => undefined}
+				onFocus={onFocus ? (editor, event) => onFocus(event) : undefined}
+				onBlur={onBlur ? (editor, event) => onBlur(event) : undefined}
+			/>
+		</div>
+	);
+}
 
-		render() {
-			return (
-				<TextField
-					id="value"
-					label={this.props.t('param.value')}
-					fullWidth
-					variant="outlined"
-					margin="dense"
-					helperText={this.helperText()}
-					value={this.props.value}
-					InputProps={{ inputComponent: this.codeMirrorEditor }}
-				/>
-			);
-		}
+function CaseHelperText() {
+	const classes = useStyles();
+	const { t } = useTranslation();
 
-	}
-));
+	/* eslint-disable no-template-curly-in-string */
+	return (
+		<ul className={classes.helper}>
+			<li>{'${hostname}'} - {t('param.template.hostname')}</li>
+			<li>{'${short_hostname}'} - {t('param.template.shortHostname')}</li>
+			<li>{'${ip}'} - {t('param.template.ip')}</li>
+			<li>{'${/path/of/parameter}'} - {t('param.template.param')}</li>
+		</ul>
+	);
+	/* eslint-enable no-template-curly-in-string */
+}
+
+export default function TextValueEdit(props: EditNonnullValueProps) {
+	const { onChange, type, value } = props;
+	const { t } = useTranslation();
+
+	return (
+		<TextField
+			id="value"
+			label={t('param.value')}
+			fullWidth
+			multiline
+			variant="outlined"
+			margin="dense"
+			helperText={type === 'application/x-template' ? CaseHelperText : undefined}
+			value={value}
+			InputProps={{
+				inputComponent: CodeMirrorEditor,
+				inputProps: { type, onBeforeChange: onChange },
+			}}
+		/>
+	);
+}

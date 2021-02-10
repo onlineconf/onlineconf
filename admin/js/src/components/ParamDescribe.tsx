@@ -30,8 +30,12 @@ class ParamDescribe extends React.Component<ParamDescribeProps & WithTranslation
 		};
 	}
 
-	private handleChange = (newState: ParamDescribeState) => {
-		this.setState(newState);
+	private handleSummaryChange = (summary: string) => {
+		this.setState({ summary });
+	}
+
+	private handleDescriptionChange = (description: string) => {
+		this.setState({ description });
 	}
 
 	private handleSubmit = async (event: React.FormEvent) => {
@@ -48,15 +52,22 @@ class ParamDescribe extends React.Component<ParamDescribeProps & WithTranslation
 	render() {
 		const { t } = this.props;
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleSubmit }}>
-				<ParamDialogTitle path={this.props.path}>{t('param.menu.describe')}</ParamDialogTitle>
-				<DialogContent>
-					<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleChange}/>
-				</DialogContent>
-				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
-					<Button color="primary" type="submit">{t('button.ok')}</Button>
-				</DialogActions>
+			<Dialog open onClose={this.props.onClose}>
+				<form onSubmit={this.handleSubmit}>
+					<ParamDialogTitle path={this.props.path}>{t('param.menu.describe')}</ParamDialogTitle>
+					<DialogContent>
+						<SummaryDescriptionFields
+							summary={this.state.summary}
+							description={this.state.description}
+							onSummaryChange={this.handleSummaryChange}
+							onDescriptionChange={this.handleDescriptionChange}
+						/>
+					</DialogContent>
+					<DialogActions>
+						<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+						<Button color="primary" type="submit">{t('button.ok')}</Button>
+					</DialogActions>
+				</form>
 			</Dialog>
 		);
 	}

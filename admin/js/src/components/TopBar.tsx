@@ -35,34 +35,34 @@ class SearchBase extends React.Component<SearchProps & WithTranslation, SearchSt
 		this.setState({ value: event.target.value });
 	}
 
-	handleSubmit = (event: React.FormEvent<{}>) => {
+	handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		this.props.onSearch(this.state.value);
 	}
 
 	render() {
 		return (
-			<TextField
-				placeholder={this.props.t('search')}
-				type="search"
-				margin="none"
-				value={this.state.value}
-				onChange={this.handleChange}
-				onSubmit={this.handleSubmit}
-				component={'form' as any}
-				className={this.props.className}
-				InputProps={{
-					endAdornment: (
-						<InputAdornment position="end">
-							<IconButtonProgress loading={this.props.searching}>
-								<IconButton type="submit">
-									<SearchIcon />
-								</IconButton>
-							</IconButtonProgress>
-						</InputAdornment>
-					)
-				}}
-			/>
+			<form onSubmit={this.handleSubmit}>
+				<TextField
+					placeholder={this.props.t('search')}
+					type="search"
+					margin="none"
+					value={this.state.value}
+					onChange={this.handleChange}
+					className={this.props.className}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								<IconButtonProgress loading={this.props.searching}>
+									<IconButton type="submit">
+										<SearchIcon />
+									</IconButton>
+								</IconButtonProgress>
+							</InputAdornment>
+						)
+					}}
+				/>
+			</form>
 		);
 	}
 
@@ -81,7 +81,7 @@ const styles = (theme: Theme) => ({
 		marginRight: 4,
 	},
 	search: {
-		marginLeft: 2 * theme.spacing.unit,
+		marginLeft: theme.spacing(2),
 	}
 });
 

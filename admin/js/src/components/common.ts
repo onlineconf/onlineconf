@@ -8,27 +8,8 @@ export interface ValueProps {
 }
 
 export interface EditValueProps extends ValueProps {
-	onChange: (props: { target: { value: string | null } }) => void;
+	onChange: (value: string | null) => void;
 	onError: (error: Error) => void;
-}
-
-export interface NonNullValueProps {
-	type: ParamType;
-	value: string;
-}
-
-export interface EditNonnullValueProps extends NonNullValueProps {
-	onChange: (props: { target: { value: string } }) => void;
-	onError: (error: Error) => void;
-}
-
-export interface Case {
-	mime: ParamType;
-	value: string | null;
-	server?: string;
-	group?: string;
-	datacenter?: string;
-	service?: string;
 }
 
 export interface IParamNode extends Omit<IParam, 'children'> {

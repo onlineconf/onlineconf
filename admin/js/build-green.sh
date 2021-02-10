@@ -12,7 +12,7 @@ cp public-green/* build-green/public/
 sed 's/#fc2c38/#4caf50/' public/index.html > build-green/public/index.html
 sed 's/#fc2c38/#4caf50/' public/browserconfig.xml > build-green/public/browserconfig.xml
 
-(cd build-green; REACT_APP_GREEN=1 react-scripts-ts build)
+(cd build-green; REACT_APP_GREEN=1 react-scripts build)
 
 rm -rf build
 mv build-green/build build

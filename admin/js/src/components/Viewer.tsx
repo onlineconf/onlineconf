@@ -3,7 +3,7 @@ import { withTranslation, WithTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Theme, createStyles, withStyles, WithStyles, withMobileDialog } from '@material-ui/core';
 
 import { IParamNode } from './common';
-import ValueView from './ValueView';
+import { ValueView } from './value';
 
 const styles = (theme: Theme) => createStyles({
 	title: {
@@ -13,13 +13,13 @@ const styles = (theme: Theme) => createStyles({
 		overflow: 'auto',
 	},
 	versionBox: {
-		marginTop: theme.spacing.unit / 2,
+		marginTop: theme.spacing(0.5),
 		borderTop: `1px solid ${theme.palette.divider}`,
 		display: 'flex',
 	},
 	version: {
 		flex: 'auto',
-		marginRight: 2 * theme.spacing.unit,
+		marginRight: theme.spacing(2),
 	},
 });
 
@@ -35,14 +35,14 @@ const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof
 	<Dialog open onClose={props.onClose} fullScreen={props.fullScreen}>
 		<DialogTitle className={classes.title}>
 			{param.path}
-			{param.summary !== '' && <Typography color="textSecondary">{param.summary}</Typography>}
+			{param.summary !== '' && <Typography variant="body2" color="textSecondary">{param.summary}</Typography>}
 		</DialogTitle>
 		<DialogContent>
-			{param.description !== '' && <Typography paragraph>{param.description}</Typography>}
-			<Typography component="div" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
+			{param.description !== '' && <Typography paragraph variant="body2">{param.description}</Typography>}
+			<Typography component="div" variant="body2" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
 			<div className={classes.versionBox}>
-				<Typography className={classes.version}>v.{param.version}</Typography>
-				<Typography color="textSecondary">{param.mtime}</Typography>
+				<Typography variant="body2" className={classes.version}>v.{param.version}</Typography>
+				<Typography variant="body2" color="textSecondary">{param.mtime}</Typography>
 			</div>
 		</DialogContent>
 		<DialogActions>
