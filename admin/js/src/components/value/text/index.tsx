@@ -2,8 +2,9 @@ import TextValuePreview from './TextValuePreview';
 import TextValueView from './TextValueView';
 import TextValueEdit from './TextValueEdit';
 
-export default {
+const textValue = {
 	preview: TextValuePreview,
 	view: TextValueView,
 	edit: TextValueEdit,
 };
+export default textValue;

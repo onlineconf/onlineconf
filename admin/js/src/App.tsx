@@ -1,12 +1,12 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
 import { MuiThemeProvider, withStyles, WithStyles } from '@material-ui/core/styles';
 import { CssBaseline } from '@material-ui/core';
 
 import createTheme from './theme';
 import TopBar from './components/TopBar';
-import LeftMenu from './components/LeftMenu';
+import LeftMenu, { leftMenuWidth } from './components/LeftMenu';
 import ConfigTree from './components/ConfigTree';
 import Servers from './components/Servers';
 import Access from './components/Access';
@@ -16,8 +16,6 @@ import GlobalLog from './components/GlobalLog';
 import { getWhoAmI } from './api';
 
 const theme = createTheme();
-
-const leftMenuWidth = 240;
 
 const styles = {
 	root: {
@@ -96,14 +94,14 @@ export default withStyles(styles)(
 
 		public render() {
 			const { classes } = this.props;
-			const mainClassName = classNames(classes.main, { [classes.mainShift]: this.state.menu });
+			const mainClassName = clsx(classes.main, { [classes.mainShift]: this.state.menu });
 			return (
 				<MuiThemeProvider theme={theme}>
 					<CssBaseline/>
 					<BrowserRouter>
 						<div className={this.props.classes.root}>
 							<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching}/>
-							<LeftMenu open={this.state.menu} onClose={this.handleMenuClose} classes={{ paper: this.props.classes.menu }}/>
+							<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
 							<main className={mainClassName}>
 								<Route exact path="/" render={props => <ConfigTree {...props} userIsRoot={this.state.userIsRoot} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
 								<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>

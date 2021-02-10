@@ -4,7 +4,7 @@ import { Omit } from '@material-ui/core';
 import { getParam } from '../api';
 import Autocomplete, { AutocompleteProps, AutocompleteOption } from './Autocomplete';
 
-interface PathFieldProps extends Omit<AutocompleteProps, 'loadOptions'> {
+type PathFieldProps = Omit<AutocompleteProps, 'loadOptions'> & {
 	symlink?: 'resolve' | 'follow';
 }
 
@@ -13,6 +13,7 @@ export default class PathField extends React.Component<PathFieldProps> {
 	cache: { [K: string]: AutocompleteOption[] } = {};
 
 	loadOptions = async (value: string) => {
+		// eslint-disable-next-line no-useless-escape
 		const prefix = value.replace(/\/[^\/]*$/, '');
 		value = prefix === '' ? '/' : prefix;
 		const cached = this.cache[value];

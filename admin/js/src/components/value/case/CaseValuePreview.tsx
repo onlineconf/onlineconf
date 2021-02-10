@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { withStyles, Theme, WithStyles, createStyles } from '@material-ui/core';
 
-import { NonNullValueProps, Case } from '../../common';
-import ValuePreview from '../../ValuePreview';
+import { Case, caseConditions } from './common';
+import { NonNullValueProps } from '../common';
+import { ValuePreview } from '../../value';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
@@ -26,9 +27,9 @@ const CaseValuePreview = (props: NonNullValueProps & WithStyles<typeof styles>) 
 				let key = 'default';
 				let isDefault = true;
 
-				for (const k of ['datacenter', 'group', 'server', 'service']) {
+				for (const k of caseConditions) {
 					if (k in c) {
-						key = c[k];
+						key = c[k]!;
 						isDefault = false;
 						break;
 					}

@@ -13,7 +13,8 @@ const styles = createStyles({
 interface SummaryDescriptionFieldsProps {
 	summary: string;
 	description: string;
-	onChange: (value: { summary?: string, description?: string }) => void;
+	onSummaryChange: (summary: string) => void;
+	onDescriptionChange: (description: string) => void;
 }
 
 const SummaryDescriptionFields = ({ t, ...props }: SummaryDescriptionFieldsProps & WithStyles<typeof styles> & WithTranslation) => (
@@ -21,7 +22,7 @@ const SummaryDescriptionFields = ({ t, ...props }: SummaryDescriptionFieldsProps
 		<TextField
 			label={t('param.summary')}
 			value={props.summary}
-			onChange={event => props.onChange({ summary: event.target.value })}
+			onChange={event => props.onSummaryChange(event.target.value)}
 			variant="outlined"
 			fullWidth
 			margin="dense"
@@ -29,7 +30,7 @@ const SummaryDescriptionFields = ({ t, ...props }: SummaryDescriptionFieldsProps
 		<TextField
 			label={t('param.description')}
 			value={props.description}
-			onChange={event => props.onChange({ description: event.target.value })}
+			onChange={event => props.onDescriptionChange(event.target.value)}
 			multiline
 			variant="outlined"
 			fullWidth

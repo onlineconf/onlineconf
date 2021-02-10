@@ -6,8 +6,9 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import AddIcon from '@material-ui/icons/AddCircle';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
 
-import { getDictionary } from '../../../cache';
-import { Case, EditNonnullValueProps } from '../../common';
+import { getDictionary, dictionaryKeys } from '../../../cache';
+import { Case, CaseConditions, caseConditions } from './common';
+import { EditNonnullValueProps } from '../common';
 import { ParamType } from '../../../api';
 import TypeValueFields from '../../TypeValueFields';
 import ValueOutline from '../ValueOutline';
@@ -23,31 +24,31 @@ const styles = (theme: Theme) => createStyles({
 		borderBottomWidth: 1,
 		borderBottomStyle: 'solid',
 		borderBottomColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
-		paddingBottom: theme.spacing.unit / 2,
-		marginBottom: theme.spacing.unit / 2,
+		paddingBottom: theme.spacing(0.5),
+		marginBottom: theme.spacing(0.5),
 	},
 	caseKey: {
 		display: 'flex',
 		flexWrap: 'wrap',
-		marginLeft: theme.spacing.unit / 2,
-		marginRight: theme.spacing.unit / 2,
+		marginLeft: theme.spacing(0.5),
+		marginRight: theme.spacing(0.5),
 	},
 	caseField: {
 		flex: 'auto',
-		marginLeft: theme.spacing.unit / 2,
-		marginRight: theme.spacing.unit / 2,
+		marginLeft: theme.spacing(0.5),
+		marginRight: theme.spacing(0.5),
 	},
 	remove: {
-		margin: `${theme.spacing.unit}px ${theme.spacing.unit / 2}px`,
+		margin: theme.spacing(1, 0.5),
 	},
 	caseValue: {
-		paddingLeft: theme.spacing.unit,
-		paddingRight: theme.spacing.unit,
-		paddingBottom: theme.spacing.unit / 2,
+		paddingLeft: theme.spacing(1),
+		paddingRight: theme.spacing(1),
+		paddingBottom: theme.spacing(0.5),
 	},
 	add: {
 		textAlign: 'center',
-		marginBottom: theme.spacing.unit / 2,
+		marginBottom: theme.spacing(0.5),
 	},
 });
 
@@ -69,12 +70,12 @@ export default withStyles(styles)(withTranslation()(
 			loading: {},
 		};
 
-		timer: NodeJS.Timer;
+		timer?: ReturnType<typeof setTimeout>;
 
 		handleChange(cb: (cases: Case[]) => void) {
 			const cases: Case[] = JSON.parse(this.props.value);
 			cb.call(this, cases);
-			this.props.onChange({ target: { value: JSON.stringify(cases) } });
+			this.props.onChange(JSON.stringify(cases));
 		}
 
 		handleAddCase = () => {
@@ -84,7 +85,7 @@ export default withStyles(styles)(withTranslation()(
 		}
 
 		createRemoveCaseHandler(id: number) {
-			return (event: React.MouseEvent<{}>) => {
+			return (event: React.MouseEvent<HTMLElement>) => {
 				this.handleChange(cases => {
 					cases.splice(id, 1);
 				});
@@ -94,8 +95,8 @@ export default withStyles(styles)(withTranslation()(
 		createCaseTypeHandler(id: number) {
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
 				this.handleChange(cases => {
-					const newType = event.target.value;
-					for (const t of ['server', 'group', 'datacenter', 'service']) {
+					const newType = event.target.value as CaseConditions | 'default';
+					for (const t of caseConditions) {
 						if (t in cases[id] && t !== newType) {
 							delete(cases[id][t]);
 						}
@@ -110,7 +111,7 @@ export default withStyles(styles)(withTranslation()(
 		createCaseKeyHandler(id: number) {
 			return (event: React.ChangeEvent<HTMLInputElement>) => {
 				this.handleChange(cases => {
-					for (const t of ['server', 'group', 'datacenter', 'service']) {
+					for (const t of caseConditions) {
 						if (t in cases[id]) {
 							cases[id][t] = event.target.value;
 						}
@@ -134,7 +135,7 @@ export default withStyles(styles)(withTranslation()(
 
 		loadDictionaries() {
 			const cases: Case[] = JSON.parse(this.props.value);
-			for (const t of (['group', 'datacenter', 'service'] as Array<'group' | 'datacenter' | 'service'>)) {
+			for (const t of dictionaryKeys) {
 				let has = false;
 				for (const c of cases) {
 					if (t in c) {
@@ -149,7 +150,9 @@ export default withStyles(styles)(withTranslation()(
 					getDictionary(t)
 						.then(data => {
 							this.setState(prevState => ({ [`${t}s`]: data, loading: { ...prevState.loading, [`${t}s`]: false } }));
-							clearTimeout(this.timer);
+							if (this.timer !== undefined) {
+								clearTimeout(this.timer);
+							}
 						})
 						.catch(error => this.props.onError(error));
 				}
@@ -161,7 +164,9 @@ export default withStyles(styles)(withTranslation()(
 		}
 
 		componentWillUnmount() {
-			clearTimeout(this.timer);
+			if (this.timer !== undefined) {
+				clearTimeout(this.timer);
+			}
 		}
 
 		componentDidUpdate(prevProps: EditNonnullValueProps) {
@@ -177,8 +182,8 @@ export default withStyles(styles)(withTranslation()(
 				<ValueOutline>
 					<div>
 						{cases.map((c, i) => {
-							let caseType = 'default';
-							for (const t of ['server', 'group', 'datacenter', 'service']) {
+							let caseType: CaseConditions | 'default' = 'default';
+							for (const t of caseConditions) {
 								if (t in c) {
 									caseType = t;
 									break;

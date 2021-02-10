@@ -28,8 +28,8 @@ class ParamMove extends React.Component<ParamMoveProps & WithTranslation, ParamM
 		comment: '',
 	};
 
-	handlePathChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		this.setState({ path: event.target.value });
+	handlePathChange = (value: string) => {
+		this.setState({ path: value });
 	}
 
 	handleSymlinkChange = (event: React.ChangeEvent, checked: boolean) => {
@@ -59,17 +59,19 @@ class ParamMove extends React.Component<ParamMoveProps & WithTranslation, ParamM
 	render() {
 		const { t } = this.props;
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
-				<ParamDialogTitle path={this.props.path}>{t('param.menu.move')}</ParamDialogTitle>
-				<DialogContent>
-					<PathField label={t('param.move.to')} required value={this.state.path} onChange={this.handlePathChange} variant="outlined" fullWidth autoFocus margin="dense"/>
-					<FormControlLabel label={t('param.move.symlink')} control={<Checkbox value="1" checked={this.state.symlink} onChange={this.handleSymlinkChange}/>}/>
-					<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" fullWidth margin="dense"/>
-				</DialogContent>
-				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
-					<Button color="primary" type="submit">{t('button.ok')}</Button>
-				</DialogActions>
+			<Dialog open onClose={this.props.onClose}>
+				<form onSubmit={this.handleConfirm}>
+					<ParamDialogTitle path={this.props.path}>{t('param.menu.move')}</ParamDialogTitle>
+					<DialogContent>
+						<PathField label={t('param.move.to')} required value={this.state.path} onChange={this.handlePathChange} variant="outlined" fullWidth autoFocus margin="dense"/>
+						<FormControlLabel label={t('param.move.symlink')} control={<Checkbox value="1" checked={this.state.symlink} onChange={this.handleSymlinkChange}/>}/>
+						<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" fullWidth margin="dense"/>
+					</DialogContent>
+					<DialogActions>
+						<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+						<Button color="primary" type="submit">{t('button.ok')}</Button>
+					</DialogActions>
+				</form>
 			</Dialog>
 		);
 	}

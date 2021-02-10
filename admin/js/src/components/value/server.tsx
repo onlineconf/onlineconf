@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
-import { NonNullValueProps, EditNonnullValueProps } from '../common';
+import { NonNullValueProps, EditNonnullValueProps } from './common';
 import TextValuePreview from './text/TextValuePreview';
 import ServerListValueEditBase, { ServerListEntry } from './ServerListValueEditBase';
 
@@ -69,8 +69,9 @@ const ServerListValueEdit = (props: EditNonnullValueProps) => (
 	<ServerListValueEditBase split={split} join={join} {...props}/>
 );
 
-export default {
+const serverValue = {
 	preview: TextValuePreview,
 	view: withStyles(viewStyles)(ServerListValueView),
 	edit: ServerListValueEdit,
 };
+export default serverValue;

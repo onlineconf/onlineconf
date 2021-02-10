@@ -2,14 +2,15 @@ import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
 import { TextField, MenuItem } from '@material-ui/core';
 
-import { types, Case } from './common';
+import { types } from './common';
+import { Case } from './value/case/common';
 import { ParamType } from '../api';
-import ValueEdit from './ValueEdit';
+import { ValueEdit } from './value';
 
 interface TypeValueFieldsProps {
 	type: ParamType;
 	value: string | null;
-	onChange: (state: { type?: ParamType, value?: string | null }) => void;
+	onChange: (state: { type: ParamType, value: string | null }) => void;
 	onError: (error: Error) => void;
 }
 
@@ -18,7 +19,7 @@ class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTransla
 	handleTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const type = event.target.value as ParamType;
 		if (type !== this.props.type) {
-			const state: { type: ParamType, value?: string | null } = { type };
+			const state: { type: ParamType, value: string | null } = { type, value: this.props.value };
 			if (type === 'application/x-null') {
 				state.value = null;
 			} else if (type === 'application/x-case') {
@@ -34,8 +35,8 @@ class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTransla
 		}
 	}
 
-	handleValueChange = (event: { target: { value: string }}) => {
-		this.props.onChange({ value: event.target.value });
+	handleValueChange = (value: string | null) => {
+		this.props.onChange({ type: this.props.type, value });
 	}
 
 	render() {

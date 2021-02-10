@@ -69,7 +69,7 @@ export async function postParam(path: string, modify: ParamModify) {
 }
 
 export async function deleteParam(path: string, info: { version: number, comment: string }) {
-	const response = await axios.request<{}>({
+	const response = await axios.request<void>({
 		...commonUrlencodedOptions,
 		url: '/config' + path,
 		method: 'DELETE',
@@ -91,7 +91,7 @@ export async function getParams(paths: Set<string>) {
 	if (paths.size === 0) {
 		return {};
 	} else if (paths.size === 1) {
-		const path = paths.values().next().value;
+		const path: string = paths.values().next().value;
 		return { [path]: await getParam(path) };
 	} else {
 		return await batchGetParams(Array.from(paths));
@@ -135,7 +135,7 @@ interface GlobalLogParams extends Omit<GlobalLogFilter, 'all'> {
 
 export async function getGlobalLog(filter: GlobalLogFilter, options: AxiosRequestConfig = {}) {
 	const params: GlobalLogParams = {};
-	for (const k of ['author', 'branch', 'from', 'till']) {
+	for (const k of ['author', 'branch', 'from', 'till'] as const) {
 		if (filter[k] !== undefined && filter[k] !== '') {
 			params[k] = filter[k];
 		}
@@ -169,7 +169,7 @@ export async function deleteServer(host: string) {
 
 
 export async function getAccess() {
-	const access = {};
+	const access: { [key: string]: string[] } = {};
 	const response = await axios.get<string[]>('/group/', commonOptions);
 	const promises = response.data.map(group => {
 		return axios.get<string[]>(`/group/${group}`, commonOptions).then(resp => {

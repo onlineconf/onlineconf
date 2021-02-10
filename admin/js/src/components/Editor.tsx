@@ -71,11 +71,15 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 		this.setState({ name: event.target.value });
 	}
 
-	handleSummaryDescriptionChange = (newState: EditorState) => {
-		this.setState(newState);
+	handleSummaryChange = (summary: string) => {
+		this.setState({ summary });
 	}
 
-	handleTypeValueChange = (newState: EditorState) => {
+	handleDescriptionChange = (description: string) => {
+		this.setState({ description });
+	}
+
+	handleTypeValueChange = (newState: Pick<EditorState, 'type' | 'value'>) => {
 		this.setState(newState);
 	}
 
@@ -132,7 +136,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 				{this.props.create ? <DialogTitle>{t('param.menu.create')}</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
-						{this.props.summary !== '' && <Typography color="textSecondary">{this.props.summary}</Typography>}
+						{this.props.summary !== '' && <Typography variant="body2" color="textSecondary">{this.props.summary}</Typography>}
 					</DialogTitle>
 				)}
 				<DialogContent>
@@ -154,10 +158,15 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 								}}
 								inputProps={{ className: this.props.classes.pathInput }}
 							/>
-							<SummaryDescriptionFields summary={this.state.summary} description={this.state.description} onChange={this.handleSummaryDescriptionChange}/>
+							<SummaryDescriptionFields
+								summary={this.state.summary}
+								description={this.state.description}
+								onSummaryChange={this.handleSummaryChange}
+								onDescriptionChange={this.handleDescriptionChange}
+							/>
 						</React.Fragment>
 					) : this.props.description !== '' &&
-						<Typography paragraph>{this.props.description}</Typography>
+						<Typography paragraph variant="body2">{this.props.description}</Typography>
 					}
 					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} onError={this.props.onError} />
 					{this.state.notification !== undefined && (

@@ -4,7 +4,7 @@ import { createStyles, WithStyles, withStyles, IconButton, TextField, Theme } fr
 import AddIcon from '@material-ui/icons/AddCircle';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
 
-import { EditNonnullValueProps } from '../../common';
+import { EditNonnullValueProps } from '../common';
 import ValueOutline from '../ValueOutline';
 
 const styles = (theme: Theme) => createStyles({
@@ -20,14 +20,14 @@ const styles = (theme: Theme) => createStyles({
 class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<typeof styles>> {
 
 	handleAddItem = () => {
-		this.props.onChange({ target: { value: this.props.value + ',' } });
+		this.props.onChange(this.props.value + ',');
 	}
 
 	createRemoveItemHandler(id: number) {
 		return () => {
 			const list = this.props.value.split(',');
 			list.splice(id, 1);
-			this.props.onChange({ target: { value: list.join(',') } });
+			this.props.onChange(list.join(','));
 		};
 	}
 
@@ -35,7 +35,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 		return (event: React.ChangeEvent<HTMLInputElement>) => {
 			const list = this.props.value.split(',');
 			list[id] = event.target.value;
-			this.props.onChange({ target: { value: list.join(',') } });
+			this.props.onChange(list.join(','));
 		};
 	}
 
@@ -45,7 +45,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 			<ValueOutline>
 				<ul className={this.props.classes.list}>
 					{list.map((item, i) => (
-						<li className={this.props.classes.item}>
+						<li key={i} className={this.props.classes.item}>
 							<IconButton onClick={this.createRemoveItemHandler(i)}><RemoveIcon/></IconButton>
 							<TextField margin="dense" fullWidth value={item} onChange={this.createChangeItemHandler(i)} autoFocus={item === ''}/>
 						</li>

@@ -4,13 +4,13 @@ import { createStyles, withStyles, WithStyles, Theme, Typography, Button } from 
 import CommentIcon from '@material-ui/icons/Comment';
 
 import * as API from '../api';
-import ValueView from './ValueView';
+import { ValueView } from './value';
 import symlink from './value/symlink';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
-		marginTop: theme.spacing.unit,
-		marginBottom: theme.spacing.unit,
+		marginTop: theme.spacing(1),
+		marginBottom: theme.spacing(1),
 		borderWidth: 1,
 		borderStyle: 'solid',
 		borderColor: theme.palette.divider,
@@ -46,7 +46,7 @@ const styles = (theme: Theme) => createStyles({
 		textAlign: 'right',
 	},
 	value: {
-		padding: `0 4px`,
+		padding: '0 4px',
 	},
 	comment: {
 		display: 'flex',
@@ -73,7 +73,7 @@ interface LogCardProps extends API.IParamLog {
 }
 
 const LogCard = (props: LogCardProps & WithStyles<typeof styles>) => (
-	<Typography component="div" className={props.classes.root}>
+	<Typography component="div" variant="body2" className={props.classes.root}>
 		{props.showPath && <div className={props.classes.path}><symlink.view type="application/x-symlink" value={props.path}/></div>}
 		<div className={props.classes.header}>
 			<Button variant="contained" size="small" disabled={props.rw !== true} className={props.classes.version}>v.{props.version}</Button>

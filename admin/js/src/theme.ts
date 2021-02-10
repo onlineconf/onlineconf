@@ -1,4 +1,3 @@
-// @ts-ignore
 import deepmerge from 'deepmerge';
 import createMuiTheme, { ThemeOptions } from '@material-ui/core/styles/createMuiTheme';
 import indigo from '@material-ui/core/colors/indigo';

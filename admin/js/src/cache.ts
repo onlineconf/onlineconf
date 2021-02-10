@@ -1,10 +1,11 @@
 import * as API from './api';
 
-type CacheKey = 'group' | 'datacenter' | 'service';
+export const dictionaryKeys = ['group', 'datacenter', 'service'] as const;
+export type DictionaryKey = typeof dictionaryKeys[number];
 
-const cache: { [K in CacheKey]?: { [k: string]: string } } = {};
+const cache: { [K in DictionaryKey]?: { [k: string]: string } } = {};
 
-const cacheDepth: { [K in CacheKey]: 'children' | 'subtree' } = {
+const cacheDepth: { [K in DictionaryKey]: 'children' | 'subtree' } = {
 	group: 'children',
 	datacenter: 'children',
 	service: 'subtree',
@@ -24,9 +25,9 @@ function fillDictionary(result: { [k: string]: string }, param: API.IParam, name
 	}
 }
 
-async function getDict(key: CacheKey) {
+async function getDict(key: DictionaryKey) {
 	if (key in cache) {
-		return cache[key];
+		return cache[key]!;
 	}
 
 	const depth = cacheDepth[key];
@@ -40,9 +41,9 @@ async function getDict(key: CacheKey) {
 	return result;
 }
 
-const promise = {};
+const promise: { [K in DictionaryKey]?: Promise<{ [k: string]: string }> } = {};
 
-export async function getDictionary(key: CacheKey) {
+export async function getDictionary(key: DictionaryKey) {
 	if (!(key in promise)) {
 		promise[key] = getDict(key);
 	}

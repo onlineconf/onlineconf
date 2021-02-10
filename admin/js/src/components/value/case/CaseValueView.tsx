@@ -1,9 +1,10 @@
 import * as React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { withStyles, Theme, WithStyles, createStyles } from '@material-ui/core';
 
-import { NonNullValueProps, Case } from '../../common';
-import ValueView from '../../ValueView';
+import { Case, caseConditions } from './common';
+import { NonNullValueProps } from '../common';
+import { ValueView } from '../../value';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
@@ -24,7 +25,7 @@ const styles = (theme: Theme) => createStyles({
 	},
 	value: {
 		color: theme.onlineconf.palette.case.value,
-		marginLeft: 2 * theme.spacing.unit,
+		marginLeft: theme.spacing(2),
 	},
 });
 
@@ -37,15 +38,15 @@ const CaseValueView = (props: NonNullValueProps & WithStyles<typeof styles>) => 
 				let key = 'default';
 				let isDefault = true;
 
-				for (const k of ['datacenter', 'group', 'server', 'service']) {
+				for (const k of caseConditions) {
 					if (k in c) {
-						key = c[k];
+						key = c[k]!;
 						isDefault = false;
 						break;
 					}
 				}
 
-				const keyClassName = classNames(props.classes.key, { [props.classes.keyDefault]: isDefault });
+				const keyClassName = clsx(props.classes.key, { [props.classes.keyDefault]: isDefault });
 				return (
 					<React.Fragment key={i}>
 						<div className={props.classes.keyBlock}>

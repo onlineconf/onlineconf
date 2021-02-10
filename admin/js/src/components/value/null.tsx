@@ -1,24 +1,30 @@
 import * as React from 'react';
-import { WithStyles, createStyles, Theme, withStyles } from '@material-ui/core';
+import { makeStyles, Theme } from '@material-ui/core';
 
-import { ValueProps, EditValueProps } from '../common';
+import { NullValueProps } from './common';
 
-const NullValuePreview = (props: ValueProps) => null;
+export function NullValuePreview(props: NullValueProps) {
+	return null;
+}
 
-const viewStyles = (theme: Theme) => createStyles({
+const useViewStyles = makeStyles((theme: Theme) => ({
 	root: {
 		color: theme.onlineconf.palette.null,
 	},
-});
+}));
 
-const NullValueView = (props: ValueProps & WithStyles<typeof viewStyles>) => (
-	<span className={props.classes.root}>NULL</span>
-);
+export function NullValueView(props: NullValueProps) {
+	const classes = useViewStyles();
+	return <span className={classes.root}>NULL</span>;
+}
 
-const NullValueEdit = (props: EditValueProps) => null;
+export function NullValueEdit(props: NullValueProps) {
+	return null;
+}
 
-export default {
+const nullValue = {
 	preview: NullValuePreview,
-	view: withStyles(viewStyles)(NullValueView),
+	view: NullValueView,
 	edit: NullValueEdit,
 };
+export default nullValue;

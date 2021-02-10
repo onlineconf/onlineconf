@@ -41,16 +41,18 @@ class ParamDeleteConfirm extends React.Component<ParamDeleteConfirmProps & WithT
 	render() {
 		const { t } = this.props;
 		return (
-			<Dialog open onClose={this.props.onClose} PaperProps={{ component: 'form' as any, onSubmit: this.handleConfirm }}>
-				<ParamDialogTitle path={this.props.path}>{t('param.menu.delete')}</ParamDialogTitle>
-				<DialogContent>
-					<DialogContentText>{t('param.delete.confirm', { param: this.props.path })}</DialogContentText>
-					<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" margin="dense" fullWidth autoFocus/>
-				</DialogContent>
-				<DialogActions>
-					<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
-					<Button color="primary" type="submit">{t('button.ok')}</Button>
-				</DialogActions>
+			<Dialog open onClose={this.props.onClose}>
+				<form onSubmit={this.handleConfirm}>
+					<ParamDialogTitle path={this.props.path}>{t('param.menu.delete')}</ParamDialogTitle>
+					<DialogContent>
+						<DialogContentText>{t('param.delete.confirm', { param: this.props.path })}</DialogContentText>
+						<TextField label={t('param.comment')} required value={this.state.comment} onChange={this.handleCommentChange} variant="outlined" margin="dense" fullWidth autoFocus/>
+					</DialogContent>
+					<DialogActions>
+						<Button color="primary" onClick={this.props.onClose}>{t('button.cancel')}</Button>
+						<Button color="primary" type="submit">{t('button.ok')}</Button>
+					</DialogActions>
+				</form>
 			</Dialog>
 		);
 	}

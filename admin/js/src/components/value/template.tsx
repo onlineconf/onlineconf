@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
 
-import { NonNullValueProps } from '../common';
+import { NonNullValueProps } from './common';
 import TextValueView from './text/TextValueView';
 import TextValueEdit from './text/TextValueEdit';
 
@@ -29,8 +29,9 @@ const TemplateValuePreview = (props: NonNullValueProps & WithStyles<typeof previ
 	);
 };
 
-export default {
+const templateValue = {
 	preview: withStyles(previewStyles)(TemplateValuePreview),
 	view: TextValueView,
 	edit: TextValueEdit,
 };
+export default templateValue;
