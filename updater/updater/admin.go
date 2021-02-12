@@ -16,8 +16,8 @@ var ErrNotModified = errors.New("config not modified")
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-func getModules(config AdminConfig, hostname, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
-	respMtime, data, err := getConfigData(config, hostname, mtime)
+func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime)
 	if err != nil {
 		return "", nil, err
 	}
@@ -25,7 +25,7 @@ func getModules(config AdminConfig, hostname, mtime string, vars map[string]stri
 	return respMtime, modules, nil
 }
 
-func getConfigData(config AdminConfig, hostname, mtime string) (string, *ConfigData, error) {
+func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (string, *ConfigData, error) {
 	client := http.Client{}
 
 	req, err := http.NewRequest("GET", config.URI+"/client/config", nil)
@@ -35,6 +35,9 @@ func getConfigData(config AdminConfig, hostname, mtime string) (string, *ConfigD
 
 	if hostname != "" {
 		req.Header.Add("X-OnlineConf-Client-Host", hostname)
+	}
+	if datacenter != "" {
+		req.Header.Add("X-OnlineConf-Client-Datacenter", datacenter)
 	}
 	req.Header.Add("X-OnlineConf-Client-Version", version)
 	req.SetBasicAuth(config.Username, config.Password)
