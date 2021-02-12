@@ -27,6 +27,7 @@ type AdminConfig struct {
 
 type ConfigFile struct {
 	Hostname       string
+	Datacenter     string
 	Admin          AdminConfig
 	DataDir        string `yaml:"data_dir"`
 	UpdateInterval int    `yaml:"update_interval"`
@@ -82,7 +83,8 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 	}
 
 	return &updater.UpdaterConfig{
-		Hostname: config.Hostname,
+		Hostname:   config.Hostname,
+		Datacenter: config.Datacenter,
 		Admin: updater.AdminConfig{
 			URI:      uri,
 			Username: config.Admin.Username,

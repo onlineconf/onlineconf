@@ -15,7 +15,7 @@ OnlineConf is developed by Mail.Ru where it is used since 2011 to configure high
 * Storing a configuration structured as a tree;
 * Not only text values but JSON/YAML too;
 * Symbolic links to parameters (like symlinks in Unix systems);
-* Conditional parameters which values depend on a hostname, an IP address or credentials of a server;
+* Conditional parameters which values depend on a hostname, datacenter or credentials of a server;
 * Control panel to edit a configuration without developer, devops or system administrator skills;
 * API for scripted modification of parameters;
 * Access control applied to individual parameters and whole subtrees;
@@ -142,7 +142,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 
 ### /onlineconf/datacenter
 
-`/onlineconf/datacenter` groups servers by their IP addresses. The name of a parameter is the name of a datacenter, the value is a comma-separated list of networks.
+`/onlineconf/datacenter` groups servers by datacenter. The name of a child parameter is the name of a datacenter, the value can either be of `Null` type or a comma-separated list of networks of `Text` or `List` types. In the first case datacenter name will be received from *onlineconf-updater* (`datacenter` parameter in its `onlineconf.yaml` config), in the second case it will be calculated using IP address *onlineconf-updater* connected from.
 
 ### /onlineconf/suspended
 

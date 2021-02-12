@@ -17,6 +17,7 @@ type AdminConfig struct {
 
 type UpdaterConfig struct {
 	Hostname       string
+	Datacenter     string
 	Admin          AdminConfig
 	DataDir        string
 	UpdateInterval time.Duration
@@ -60,7 +61,7 @@ func (u *Updater) Stop() {
 }
 
 func (u *Updater) Update() error {
-	respMtime, modules, err := getModules(u.config.Admin, u.config.Hostname, u.mtime, u.config.Variables)
+	respMtime, modules, err := getModules(u.config.Admin, u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")

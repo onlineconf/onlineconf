@@ -18,6 +18,7 @@ var (
 
 type datacenter struct {
 	name   string
+	trust  bool
 	ipnets []net.IPNet
 }
 
@@ -57,11 +58,18 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	sort.Strings(sortedNames)
 	datacenters := make([]datacenter, 0, len(dcroot.Children))
 	for _, name := range sortedNames {
-		ipnets, err := readIPNets(*dcroot.Children[name])
-		if err != nil {
-			return nil, err
+		dc := *dcroot.Children[name]
+		datacenter := datacenter{name: name}
+		if dc.ContentType == "application/x-null" {
+			datacenter.trust = true
+		} else {
+			ipnets, err := readIPNets(dc)
+			if err != nil {
+				return nil, err
+			}
+			datacenter.ipnets = ipnets
 		}
-		datacenters = append(datacenters, datacenter{name, ipnets})
+		datacenters = append(datacenters, datacenter)
 	}
 	return datacenters, nil
 }

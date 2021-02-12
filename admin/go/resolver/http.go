@@ -23,8 +23,9 @@ var (
 )
 
 type Server struct {
-	Host string
-	IP   net.IP
+	Host       string
+	IP         net.IP
+	Datacenter string
 }
 
 var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
@@ -104,6 +105,8 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 		return nil, ""
 	}
 	log.Ctx(req.Context()).Info().Str("host", server.Host).Str("ip", server.IP.String()).Msg("")
+
+	server.Datacenter = req.Header.Get("X-OnlineConf-Client-Datacenter")
 
 	clientVersion := req.Header.Get("X-OnlineConf-Client-Version")
 	if clientVersion == "" {

@@ -62,15 +62,35 @@ type serverCaseResolver struct {
 
 func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverCaseResolver {
 	var datacenter string
-dcloop:
-	for _, dc := range t.datacenters {
-		for _, ipnet := range dc.ipnets {
-			if ipnet.Contains(server.IP) {
-				datacenter = dc.name
-				break dcloop
+	if server.Datacenter != "" {
+		found := false
+		for _, dc := range t.datacenters {
+			if dc.name == server.Datacenter {
+				found = true
+				if dc.trust {
+					datacenter = dc.name
+				} else {
+					log.Ctx(ctx).Warn().Str("datacenter", dc.name).Msg("datacenter value received from updater is not trusted")
+				}
+				break
+			}
+		}
+		if !found {
+			log.Ctx(ctx).Warn().Str("datacenter", server.Datacenter).Msg("unknown datacenter")
+		}
+	}
+	if datacenter == "" {
+	dcloop:
+		for _, dc := range t.datacenters {
+			for _, ipnet := range dc.ipnets {
+				if ipnet.Contains(server.IP) {
+					datacenter = dc.name
+					break dcloop
+				}
 			}
 		}
 	}
+
 	groups := make([]string, 0)
 	for _, group := range t.groups {
 		for _, glob := range group.globs {
@@ -80,6 +100,7 @@ dcloop:
 			}
 		}
 	}
+
 	service := common.Username(ctx)
 	services := []string{service}
 	for i := len(service) - 1; i >= 0; i-- {
