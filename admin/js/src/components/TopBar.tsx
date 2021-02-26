@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
 import AppBar from '@material-ui/core/AppBar';
-import { WithStyles, withStyles, Theme } from '@material-ui/core/styles';
+import { useMediaQuery, useTheme } from '@material-ui/core';
+import { Theme, makeStyles } from '@material-ui/core/styles';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
@@ -11,6 +12,8 @@ import IconButton from '@material-ui/core/IconButton';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
 import IconButtonProgress from './IconButtonProgress';
+
+import Avatar from './Avatar';
 
 interface SearchProps {
 	onSearch: (term: string) => void;
@@ -70,7 +73,7 @@ class SearchBase extends React.Component<SearchProps & WithTranslation, SearchSt
 
 const Search = withTranslation()(SearchBase);
 
-const styles = (theme: Theme) => ({
+const useStyles = makeStyles((theme: Theme) => ({
 	root: {
 	},
 	title: {
@@ -82,27 +85,37 @@ const styles = (theme: Theme) => ({
 	},
 	search: {
 		marginLeft: theme.spacing(2),
+	},
+	avatar: {
+		width: 32,
+		height: 32,
+		marginLeft: 12,
 	}
-});
+}));
 
 interface TopBarProps {
+	username?: string;
 	onMenu: () => void;
 	onSearch: (term: string) => void;
 	searching: boolean;
 }
 
-const TopBar = (props: TopBarProps & WithStyles<typeof styles>) => (
-	<AppBar position="sticky" color="default" className={props.classes.root}>
-		<Toolbar>
-			<IconButton color="inherit" className={props.classes.menuButton} onClick={props.onMenu}>
-				<MenuIcon/>
-			</IconButton>
-			<Typography variant="h6" color="inherit" className={props.classes.title}>
-				OnlineConf
-			</Typography>
-			<Search onSearch={props.onSearch} searching={props.searching} className={props.classes.search}/>
-		</Toolbar>
-	</AppBar>
-);
-
-export default withStyles(styles)(TopBar);
+export default function TopBar(props: TopBarProps) {
+	const classes = useStyles();
+	const theme = useTheme();
+	const showAvatar = useMediaQuery(theme.breakpoints.up('sm'));
+	return (
+		<AppBar position="sticky" color="default" className={classes.root}>
+			<Toolbar>
+				<IconButton color="inherit" className={classes.menuButton} onClick={props.onMenu}>
+					<MenuIcon/>
+				</IconButton>
+				<Typography variant="h6" color="inherit" className={classes.title}>
+					OnlineConf
+				</Typography>
+				<Search onSearch={props.onSearch} searching={props.searching} className={classes.search}/>
+				{showAvatar && props.username && <Avatar username={props.username} className={classes.avatar}/>}
+			</Toolbar>
+		</AppBar>
+	);
+}

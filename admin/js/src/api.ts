@@ -245,3 +245,23 @@ export async function getUsers(term: string) {
 	const response = await axios.get<string[]>('/user', { ...commonOptions, params: { term } });
 	return response.data;
 }
+
+export interface UIConfig {
+	avatar?: AvatarConfig;
+}
+
+export interface AvatarConfig {
+	uri: string;
+	domain?: string;
+	gravatar?: boolean;
+	rename?: { [K: string]: string };
+	link?: {
+		uri: string;
+		rename?: { [K: string]: string };
+	};
+}
+
+export async function getUIConfig() {
+	const response = await axios.get<UIConfig>('/ui-config', commonOptions);
+	return response.data;
+}
