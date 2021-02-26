@@ -1,8 +1,20 @@
 import * as React from 'react';
-import { Omit } from '@material-ui/core';
+import { ListItemAvatar, ListItemText, Omit } from '@material-ui/core';
 
 import { getUsers } from '../api';
-import Autocomplete, { AutocompleteProps, AutocompleteOption } from './Autocomplete';
+import Autocomplete, { AutocompleteProps, AutocompleteOption, AutocompleteItemProps } from './Autocomplete';
+import Avatar from './Avatar';
+
+function UserFieldItem(props: AutocompleteItemProps) {
+	return (
+		<React.Fragment>
+			<ListItemAvatar>
+				<Avatar username={props.children}/>
+			</ListItemAvatar>
+			<ListItemText>{props.children}</ListItemText>
+		</React.Fragment>
+	);
+}
 
 export default class UserField extends React.Component<Omit<AutocompleteProps, 'loadOptions'>> {
 
@@ -23,7 +35,7 @@ export default class UserField extends React.Component<Omit<AutocompleteProps, '
 	}
 
 	render() {
-		return <Autocomplete {...this.props} loadOptions={this.loadOptions}/>;
+		return <Autocomplete {...this.props} loadOptions={this.loadOptions} itemComponent={UserFieldItem}/>;
 	}
 
 }

@@ -3,6 +3,14 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 import { Theme, withStyles, WithStyles, TextField, createStyles, MenuItem, Popper, MenuList, Paper, ClickAwayListener, Omit } from '@material-ui/core';
 import { TextFieldProps } from '@material-ui/core/TextField';
 
+export interface AutocompleteItemProps {
+	children: string;
+}
+
+function AutocompleteItem(props: AutocompleteItemProps) {
+	return <React.Fragment>{props.children}</React.Fragment>;
+}
+
 const styles = (theme: Theme) => createStyles({
 	popper: {
 		zIndex: theme.zIndex.modal + 1,
@@ -23,6 +31,7 @@ export type AutocompleteProps = Omit<TextFieldProps, 'classes' | 'onChange' | 'o
 	value: string;
 	onChange: (value: string) => void;
 	loadOptions: (value: string) => Promise<AutocompleteOption[]>;
+	itemComponent?: React.ElementType<AutocompleteItemProps>;
 }
 
 interface AutocompleteState {
@@ -31,7 +40,7 @@ interface AutocompleteState {
 	menuWidth?: number;
 }
 
-class PathField extends React.Component<AutocompleteProps & WithStyles<typeof styles>, AutocompleteState> {
+class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof styles>, AutocompleteState> {
 
 	state: AutocompleteState = {
 		options: [],
@@ -130,7 +139,8 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 	}
 
 	render() {
-		const { onChange, loadOptions, classes, ...props } = this.props;
+		const { onChange, loadOptions, classes, itemComponent, ...props } = this.props;
+		const ItemComponent = itemComponent || AutocompleteItem;
 		return (
 			<React.Fragment>
 				<TextField
@@ -159,7 +169,7 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 										selected={option.value === this.state.selected}
 										ref={option.value === this.state.selected ? this.selectedRef : undefined}
 									>
-										{option.label}
+										<ItemComponent>{option.label}</ItemComponent>
 									</MenuItem>
 								))}
 							</MenuList>
@@ -172,4 +182,4 @@ class PathField extends React.Component<AutocompleteProps & WithStyles<typeof st
 
 }
 
-export default withStyles(styles)(PathField);
+export default withStyles(styles)(Autocomplete);

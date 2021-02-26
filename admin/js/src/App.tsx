@@ -1,10 +1,10 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
-import { MuiThemeProvider, withStyles, WithStyles } from '@material-ui/core/styles';
+import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
 import { CssBaseline } from '@material-ui/core';
 
-import createTheme from './theme';
+import UIConfigProvider from './components/UIConfig';
 import TopBar from './components/TopBar';
 import LeftMenu, { leftMenuWidth } from './components/LeftMenu';
 import ConfigTree from './components/ConfigTree';
@@ -15,9 +15,7 @@ import GlobalLog from './components/GlobalLog';
 
 import { getWhoAmI } from './api';
 
-const theme = createTheme();
-
-const styles = {
+const styles = (theme: Theme) => ({
 	root: {
 	},
 	menu: {
@@ -39,9 +37,10 @@ const styles = {
 			marginLeft: leftMenuWidth,
 		},
 	},
-};
+});
 
 interface AppState {
+	username?: string;
 	userIsRoot: boolean;
 	menu: boolean;
 	search: string;
@@ -66,7 +65,10 @@ export default withStyles(styles)(
 		async loadWhoAmI() {
 			try {
 				const data = await getWhoAmI();
-				this.setState({ userIsRoot: data.can_edit_groups });
+				this.setState({
+					username: data.username,
+					userIsRoot: data.can_edit_groups,
+				});
 			} catch (error) {
 				this.handleError(error);
 			}
@@ -96,11 +98,11 @@ export default withStyles(styles)(
 			const { classes } = this.props;
 			const mainClassName = clsx(classes.main, { [classes.mainShift]: this.state.menu });
 			return (
-				<MuiThemeProvider theme={theme}>
+				<UIConfigProvider onError={this.handleError}>
 					<CssBaseline/>
 					<BrowserRouter>
 						<div className={this.props.classes.root}>
-							<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching}/>
+							<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching} username={this.state.username}/>
 							<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
 							<main className={mainClassName}>
 								<Route exact path="/" render={props => <ConfigTree {...props} userIsRoot={this.state.userIsRoot} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
@@ -111,7 +113,7 @@ export default withStyles(styles)(
 						</div>
 					</BrowserRouter>
 					<ErrorSnackbar error={this.state.error}/>
-				</MuiThemeProvider>
+				</UIConfigProvider>
 			);
 		}
 

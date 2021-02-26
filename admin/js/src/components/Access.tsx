@@ -5,6 +5,7 @@ import { Chip, List, ListItem, createStyles, WithStyles, withStyles, Theme, Icon
 import AddIcon from '@material-ui/icons/AddCircle';
 
 import * as api from '../api';
+import Avatar from './Avatar';
 import UserField from './UserField';
 
 const styles = (theme: Theme) => createStyles({
@@ -192,6 +193,7 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 									<Chip
 										key={user}
 										label={user}
+										avatar={<Avatar username={user} disableTooltip/>}
 										className={classes.chip}
 										onDelete={this.props.userIsRoot ? () => this.removeUser(group, user) : undefined}
 									/>

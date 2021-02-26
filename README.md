@@ -152,6 +152,20 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 
 `/onlineconf/ephemeral-ip` contains a list of networks where IP addresses are assigned dynamically and are valid only during a service lifetime (in Kubernetes cluster, for example). Reverse DNS query and monitoring are skipped for these networks.
 
+### /onlineconf/ui/avatar
+
+`/onlineconf/ui/avatar` contains a configuration of avatars displayed in the OnlineConf UI in JSON or YAML format with the following schema:
+* `uri` - an avatar URI base, `/` and a username will be appended to it to form a URI;
+* `domain` - a domain users belongs to, if present then it will be appended to usernames after `@`;
+* `gravatar` - if true then a username will be hashed using MD5 before appending to a base URI;
+* `rename` - `map[string]string`, a dictionary of replacements of usernames to use in avatar URIs;
+* `link` - a configuration object of a link to a user profile:
+  * `uri` - a user profile URI base, `/` and a username will be appended to it to form a URI;
+  * `rename` - `map[string]string`, a dictionary of replacements of usernames to use in user profile URIs;
+
+Symlinks in this parameter are intentionally not supported. Only JSON and YAML types are allowed.
+A value of the parameter will be implicitly readable by all users through `/ui-config` API method.
+
 ## Reading a configuration from an application
 
 Several languages already have libraries to work with configuration files: [Go](https://github.com/onlineconf/onlineconf-go), [Swift](https://github.com/onlineconf/onlineconf-swift), [Perl](https://github.com/onlineconf/onlineconf-perl), [Python](https://github.com/onlineconf/onlineconf-python) and [Node.js](https://github.com/onlineconf/onlineconf-nodejs).

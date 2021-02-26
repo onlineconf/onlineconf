@@ -3,10 +3,13 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
@@ -54,6 +57,8 @@ func RegisterRoutes(r *mux.Router) {
 
 	r.Path("/monitoring").Methods("GET").HandlerFunc(serveMonitoring)
 	r.Path("/monitoring/{host}").Methods("DELETE").HandlerFunc(serveDeleteServerFromMonitoring)
+
+	r.Path("/ui-config").Methods("GET").HandlerFunc(serveUIConfig)
 }
 
 func serveGetConfig(w http.ResponseWriter, req *http.Request) {
@@ -353,6 +358,53 @@ func serveDeleteServerFromMonitoring(w http.ResponseWriter, req *http.Request) {
 	}
 	err := DeleteServerStatus(req.Context(), mux.Vars(req)["host"])
 	writeResponse(req.Context(), w, map[string]string{"Result": "Deleted"}, err)
+}
+
+const avatarPath = "/onlineconf/ui/avatar"
+
+var errInvalidAvatarContentType = errors.New("invalid content-type")
+
+type UIConfig struct {
+	Avatar *Avatar `json:"avatar,omitempty"`
+}
+
+type Avatar struct {
+	URI      string            `json:"uri"`
+	Domain   string            `json:"domain"`
+	Gravatar bool              `json:"gravatar"`
+	Rename   map[string]string `json:"rename,omitempty"`
+	Link     *struct {
+		URI    string            `json:"uri"`
+		Rename map[string]string `json:"rename,omitempty"`
+	} `json:"link,omitempty"`
+}
+
+// All data read by this function from the configuration tree is visible
+// to all users without any restrictions through `/ui-config`.
+// To prevent a security hole the following rules must be applied:
+// - symlinks MUST NOT be supported
+// - any data MUST be decoded using an explicit schema
+func serveUIConfig(w http.ResponseWriter, req *http.Request) {
+	var config UIConfig
+	avatarParam, err := SelectParameter(req.Context(), avatarPath)
+	if avatarParam != nil {
+		var avatar Avatar
+		switch avatarParam.ContentType {
+		case "application/json":
+			err = json.Unmarshal([]byte(avatarParam.Value.String), &avatar)
+		case "application/x-yaml":
+			err = yaml.Unmarshal([]byte(avatarParam.Value.String), &avatar)
+		default:
+			err = errInvalidAvatarContentType
+		}
+		if err == nil {
+			config.Avatar = &avatar
+		}
+	}
+	if err != nil {
+		log.Warn().Err(err).Str("path", avatarPath).Msg("failed to read avatar config")
+	}
+	writeResponse(req.Context(), w, config, err)
 }
 
 func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{}, err error) {
