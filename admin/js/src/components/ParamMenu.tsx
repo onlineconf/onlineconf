@@ -1,6 +1,10 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { Theme, createStyles, withStyles, WithStyles, Menu, MenuProps, MenuItem, ListItemIcon, ListItemText } from '@material-ui/core';
+import { Theme, createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import Menu, { MenuProps } from '@material-ui/core/Menu';
+import MenuItem from '@material-ui/core/MenuItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
 
 import NotesIcon from '@material-ui/icons/Notes';
 import EditIcon from '@material-ui/icons/Edit';

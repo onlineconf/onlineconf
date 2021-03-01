@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { ListItemAvatar, ListItemText, Omit } from '@material-ui/core';
+import { Omit } from '@material-ui/types';
+import ListItemAvatar from '@material-ui/core/ListItemAvatar';
+import ListItemText from '@material-ui/core/ListItemText';
 
 import { getUsers } from '../api';
 import Autocomplete, { AutocompleteProps, AutocompleteOption, AutocompleteItemProps } from './Autocomplete';

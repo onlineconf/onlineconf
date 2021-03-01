@@ -1,7 +1,13 @@
 import * as React from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { Theme, withStyles, WithStyles, TextField, createStyles, MenuItem, Popper, MenuList, Paper, ClickAwayListener, Omit } from '@material-ui/core';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { Omit } from '@material-ui/types';
+import { Theme, withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
+import MenuList from '@material-ui/core/MenuList';
+import MenuItem from '@material-ui/core/MenuItem';
+import Popper from '@material-ui/core/Popper';
+import Paper from '@material-ui/core/Paper';
+import ClickAwayListener from '@material-ui/core/ClickAwayListener';
+import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 
 export interface AutocompleteItemProps {
 	children: string;

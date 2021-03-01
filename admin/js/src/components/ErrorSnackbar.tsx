@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AxiosError } from 'axios';
-import { Snackbar, createStyles, Theme, withStyles, WithStyles } from '@material-ui/core';
+import { createStyles, Theme, withStyles, WithStyles } from '@material-ui/core/styles';
+import Snackbar from '@material-ui/core/Snackbar';
 
 const styles = (theme: Theme) => createStyles({
 	content: {

@@ -1,6 +1,6 @@
 import { TreeNodeState } from './TreeNode';
 import { ParamType, IParam } from '../api';
-import { Omit } from '@material-ui/core';
+import { Omit } from '@material-ui/types';
 
 export interface ValueProps {
 	type: ParamType;

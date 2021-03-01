@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core';
+import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 import { EditNonnullValueProps, NonNullValueProps } from './common';
 import PathField from '../PathField';
 

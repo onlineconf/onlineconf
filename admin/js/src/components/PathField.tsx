@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Omit } from '@material-ui/core';
+import { Omit } from '@material-ui/types';
 
 import { getParam } from '../api';
 import Autocomplete, { AutocompleteProps, AutocompleteOption } from './Autocomplete';

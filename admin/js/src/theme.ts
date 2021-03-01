@@ -1,8 +1,6 @@
 import deepmerge from 'deepmerge';
-import createMuiTheme, { ThemeOptions } from '@material-ui/core/styles/createMuiTheme';
-import indigo from '@material-ui/core/colors/indigo';
-import orange from '@material-ui/core/colors/orange';
-import green from '@material-ui/core/colors/green';
+import { createMuiTheme, ThemeOptions } from '@material-ui/core/styles';
+import { indigo, orange, green } from '@material-ui/core/colors';
 
 declare module '@material-ui/core/styles/createMuiTheme' {
 	interface Theme {

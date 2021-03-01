@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
+import { makeStyles } from '@material-ui/core/styles';
 import { InputBaseComponentProps } from '@material-ui/core/InputBase';
-import { TextField, makeStyles } from '@material-ui/core';
+import TextField from '@material-ui/core/TextField';
 
 import { EditNonnullValueProps } from '../common';
 import CodeMirrorComponent from '../../CodeMirror';

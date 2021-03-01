@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
+import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/styles';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
-import { InputAdornment, withMobileDialog, createStyles, withStyles, WithStyles, Theme, Typography } from '@material-ui/core';
+import InputAdornment from '@material-ui/core/InputAdornment';
+import Typography from '@material-ui/core/Typography';
+import withMobileDialog from '@material-ui/core/withMobileDialog';
 
 import { ValueProps } from './common';
 import { Notification, postParam, IParam, ParamModify } from '../api';

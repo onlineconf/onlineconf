@@ -1,7 +1,11 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { TextField, withStyles, createStyles, WithStyles, Theme, Checkbox, FormControlLabel, Button } from '@material-ui/core';
+import { withStyles, createStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import TextField from '@material-ui/core/TextField';
+import Checkbox from '@material-ui/core/Checkbox';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Button from '@material-ui/core/Button';
 
 import * as API from '../api';
 import UserField from './UserField';

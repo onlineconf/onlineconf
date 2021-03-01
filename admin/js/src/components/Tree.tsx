@@ -1,9 +1,8 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { StandardProps, createStyles } from '@material-ui/core';
-import { withStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import { makeStyles, Theme } from '@material-ui/core/styles';
 
-const styles = (theme: Theme) => createStyles({
+const useStyles = makeStyles((theme: Theme) => ({
 	root: {
 		listStyle: 'none',
 		margin: 0,
@@ -13,17 +12,16 @@ const styles = (theme: Theme) => createStyles({
 		paddingTop: theme.spacing(1),
 		paddingBottom: theme.spacing(1),
 	},
-});
+}));
 
-type TreeClassKey = keyof ReturnType<typeof styles>;
-
-interface TreeProps extends StandardProps<React.HTMLAttributes<HTMLUListElement>, TreeClassKey> {
+interface TreeProps extends React.HTMLAttributes<HTMLUListElement> {
 	component?: React.ElementType;
 	disablePadding?: boolean;
 }
 
-function Tree(props: TreeProps & WithStyles<TreeClassKey>) {
-	const { children, classes, className: classNameProp, component, disablePadding, ...rest } = props;
+export default function Tree(props: TreeProps) {
+	const { children, className: classNameProp, component, disablePadding, ...rest } = props;
+	const classes = useStyles();
 	const className = clsx(classes.root, { [classes.padding]: !disablePadding }, classNameProp);
 	const Component = component || 'ul';
 
@@ -33,5 +31,3 @@ function Tree(props: TreeProps & WithStyles<TreeClassKey>) {
 		</Component>
 	);
 }
-
-export default withStyles(styles)(Tree);

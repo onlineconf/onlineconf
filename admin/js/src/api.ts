@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import * as qs from 'querystring';
-import { Omit } from '@material-ui/core';
+import { Omit } from '@material-ui/types';
 
 export type ParamType = 'application/x-null'
 	| 'text/plain'
