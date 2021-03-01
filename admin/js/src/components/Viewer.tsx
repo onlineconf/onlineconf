@@ -1,6 +1,13 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Theme, createStyles, withStyles, WithStyles, withMobileDialog } from '@material-ui/core';
+import { Theme, createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import Dialog from '@material-ui/core/Dialog';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogActions from '@material-ui/core/DialogActions';
+import Button from '@material-ui/core/Button';
+import Typography from '@material-ui/core/Typography';
+import withMobileDialog from '@material-ui/core/withMobileDialog';
 
 import { IParamNode } from './common';
 import { ValueView } from './value';

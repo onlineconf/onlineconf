@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, Theme, WithStyles, withStyles, IconButton, CircularProgress, TextField, MenuItem } from '@material-ui/core';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import { createStyles, Theme, WithStyles, withStyles } from '@material-ui/core/styles';
+import IconButton from '@material-ui/core/IconButton';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import MenuItem from '@material-ui/core/MenuItem';
+import TextField, { TextFieldProps } from '@material-ui/core/TextField';
 
 import AddIcon from '@material-ui/icons/AddCircle';
 import RemoveIcon from '@material-ui/icons/RemoveCircle';

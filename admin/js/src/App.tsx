@@ -2,7 +2,7 @@ import * as React from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
 import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
-import { CssBaseline } from '@material-ui/core';
+import CssBaseline from '@material-ui/core/CssBaseline';
 
 import UIConfigProvider from './components/UIConfig';
 import TopBar from './components/TopBar';

@@ -1,7 +1,17 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { ListItem, List, Button, ListItemText, Checkbox, createStyles, Theme, withStyles, WithStyles, ListItemSecondaryAction, Dialog, DialogContent, DialogActions, withMobileDialog } from '@material-ui/core';
+import { createStyles, Theme, withStyles, WithStyles } from '@material-ui/core/styles';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import Button from '@material-ui/core/Button';
+import Checkbox from '@material-ui/core/Checkbox';
+import withMobileDialog from '@material-ui/core/withMobileDialog';
 
 import ParamDialogTitle from './ParamDialogTitle';
 

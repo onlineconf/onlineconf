@@ -1,9 +1,16 @@
 import * as React from 'react';
 import { Link, LinkProps, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Theme, useTheme, makeStyles } from '@material-ui/core/styles';
 import Drawer from '@material-ui/core/Drawer';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListItemText from '@material-ui/core/ListItemText';
+import Divider from '@material-ui/core/Divider';
+import Typography from '@material-ui/core/Typography';
+import useMediaQuery from '@material-ui/core/useMediaQuery';
 import { SvgIconProps } from '@material-ui/core/SvgIcon';
-import { List, ListItem, ListItemIcon, ListItemText, Theme, useTheme, makeStyles, Divider, Typography, useMediaQuery } from '@material-ui/core';
 
 import SettingsIcon from '@material-ui/icons/Settings';
 import HistoryIcon from '@material-ui/icons/History';

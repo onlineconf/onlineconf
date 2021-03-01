@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { createStyles, withStyles, WithStyles, Theme, Typography, Button } from '@material-ui/core';
+import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
 
 import CommentIcon from '@material-ui/icons/Comment';
 

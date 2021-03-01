@@ -1,11 +1,12 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { Theme, makeStyles } from '@material-ui/core/styles';
+import * as CSS from 'csstype';
+import { Omit } from '@material-ui/types';
+import { Theme, makeStyles, createStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
-import { SvgIconProps } from '@material-ui/core/SvgIcon';
 import Typography from '@material-ui/core/Typography';
-import { createStyles, Omit } from '@material-ui/core';
+import { SvgIconProps } from '@material-ui/core/SvgIcon';
 
 import DefaultIcon from '@material-ui/icons/Settings';
 import RootIcon from '@material-ui/icons/Language';
@@ -29,7 +30,6 @@ import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
 import NoAccess from './NoAccess';
-import { CSSProperties } from '@material-ui/core/styles/withStyles';
 
 export const spacingUnit = 2;
 export const buttonSize = 24;
@@ -49,7 +49,7 @@ const iconByType: { [P in ParamType]: React.ComponentType<SvgIconProps> } = {
 };
 
 const usePreviewStyles = makeStyles((theme: Theme) => {
-	const overflow: CSSProperties = {
+	const overflow: CSS.Properties = {
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
 		whiteSpace: 'nowrap',

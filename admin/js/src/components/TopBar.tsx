@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
+import { Theme, makeStyles, useTheme } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
-import { useMediaQuery, useTheme } from '@material-ui/core';
-import { Theme, makeStyles } from '@material-ui/core/styles';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import IconButton from '@material-ui/core/IconButton';
+import useMediaQuery from '@material-ui/core/useMediaQuery';
 
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';

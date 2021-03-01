@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { createStyles, withStyles, DialogTitle, Typography, WithStyles } from '@material-ui/core';
+import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Typography from '@material-ui/core/Typography';
 
 const styles = createStyles({
 	path: {

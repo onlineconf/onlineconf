@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { TextField, MenuItem } from '@material-ui/core';
+import MenuItem from '@material-ui/core/MenuItem';
+import TextField from '@material-ui/core/TextField';
 
 import { types } from './common';
 import { Case } from './value/case/common';
