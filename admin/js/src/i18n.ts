@@ -85,6 +85,11 @@ const resources = {
 				from: 'From',
 				till: 'Till',
 				all: 'All',
+				rollback: {
+					rollback: 'Rollback',
+					confirmation: 'Do you want to rollback parameter {{param}} to version {{version}}?',
+					current: 'Right now its version is {{version}} with the following value:',
+				}
 			},
 			server: {
 				host: 'Server',
@@ -186,6 +191,11 @@ const resources = {
 				from: 'С',
 				till: 'По',
 				all: 'Все',
+				rollback: {
+					rollback: 'Откатить',
+					confirmation: 'Откатить параметр {{param}} на версию {{version}}?',
+					current: 'Текущая версия {{version}}, значение:',
+				},
 			},
 			server: {
 				host: 'Сервер',

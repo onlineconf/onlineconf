@@ -17,6 +17,7 @@ import TableSortLabel from '@material-ui/core/TableSortLabel';
 
 import * as API from '../api';
 import { smartCompare } from './common';
+import WhoAmIContext from './WhoAmIContext';
 
 import RemoveIcon from '@material-ui/icons/RemoveCircle';
 
@@ -41,7 +42,6 @@ const styles = (theme: Theme) => createStyles({
 type ServerColumns = 'host' | 'mtime' | 'online' | 'package';
 
 interface ServersProps {
-	userIsRoot: boolean;
 	onError: (error: Error) => void;
 }
 
@@ -148,6 +148,8 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 		);
 	}
 
+	static contextType = WhoAmIContext;
+
 	render() {
 		const { classes, t } = this.props;
 		const { servers, orderBy, order } = this.state;
@@ -169,7 +171,7 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 								<TableRow key={server.host} className={classes.row}>
 									<TableCell>{server.host}</TableCell>
 									<TableCell padding="none">
-										{server.online_alert && this.props.userIsRoot && (
+										{server.online_alert && this.context.userIsRoot && (
 											<IconButton onClick={() => this.deleteServer(server)} className={classes.delete}><RemoveIcon/></IconButton>
 										)}
 									</TableCell>

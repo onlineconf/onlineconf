@@ -13,6 +13,7 @@ import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
 import IconButtonProgress from './IconButtonProgress';
 
+import WhoAmIContext from './WhoAmIContext';
 import Avatar from './Avatar';
 
 interface SearchProps {
@@ -94,7 +95,6 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 interface TopBarProps {
-	username?: string;
 	onMenu: () => void;
 	onSearch: (term: string) => void;
 	searching: boolean;
@@ -104,6 +104,7 @@ export default function TopBar(props: TopBarProps) {
 	const classes = useStyles();
 	const theme = useTheme();
 	const showAvatar = useMediaQuery(theme.breakpoints.up('sm'));
+	const { username } = React.useContext(WhoAmIContext);
 	return (
 		<AppBar position="sticky" color="default" className={classes.root}>
 			<Toolbar>
@@ -114,7 +115,7 @@ export default function TopBar(props: TopBarProps) {
 					OnlineConf
 				</Typography>
 				<Search onSearch={props.onSearch} searching={props.searching} className={classes.search}/>
-				{showAvatar && props.username && <Avatar username={props.username} className={classes.avatar}/>}
+				{showAvatar && username && <Avatar username={username} className={classes.avatar}/>}
 			</Toolbar>
 		</AppBar>
 	);

@@ -51,9 +51,9 @@ const commonUrlencodedOptions = {
 	headers: { ...commonOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
 };
 
-export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree') {
+export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree', options: AxiosRequestConfig = {}) {
 	const params = { symlink, depth };
-	const response = await axios.get<IParam>('/config' + path, { ...commonOptions, params });
+	const response = await axios.get<IParam>('/config' + path, { ...options, ...commonOptions, params });
 	return response.data;
 }
 
@@ -114,6 +114,7 @@ export interface IParamLog {
 	comment: string;
 	deleted: boolean;
 	rw: boolean | null;
+	same: boolean;
 }
 
 export async function getParamLog(path: string, options: AxiosRequestConfig = {}) {

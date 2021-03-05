@@ -11,13 +11,11 @@ import withMobileDialog from '@material-ui/core/withMobileDialog';
 
 import { IParamNode } from './common';
 import { ValueView } from './value';
+import NoAccess from './NoAccess';
 
 const styles = (theme: Theme) => createStyles({
 	title: {
 		overflowWrap: 'break-word',
-	},
-	value: {
-		overflow: 'auto',
 	},
 	versionBox: {
 		marginTop: theme.spacing(0.5),
@@ -46,7 +44,9 @@ const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof
 		</DialogTitle>
 		<DialogContent>
 			{param.description !== '' && <Typography paragraph variant="body2">{param.description}</Typography>}
-			<Typography component="div" variant="body2" className={classes.value}><ValueView type={param.mime} value={param.data} accessible={param.rw !== null}/></Typography>
+			{param.rw === null ? <NoAccess/> : (
+				<ValueView type={param.mime} value={param.data}/>
+			)}
 			<div className={classes.versionBox}>
 				<Typography variant="body2" className={classes.version}>v.{param.version}</Typography>
 				<Typography variant="body2" color="textSecondary">{param.mtime}</Typography>
@@ -54,7 +54,7 @@ const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof
 		</DialogContent>
 		<DialogActions>
 			<Button onClick={props.onDescribe}>{t('param.menu.describe')}</Button>
-			<Button onClick={props.onEdit}>{t('param.menu.edit')}</Button>
+			<Button onClick={props.onEdit} disabled={param.rw !== true}>{t('param.menu.edit')}</Button>
 			<Button color="primary" onClick={props.onClose}>{t('button.close')}</Button>
 		</DialogActions>
 	</Dialog>

@@ -4,7 +4,7 @@ import { History } from 'history';
 import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
 
 import * as API from '../api';
-import { IParamNode, ParamDialogProps } from './common';
+import { IParamNode } from './common';
 import ConfigTreeNode from './ConfigTreeNode';
 import Editor from './Editor';
 import ParamAccess from './ParamAccess';
@@ -197,7 +197,6 @@ function parentPath(path: string) {
 }
 
 interface ConfigTreeProps {
-	userIsRoot: boolean;
 	history: History;
 	search: string;
 	onSearching: (searching: boolean) => void;
@@ -430,7 +429,6 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				value={param.data}
 				summary={param.summary}
 				description={param.description}
-				userIsRoot={this.props.userIsRoot}
 				onChange={this.handleEditDone}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -453,7 +451,6 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				create
 				path={param.path}
 				notification={param.notification}
-				userIsRoot={this.props.userIsRoot}
 				onChange={this.handleAddChildDone}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -567,7 +564,6 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				path={param.path}
 				overridden={param.notification_modified}
 				value={param.notification}
-				allowNone={this.props.userIsRoot}
 				onChange={this.handleModifyNotification}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -586,7 +582,6 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				path={param.path}
 				overridden={param.notification_modified}
 				value={param.notification}
-				allowNone={this.props.userIsRoot}
 				onChange={this.handleModifyNotification}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
@@ -594,33 +589,50 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		}));
 	}
 
-	dialogHandler(ParamDialog: React.ComponentType<ParamDialogProps>, attr: 'logLoading' | 'accessLoading') {
-		return (path: string) => {
-			this.setState((prevState) => {
-				const onLoaded = () => {
-					this.setState(prevState => ({
-						root: modifyNode(prevState.root!, path, node => { delete (node[attr]); }),
-						menu: undefined,
-					}));
-				};
-				const onError = (error: Error) => {
-					this.setState(prevState => ({
-						root: modifyNode(prevState.root!, path, node => { delete(node[attr]); }),
-						dialog: null,
-					}));
-					this.props.onError(error);
-				};
-				return {
-					root: modifyNode(prevState.root!, path, node => { node[attr] = true; }),
-					dialog: <ParamDialog path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError}/>,
-				};
-			});
-		};
+	handleLog = (path: string) => {
+		this.setState((prevState) => {
+			const onLoaded = () => {
+				this.setState(prevState => ({
+					root: modifyNode(prevState.root!, path, node => { delete (node.logLoading); }),
+					menu: undefined,
+				}));
+			};
+			const onError = (error: Error) => {
+				this.setState(prevState => ({
+					root: modifyNode(prevState.root!, path, node => { delete(node.logLoading); }),
+					dialog: null,
+				}));
+				this.props.onError(error);
+			};
+			return {
+				root: modifyNode(prevState.root!, path, node => { node.logLoading = true; }),
+				dialog: <ParamLog path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError} onChange={this.handleEditDone}/>,
+			};
+		});
 	}
 
-	handleLog = this.dialogHandler(ParamLog, 'logLoading');
-
-	handleAccess = this.dialogHandler(ParamAccess, 'accessLoading'); // TODO apply changes to tree
+	// TODO apply changes to tree
+	handleAccess = (path: string) => {
+		this.setState((prevState) => {
+			const onLoaded = () => {
+				this.setState(prevState => ({
+					root: modifyNode(prevState.root!, path, node => { delete (node.accessLoading); }),
+					menu: undefined,
+				}));
+			};
+			const onError = (error: Error) => {
+				this.setState(prevState => ({
+					root: modifyNode(prevState.root!, path, node => { delete(node.accessLoading); }),
+					dialog: null,
+				}));
+				this.props.onError(error);
+			};
+			return {
+				root: modifyNode(prevState.root!, path, node => { node.accessLoading = true; }),
+				dialog: <ParamAccess path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError}/>,
+			};
+		});
+	}
 
 	handleDialogClose = () => {
 		this.setState({ dialog: null });
@@ -643,7 +655,6 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 					{this.state.root && (
 						<ConfigTreeNode
 							param={this.state.root}
-							userIsRoot={this.props.userIsRoot}
 							menu={this.state.menu}
 							menuAnchorX={this.state.menuAnchorX}
 							onOpen={this.handleOpen}

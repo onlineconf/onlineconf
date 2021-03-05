@@ -21,7 +21,6 @@ const useStyles = makeStyles({
 
 interface ConfigTreeNodeProps {
 	param: IParamNode;
-	userIsRoot: boolean;
 	menu?: string;
 	menuAnchorX?: number;
 	onOpen: (path: string) => void;
@@ -68,7 +67,6 @@ export default function ConfigTreeNode(props: ConfigTreeNodeProps) {
 			}}
 			item={<ConfigTreeParam
 				param={param}
-				userIsRoot={props.userIsRoot}
 				menu={props.menu}
 				menuAnchorX={props.menuAnchorX}
 				onMenuOpen={() => props.onMenuOpen(param.path)}

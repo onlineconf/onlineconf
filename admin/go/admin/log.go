@@ -23,6 +23,7 @@ type LogEntry struct {
 	Comment     NullString `json:"comment"`
 	Deleted     bool       `json:"deleted"`
 	RW          NullBool   `json:"rw"`
+	Same        bool       `json:"same"`
 }
 
 type LogFilter struct {
@@ -87,7 +88,8 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	query := `
 		SELECT
 			l.NodeID, t.Path, l.Version, l.ContentType, l.Value, l.MTime, l.Author, l.Comment, l.Deleted,
-			my_config_tree_access(t.ID, ?) AS RW
+			my_config_tree_access(t.ID, ?) AS RW,
+			l.ContentType = t.ContentType AND ((l.Value IS NULL AND t.Value IS NULL) OR l.Value = t.Value) AS Same
 		FROM my_config_tree_log l JOIN my_config_tree t ON t.ID = l.NodeID
 	`
 	if len(condition) > 0 {
@@ -103,7 +105,7 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	list := make([]LogEntry, 0)
 	for rows.Next() {
 		var l LogEntry
-		err := rows.Scan(&l.NodeID, &l.Path, &l.Version, &l.ContentType, &l.Value, &l.MTime, &l.Author, &l.Comment, &l.Deleted, &l.RW)
+		err := rows.Scan(&l.NodeID, &l.Path, &l.Version, &l.ContentType, &l.Value, &l.MTime, &l.Author, &l.Comment, &l.Deleted, &l.RW, &l.Same)
 		if err != nil {
 			return nil, err
 		}

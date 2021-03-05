@@ -10,15 +10,19 @@ import withMobileDialog from '@material-ui/core/withMobileDialog';
 import * as API from '../api';
 import { ParamDialogProps } from './common';
 import ParamDialogTitle from './ParamDialogTitle';
-import LogCard from './LogCard';
+import LogList from './LogList';
+
+interface ParamLogProps extends ParamDialogProps {
+	onChange: (param: API.IParam) => void;
+}
 
 interface ParamLogState {
 	open: boolean;
 	data: API.IParamLog[];
 }
 
-export default withMobileDialog<ParamDialogProps>()(withTranslation()(
-	class ParamLog extends React.Component<ParamDialogProps & WithTranslation, ParamLogState> {
+export default withMobileDialog<ParamLogProps>()(withTranslation()(
+	class ParamLog extends React.Component<ParamLogProps & WithTranslation, ParamLogState> {
 
 		state: ParamLogState = {
 			open: false,
@@ -34,6 +38,7 @@ export default withMobileDialog<ParamDialogProps>()(withTranslation()(
 		componentDidUpdate(prevProps: ParamDialogProps) {
 			if (this.props.path !== prevProps.path) {
 				this.cancel();
+				this.setState({ open: false });
 				this.load();
 			}
 		}
@@ -45,7 +50,6 @@ export default withMobileDialog<ParamDialogProps>()(withTranslation()(
 		private async load() {
 			const { onLoaded, onError } = this.props;
 			try {
-				this.setState({ open: false });
 				this.cts = axios.CancelToken.source();
 				const data = await API.getParamLog(this.props.path, { cancelToken: this.cts.token });
 				this.setState({ data, open: true });
@@ -66,6 +70,11 @@ export default withMobileDialog<ParamDialogProps>()(withTranslation()(
 			}
 		}
 
+		handleChange = (param: API.IParam) => {
+			this.load();
+			this.props.onChange(param);
+		}
+
 		render() {
 			const { path, onClose, t } = this.props;
 			const { data, open } = this.state;
@@ -79,7 +88,7 @@ export default withMobileDialog<ParamDialogProps>()(withTranslation()(
 				>
 					<ParamDialogTitle path={path}>{t('param.menu.history')}</ParamDialogTitle>
 					<DialogContent>
-						{data.map(row => <LogCard key={row.version} {...row}/>)}
+						<LogList data={data} onChange={this.handleChange}/>
 					</DialogContent>
 					<DialogActions>
 						<Button color="primary" onClick={onClose}>{t('button.close')}</Button>

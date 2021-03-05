@@ -4,6 +4,8 @@ import { BrowserRouter, Route } from 'react-router-dom';
 import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
+import ErrorContext from './components/ErrorContext';
+import { WhoAmIProvider } from './components/WhoAmIContext';
 import UIConfigProvider from './components/UIConfig';
 import TopBar from './components/TopBar';
 import LeftMenu, { leftMenuWidth } from './components/LeftMenu';
@@ -12,8 +14,6 @@ import Servers from './components/Servers';
 import Access from './components/Access';
 import ErrorSnackbar from './components/ErrorSnackbar';
 import GlobalLog from './components/GlobalLog';
-
-import { getWhoAmI } from './api';
 
 const styles = (theme: Theme) => ({
 	root: {
@@ -40,8 +40,6 @@ const styles = (theme: Theme) => ({
 });
 
 interface AppState {
-	username?: string;
-	userIsRoot: boolean;
 	menu: boolean;
 	search: string;
 	searching: boolean;
@@ -52,27 +50,10 @@ export default withStyles(styles)(
 	class App extends React.Component<WithStyles<typeof styles>, AppState> {
 
 		state: AppState = {
-			userIsRoot: false,
 			menu: false,
 			search: '',
 			searching: false,
 		};
-
-		componentDidMount() {
-			this.loadWhoAmI();
-		}
-
-		async loadWhoAmI() {
-			try {
-				const data = await getWhoAmI();
-				this.setState({
-					username: data.username,
-					userIsRoot: data.can_edit_groups,
-				});
-			} catch (error) {
-				this.handleError(error);
-			}
-		}
 
 		handleMenuToggle = () => {
 			this.setState(({ menu }) => ({ menu: !menu }));
@@ -98,22 +79,26 @@ export default withStyles(styles)(
 			const { classes } = this.props;
 			const mainClassName = clsx(classes.main, { [classes.mainShift]: this.state.menu });
 			return (
-				<UIConfigProvider onError={this.handleError}>
-					<CssBaseline/>
-					<BrowserRouter>
-						<div className={this.props.classes.root}>
-							<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching} username={this.state.username}/>
-							<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
-							<main className={mainClassName}>
-								<Route exact path="/" render={props => <ConfigTree {...props} userIsRoot={this.state.userIsRoot} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
-								<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>
-								<Route exact path="/server/" render={props => <Servers {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
-								<Route exact path="/access-group/" render={props => <Access {...props} userIsRoot={this.state.userIsRoot} onError={this.handleError}/>}/>
-							</main>
-						</div>
-					</BrowserRouter>
-					<ErrorSnackbar error={this.state.error}/>
-				</UIConfigProvider>
+				<ErrorContext.Provider value={this.handleError}>
+					<WhoAmIProvider>
+						<UIConfigProvider onError={this.handleError}>
+							<CssBaseline/>
+							<BrowserRouter>
+								<div className={this.props.classes.root}>
+									<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching}/>
+									<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
+									<main className={mainClassName}>
+										<Route exact path="/" render={props => <ConfigTree {...props} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
+										<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>
+										<Route exact path="/server/" render={props => <Servers {...props} onError={this.handleError}/>}/>
+										<Route exact path="/access-group/" render={props => <Access {...props} onError={this.handleError}/>}/>
+									</main>
+								</div>
+							</BrowserRouter>
+							<ErrorSnackbar error={this.state.error}/>
+						</UIConfigProvider>
+					</WhoAmIProvider>
+				</ErrorContext.Provider>
 			);
 		}
 

@@ -30,6 +30,7 @@ import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
 import NoAccess from './NoAccess';
+import WhoAmIContext from './WhoAmIContext';
 
 export const spacingUnit = 2;
 export const buttonSize = 24;
@@ -122,11 +123,10 @@ const usePreviewStyles = makeStyles((theme: Theme) => {
 			padding: iconButtonPadding,
 		},
 	});
-});
+}, { name: 'ConfigTreeParamPreview' });
 
 interface ConfigTreeParamPreviewProps {
 	param: IParamNode;
-	userIsRoot: boolean;
 	onMenuOpen: () => void;
 	onEdit: () => void;
 	onNotification: () => void;
@@ -139,6 +139,7 @@ interface ConfigTreeParamPreviewProps {
 function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 	const { param, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
 	const classes = usePreviewStyles();
+	const { userIsRoot } = React.useContext(WhoAmIContext);
 	let Icon = iconByType[param.mime] || DefaultIcon;
 
 	if (param.mime === 'application/x-null') {
@@ -173,7 +174,7 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 				)}
 				{param.access_modified && (
 					<IconButtonProgress size={buttonSize} loading={param.accessLoading}>
-						<IconButton onClick={onAccess} disabled={param.rw !== true && !props.userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
+						<IconButton onClick={onAccess} disabled={param.rw !== true && !userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
 					</IconButtonProgress>
 				)}
 			</div>
@@ -188,7 +189,6 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 
 interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorEl'> {
 	param: IParamNode;
-	userIsRoot: boolean;
 	menu?: string;
 	menuAnchorX?: number;
 	onMenuOpen: () => void;
@@ -211,7 +211,6 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 						anchorEl={this.anchorEl.current}
 						anchorX={this.props.menuAnchorX}
 						param={param}
-						userIsRoot={this.props.userIsRoot}
 						onClose={this.props.onMenuClose}
 						onView={this.props.onView}
 						onEdit={onEdit}
@@ -227,7 +226,6 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				)}
 				<ConfigTreeParamPreview
 					param={param}
-					userIsRoot={this.props.userIsRoot}
 					onMenuOpen={this.props.onMenuOpen}
 					onEdit={onEdit}
 					onNotification={onNotification}

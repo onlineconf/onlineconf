@@ -1,6 +1,9 @@
 import * as React from 'react';
+import clsx from 'clsx';
+import { makeStyles, Theme } from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+
 import { ValueProps, EditValueProps } from '../common';
-import NoAccess from '../NoAccess';
 import { NonNullParamType, NonNullValueProps, EditNonnullValueProps } from './common';
 import { NullValuePreview, NullValueView, NullValueEdit } from './null';
 import textValue from './text';
@@ -39,20 +42,40 @@ export function ValuePreview(props: ValueProps) {
 	}
 }
 
+const useViewStyles = makeStyles((theme: Theme) => ({
+	decoration: {
+		padding: theme.spacing(1),
+		borderLeft: `3px solid ${theme.palette.text.secondary}`,
+		overflow: 'auto',
+	},
+}));
+
 interface ValueViewProps extends ValueProps {
-	accessible: boolean;
+	className?: string;
+	disableDecoration?: boolean;
 }
 
 export function ValueView(props: ValueViewProps) {
-	const { type, value, ...rest } = props;
-	if (!props.accessible) {
-		return <NoAccess/>;
-	} else if (type === 'application/x-null') {
-		return <NullValueView {...rest} type="application/x-null" value={null}/>;
+	const { type, value, disableDecoration, className, ...rest } = props;
+	const classes = useViewStyles();
+	let view: JSX.Element;
+	if (type === 'application/x-null') {
+		view = <NullValueView type="application/x-null" value={null}/>;
 	} else {
 		const View = typeMap[type].view;
-		return <View {...rest} type={type} value={value !== null ? value : ''} />;
+		view = <View type={type} value={value !== null ? value : ''} />;
 	}
+	return (
+		<Typography
+			{...rest}
+			component="div"
+			variant="body2"
+			color="textPrimary"
+			className={clsx(disableDecoration || classes.decoration, className)}
+		>
+			{view}
+		</Typography>
+	);
 }
 
 export function ValueEdit(props: EditValueProps) {
