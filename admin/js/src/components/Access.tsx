@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, WithStyles, withStyles, Theme } from '@material-ui/core/styles';
+import { useTranslation } from 'react-i18next';
+import { makeStyles, Theme } from '@material-ui/core/styles';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -19,7 +19,7 @@ import Avatar from './Avatar';
 import UserField from './UserField';
 import WhoAmIContext from './WhoAmIContext';
 
-const styles = (theme: Theme) => createStyles({
+const useStyles = makeStyles((theme: Theme) => ({
 	group: {
 		display: 'flex',
 		flexWrap: 'wrap',
@@ -31,7 +31,100 @@ const styles = (theme: Theme) => createStyles({
 	add: {
 		padding: 4,
 	},
-});
+}));
+
+interface AccessListProps {
+	access: { [group: string]: string[] };
+	onCreateGroup(): void;
+	onDeleteGroup(group: string): void;
+	onAddUser(group: string): void;
+	onRemoveUser(group: string, user: string): void;
+}
+
+function AccessList(props: AccessListProps) {
+	const classes = useStyles();
+	const { userIsRoot } = React.useContext(WhoAmIContext);
+	return (
+		<List>
+			{Object.keys(props.access).sort().map(group => {
+				return (
+					<ListItem key={group} divider className={classes.group}>
+						<Chip
+							color="primary"
+							label={group}
+							className={classes.chip}
+							onDelete={userIsRoot && props.access[group].length === 0 ? () => props.onDeleteGroup(group) : undefined}
+						/>
+						{props.access[group].map(user => (
+							<Chip
+								key={user}
+								label={user}
+								avatar={<Avatar username={user} disableTooltip/>}
+								className={classes.chip}
+								onDelete={userIsRoot ? () => props.onRemoveUser(group, user) : undefined}
+							/>
+						))}
+						{userIsRoot && (
+							<IconButton className={classes.add} onClick={() => props.onAddUser(group)}><AddIcon/></IconButton>
+						)}
+					</ListItem>
+				);
+			})}
+			{userIsRoot && (
+				<ListItem className={classes.group}>
+					<IconButton className={classes.add} onClick={props.onCreateGroup}><AddIcon/></IconButton>
+				</ListItem>
+			)}
+		</List>
+	);
+}
+
+interface CreateGroupDialogProps {
+	onSubmit: (group: string) => void;
+	onClosed: () => void;
+}
+
+function CreateGroupDialog(props: CreateGroupDialogProps) {
+	const { t } = useTranslation();
+	const [ open, setOpen ] = React.useState(true);
+	const [ group, setGroup ] = React.useState('');
+	return (
+		<Dialog open={open} onClose={() => setOpen(false)} onExited={props.onClosed}>
+			<DialogTitle>{t('access.createGroup')}</DialogTitle>
+			<DialogContent>
+				<TextField placeholder={t('access.group')} value={group} onChange={event => setGroup(event.target.value)} autoFocus variant="outlined" margin="dense" fullWidth/>
+			</DialogContent>
+			<DialogActions>
+				<Button color="primary" onClick={() => setOpen(false)}>{t('button.cancel')}</Button>
+				<Button color="primary" onClick={() => props.onSubmit(group)} disabled={group.length === 0}>{t('button.ok')}</Button>
+			</DialogActions>
+		</Dialog>
+	);
+}
+
+interface AddUserDialogProps {
+	group: string;
+	onSubmit: (group: string, user: string) => void;
+	onClosed: () => void;
+}
+
+function AddUserDialog(props: AddUserDialogProps) {
+	const { t } = useTranslation();
+	const [ open, setOpen ] = React.useState(true);
+	const [ user, setUser ] = React.useState('');
+	return (
+		<Dialog open={open} onClose={() => setOpen(false)} onExited={props.onClosed}>
+			<DialogTitle>{t('access.addUser', { group: props.group })}</DialogTitle>
+			<DialogContent>
+				<UserField placeholder={t('access.user')} value={user} onChange={setUser} autoFocus variant="outlined" margin="dense" fullWidth/>
+			</DialogContent>
+			<DialogActions>
+				<Button color="primary" onClick={() => setOpen(false)}>{t('button.cancel')}</Button>
+				<Button color="primary" onClick={() => props.onSubmit(props.group, user)} disabled={user.length === 0}>{t('button.ok')}</Button>
+			</DialogActions>
+		</Dialog>
+	);
+}
 
 interface AccessProps {
 	onError: (error: Error) => void;
@@ -39,11 +132,10 @@ interface AccessProps {
 
 interface AccessState {
 	access: { [group: string]: string[] };
-	group?: string;
-	user?: string;
+	dialog?: JSX.Element;
 }
 
-class Access extends React.Component<AccessProps & WithStyles<typeof styles> & WithTranslation, AccessState> {
+export default class Access extends React.Component<AccessProps, AccessState> {
 
 	state: AccessState = {
 		access: {},
@@ -61,51 +153,25 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 		}
 	}
 
-	private showCreateGroupDialog() {
-		this.setState({ group: '' });
+	private showCreateGroupDialog = () => {
+		this.setState({
+			dialog: <CreateGroupDialog onSubmit={this.createGroup} onClosed={this.handleDialogClosed}/>
+		});
 	}
 
-	private renderCreateGroupDialog() {
-		if (this.state.group === undefined) {
-			return null;
+	private createGroup = async (group: string) => {
+		try {
+			await api.createGroup(group);
+			this.setState(({ access }) => ({
+				access: { [group]: [], ...access },
+				dialog: undefined,
+			}));
+		} catch (error) {
+			this.props.onError(error);
 		}
-		const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-			this.setState({ group: event.target.value });
-		};
-		const handleClose = () => {
-			this.setState({ group: undefined });
-		};
-		const handleCreate = async () => {
-			const group = this.state.group;
-			if (group === undefined) {
-				return;
-			}
-			try {
-				await api.createGroup(group);
-				this.setState(({ access }) => ({
-					access: { [group]: [], ...access },
-					group: undefined,
-				}));
-			} catch (error) {
-				this.props.onError(error);
-			}
-		};
-		const { t } = this.props;
-		return (
-			<Dialog open onClose={handleClose}>
-				<DialogTitle>{t('access.createGroup')}</DialogTitle>
-				<DialogContent>
-					<TextField placeholder={t('access.group')} value={this.state.group} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
-				</DialogContent>
-				<DialogActions>
-					<Button color="primary" onClick={handleClose}>{t('button.cancel')}</Button>
-					<Button color="primary" onClick={handleCreate} disabled={this.state.group.length === 0}>{t('button.ok')}</Button>
-				</DialogActions>
-			</Dialog>
-		);
 	}
 
-	private async deleteGroup(group: string) {
+	private deleteGroup = async (group: string) => {
 		try {
 			await api.deleteGroup(group);
 			this.setState(({ access }) => {
@@ -117,52 +183,25 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 		}
 	}
 
-	private showAddUserDialog(group: string) {
-		this.setState({ group, user: '' });
+	private showAddUserDialog = (group: string) => {
+		this.setState({
+			dialog: <AddUserDialog group={group} onSubmit={this.addUser} onClosed={this.handleDialogClosed}/>
+		});
 	}
 
-	private renderAddUserDialog() {
-		if (this.state.user === undefined) {
-			return;
+	private addUser = async (group: string, user: string) => {
+		try {
+			await api.addUser(group, user);
+			this.setState(({ access }) => ({
+				access: { ...access, [group]: [ ...access[group], user ].sort() },
+				dialog: undefined,
+			}));
+		} catch (error) {
+			this.props.onError(error);
 		}
-		const handleChange = (value: string) => {
-			this.setState({ user: value });
-		};
-		const handleClose = () => {
-			this.setState({ user: undefined, group: undefined });
-		};
-		const handleAdd = async () => {
-			const { user, group } = this.state;
-			if (user === undefined || group === undefined) {
-				return;
-			}
-			try {
-				await api.addUser(group, user);
-				this.setState(({ access }) => ({
-					access: { ...access, [group]: [ ...access[group], user ].sort() },
-					group: undefined,
-					user: undefined,
-				}));
-			} catch (error) {
-				this.props.onError(error);
-			}
-		};
-		const { t } = this.props;
-		return (
-			<Dialog open onClose={handleClose}>
-				<DialogTitle>{t('access.addUser', { group: this.state.group })}</DialogTitle>
-				<DialogContent>
-					<UserField placeholder={t('access.user')} value={this.state.user} onChange={handleChange} autoFocus variant="outlined" margin="dense" fullWidth/>
-				</DialogContent>
-				<DialogActions>
-					<Button color="primary" onClick={handleClose}>{t('button.cancel')}</Button>
-					<Button color="primary" onClick={handleAdd} disabled={this.state.user!.length === 0}>{t('button.ok')}</Button>
-				</DialogActions>
-			</Dialog>
-		);
 	}
 
-	private async removeUser(group: string, user: string) {
+	private removeUser = async (group: string, user: string) => {
 		try {
 			await api.removeUser(group, user);
 			this.setState(({ access }) => ({
@@ -173,60 +212,25 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 		}
 	}
 
-	private renderDialog() {
-		if (this.state.group === undefined) {
-			return null;
-		} else if (this.state.user === undefined) {
-			return this.renderCreateGroupDialog();
-		} else {
-			return this.renderAddUserDialog();
-		}
+	private handleDialogClosed = () => {
+		this.setState({ dialog: undefined });
 	}
 
 	static contextType = WhoAmIContext;
 
 	render() {
-		const { classes } = this.props;
-		const { access } = this.state;
-
 		return (
 			<React.Fragment>
-				<List>
-					{Object.keys(access).sort().map(group => {
-						return (
-							<ListItem key={group} divider className={classes.group}>
-								<Chip
-									color="primary"
-									label={group}
-									className={classes.chip}
-									onDelete={this.context.userIsRoot && access[group].length === 0 ? () => this.deleteGroup(group) : undefined}
-								/>
-								{access[group].map(user => (
-									<Chip
-										key={user}
-										label={user}
-										avatar={<Avatar username={user} disableTooltip/>}
-										className={classes.chip}
-										onDelete={this.context.userIsRoot ? () => this.removeUser(group, user) : undefined}
-									/>
-								))}
-								{this.context.userIsRoot && (
-									<IconButton className={classes.add} onClick={() => this.showAddUserDialog(group)}><AddIcon/></IconButton>
-								)}
-							</ListItem>
-						);
-					})}
-					{this.context.userIsRoot && (
-						<ListItem className={classes.group}>
-							<IconButton className={classes.add} onClick={() => this.showCreateGroupDialog()}><AddIcon/></IconButton>
-						</ListItem>
-					)}
-				</List>
-				{this.renderDialog()}
+				<AccessList
+					access={this.state.access}
+					onCreateGroup={this.showCreateGroupDialog}
+					onDeleteGroup={this.deleteGroup}
+					onAddUser={this.showAddUserDialog}
+					onRemoveUser={this.removeUser}
+				/>
+				{this.state.dialog}
 			</React.Fragment>
 		);
 	}
 
 }
-
-export default withTranslation()(withStyles(styles)(Access));
