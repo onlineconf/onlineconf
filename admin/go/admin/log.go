@@ -13,6 +13,7 @@ import (
 )
 
 type LogEntry struct {
+	ID          int        `json:"id"`
 	NodeID      int        `json:"-"`
 	Path        string     `json:"path"`
 	Version     int        `json:"version"`
@@ -53,7 +54,7 @@ var tillRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 var avatars = []rune("🐀🐁🐂🐃🐄🐅🐆🐇🐈🐉🐊🐋🐌🐍🐎🐏🐐🐑🐒🐓🐕🐖🐗🐘🐙🐛🐜🐝🐞🐟🐠🐡🐢🐥🐨🐩🐪🐫🐬🐭🐮🐯🐰🐱🐲🐳🐴🐵🐶🐷🐸🐹🐺🐻🐼" +
 	"🐿🦀🦁🦂🦃🦄🦅🦆🦇🦈🦉🦊🦋🦌🦍🦎🦏🦐🦑🦒🦓🦔🦕🦖🦗🦘🦙🦚🦛🦜🦝🦞🦟🦠🦡🦢🦥🦦🦧🦨🦩")
 
-func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
+func SelectLog(ctx context.Context, filter LogFilter, lastID int) ([]LogEntry, error) {
 	condition := make([]string, 0)
 	bind := []interface{}{Username(ctx)}
 
@@ -84,10 +85,14 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	if !filter.All {
 		condition = append(condition, "my_config_tree_notification(t.ID) <> 'none'")
 	}
+	if lastID != 0 {
+		condition = append(condition, "l.ID < ?")
+		bind = append(bind, lastID)
+	}
 
 	query := `
 		SELECT
-			l.NodeID, t.Path, l.Version, l.ContentType, l.Value, l.MTime, l.Author, l.Comment, l.Deleted,
+			l.ID, l.NodeID, t.Path, l.Version, l.ContentType, l.Value, l.MTime, l.Author, l.Comment, l.Deleted,
 			my_config_tree_access(t.ID, ?) AS RW,
 			l.ContentType = t.ContentType AND ((l.Value IS NULL AND t.Value IS NULL) OR l.Value = t.Value) AS Same
 		FROM my_config_tree_log l JOIN my_config_tree t ON t.ID = l.NodeID
@@ -95,7 +100,7 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	if len(condition) > 0 {
 		query += "WHERE " + strings.Join(condition, " AND ") + "\n"
 	}
-	query += "ORDER BY l.MTime DESC\nLIMIT 50\n"
+	query += "ORDER BY l.ID DESC\nLIMIT 50\n"
 
 	rows, err := DB.QueryContext(ctx, query, bind...)
 	if err != nil {
@@ -105,7 +110,7 @@ func SelectLog(ctx context.Context, filter LogFilter) ([]LogEntry, error) {
 	list := make([]LogEntry, 0)
 	for rows.Next() {
 		var l LogEntry
-		err := rows.Scan(&l.NodeID, &l.Path, &l.Version, &l.ContentType, &l.Value, &l.MTime, &l.Author, &l.Comment, &l.Deleted, &l.RW, &l.Same)
+		err := rows.Scan(&l.ID, &l.NodeID, &l.Path, &l.Version, &l.ContentType, &l.Value, &l.MTime, &l.Author, &l.Comment, &l.Deleted, &l.RW, &l.Same)
 		if err != nil {
 			return nil, err
 		}

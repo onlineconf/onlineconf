@@ -146,7 +146,7 @@ function LogItem(props: LogItemProps) {
 				}
 				classes={headerClasses}
 			/>
-			<Collapse in={expanded}>
+			<Collapse in={expanded} mountOnEnter unmountOnExit>
 				<CardContent className={classes.content}>
 					{props.rw === null ? <NoAccess/> : (
 						<ValueView type={props.mime} value={props.data} className={clsx(props.deleted && classes.deleted)}/>

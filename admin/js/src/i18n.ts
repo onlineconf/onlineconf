@@ -85,6 +85,7 @@ const resources = {
 				from: 'From',
 				till: 'Till',
 				all: 'All',
+				load: 'Load',
 				rollback: {
 					rollback: 'Rollback',
 					confirmation: 'Do you want to rollback parameter {{param}} to version {{version}}?',
@@ -191,6 +192,7 @@ const resources = {
 				from: 'С',
 				till: 'По',
 				all: 'Все',
+				load: 'Загрузить',
 				rollback: {
 					rollback: 'Откатить',
 					confirmation: 'Откатить параметр {{param}} на версию {{version}}?',

@@ -6,14 +6,14 @@ import TextField from '@material-ui/core/TextField';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
+import LinearProgress from '@material-ui/core/LinearProgress';
 
 import * as API from '../api';
 import UserField from './UserField';
 import PathField from './PathField';
-import ButtonProgress from './ButtonProgress';
 import LogList from './LogList';
 
-const useStyles = makeStyles((theme: Theme) => ({
+const useFilterStyles = makeStyles((theme: Theme) => ({
 	filter: {
 		display: 'flex',
 		flexWrap: 'wrap',
@@ -55,7 +55,7 @@ interface GlobalLogFilterProps {
 
 function GlobalLogFilter(props: GlobalLogFilterProps) {
 	const { t } = useTranslation();
-	const classes = useStyles();
+	const classes = useFilterStyles();
 	const [ author, setAuthor ] = React.useState('');
 	const [ branch, setBranch ] = React.useState('');
 	const [ from, setFrom ] = React.useState('');
@@ -68,7 +68,7 @@ function GlobalLogFilter(props: GlobalLogFilterProps) {
 					label={t('log.author')}
 					value={author}
 					onChange={value => setAuthor(value)}
-					variant="filled"
+					variant="outlined"
 					margin="dense"
 					className={classes.field}
 				/>
@@ -76,7 +76,7 @@ function GlobalLogFilter(props: GlobalLogFilterProps) {
 					label={t('log.branch')}
 					value={branch}
 					onChange={value => setBranch(value)}
-					variant="filled"
+					variant="outlined"
 					margin="dense"
 					className={classes.field}
 				/>
@@ -86,7 +86,7 @@ function GlobalLogFilter(props: GlobalLogFilterProps) {
 					label={t('log.from')}
 					value={from}
 					onChange={event => setFrom(event.target.value)}
-					variant="filled"
+					variant="outlined"
 					margin="dense"
 					className={classes.field}
 				/>
@@ -94,7 +94,7 @@ function GlobalLogFilter(props: GlobalLogFilterProps) {
 					label={t('log.till')}
 					value={till}
 					onChange={event => setTill(event.target.value)}
-					variant="filled"
+					variant="outlined"
 					margin="dense"
 					className={classes.field}
 				/>
@@ -106,17 +106,28 @@ function GlobalLogFilter(props: GlobalLogFilterProps) {
 					control={<Checkbox />}
 					checked={all}
 					onChange={(event, checked) => setAll(checked)}
-					className={classes.all} />
-				<ButtonProgress loading={props.loading} className={classes.load}>
-					<Button variant="contained" onClick={() => props.onSubmit({ author, branch, from, till, all })}>Load</Button>
-				</ButtonProgress>
+					className={classes.all}
+				/>
+				<Button
+					variant="contained"
+					color="primary"
+					onClick={() => props.onSubmit({ author, branch, from, till, all })}
+					className={classes.load}
+				>
+					{t('log.load')}
+				</Button>
 			</div>
 		</div>
 	);
 }
 
+const useStyles = makeStyles((theme: Theme) => ({
+	progressBlock: {
+		height: 4,
+	}
+}));
+
 interface GlobalLogProps {
-	onLoaded: () => void;
 	onError: (errors: Error) => void;
 }
 
@@ -128,28 +139,67 @@ export default function GlobalLog(props: GlobalLogProps) {
 		till: '',
 		all: false,
 	});
-	const [ loading, setLoading ] = React.useState(false);
+	const [ lastID, setLastID ] = React.useState<number>();
+	const [ active, setActive ] = React.useState(0);
 	const [ data, setData ] = React.useState<API.IParamLog[]>([]);
+	const [ more, setMore ] = React.useState(false);
+
+	const { onError } = props;
 	React.useEffect(() => {
-		setLoading(true);
+		setActive(a => a + 1);
 		const cts = axios.CancelToken.source();
-		API.getGlobalLog(filter, { cancelToken: cts.token })
+		API.getGlobalLog(filter, lastID, { cancelToken: cts.token })
 			.then(data => {
-				setData(data);
-				setLoading(false);
-				props.onLoaded();
+				if (lastID !== undefined) {
+					setData(currentData => [ ...currentData, ...data ]);
+				} else {
+					setData(data);
+				}
+				setMore(data.length === API.logLimit);
+				setActive(a => a - 1);
 			})
 			.catch(error => {
-				setData([]);
-				setLoading(false);
-				props.onError(error);
+				setActive(a => a - 1);
+				if (!axios.isCancel(error)) {
+					onError(error);
+				}
 			});
 		return () => cts.cancel('Operation canceled by the user.');
-	}, [filter, props]);
+	}, [filter, lastID, onError]);
+	const loading = active !== 0;
+
+	const ref = React.useRef<HTMLDivElement>(null);
+	React.useEffect(() => {
+		const handleScroll = () => {
+			if (!more || data.length === 0 || ref.current === null) return;
+			const offsetBottom = ref.current.offsetHeight + ref.current.offsetTop;
+			const windowBottom = window.pageYOffset + window.innerHeight;
+			if (offsetBottom - windowBottom < 100) {
+				setLastID(data[data.length - 1].id);
+			}
+		};
+		window.addEventListener('scroll', handleScroll);
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
+
+	const load = (filter: API.GlobalLogFilter) => {
+		setLastID(undefined);
+		setFilter(filter);
+		setData([]);
+	};
+
+	const handleChange = React.useCallback(() => load({ ...filter }), [filter]);
+
+	const classes = useStyles();
 	return (
-		<React.Fragment>
-			<GlobalLogFilter onSubmit={setFilter} loading={loading}/>
-			<LogList data={data} showPath onChange={() => setFilter({ ...filter })}/>
-		</React.Fragment>
+		<div ref={ref}>
+			<GlobalLogFilter onSubmit={load} loading={loading}/>
+			<LogList data={data} showPath onChange={handleChange}/>
+			{(more || loading) && (
+				<div className={classes.progressBlock}>
+					{loading && <LinearProgress/>}
+				</div>
+			)}
+		</div>
 	);
 }

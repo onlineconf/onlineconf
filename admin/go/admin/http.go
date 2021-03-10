@@ -334,7 +334,8 @@ func serveGlobalLog(w http.ResponseWriter, req *http.Request) {
 		Till:   req.URL.Query().Get("till"),
 		All:    req.URL.Query().Get("all") != "",
 	}
-	list, err := SelectLog(req.Context(), filter)
+	lastID, _ := strconv.Atoi(req.URL.Query().Get("lastid"))
+	list, err := SelectLog(req.Context(), filter, lastID)
 	writeResponse(req.Context(), w, list, err)
 }
 
@@ -343,7 +344,8 @@ func serveParameterLog(w http.ResponseWriter, req *http.Request) {
 		Path: mux.Vars(req)["path"],
 		All:  true,
 	}
-	list, err := SelectLog(req.Context(), filter)
+	lastID, _ := strconv.Atoi(req.URL.Query().Get("lastid"))
+	list, err := SelectLog(req.Context(), filter, lastID)
 	writeResponse(req.Context(), w, list, err)
 }
 

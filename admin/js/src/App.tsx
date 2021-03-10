@@ -89,7 +89,7 @@ export default withStyles(styles)(
 									<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
 									<main className={mainClassName}>
 										<Route exact path="/" render={props => <ConfigTree {...props} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
-										<Route exact path="/history/" render={props => <GlobalLog {...props} onLoaded={() => null} onError={this.handleError}/>}/>
+										<Route exact path="/history/" render={props => <GlobalLog {...props} onError={this.handleError}/>}/>
 										<Route exact path="/server/" render={props => <Servers {...props} onError={this.handleError}/>}/>
 										<Route exact path="/access-group/" render={props => <Access {...props} onError={this.handleError}/>}/>
 									</main>
