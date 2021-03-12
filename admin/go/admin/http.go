@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -115,7 +116,7 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 			action = "Changed"
 		}
 	} else if contentType := f.Get("mime"); contentType != "" {
-		err = CreateParameter(req.Context(), path, contentType, f.Get("data"), f.Get("summary"), f.Get("description"), f.Get("notification"), f.Get("comment"))
+		err = CreateParameter(req.Context(), path, contentType, f.Get("data"), optValue(f, "summary"), optValue(f, "description"), optValue(f, "notification"), f.Get("comment"))
 		action = "Created"
 	} else {
 		_, nOk := f["notification"]
@@ -470,4 +471,13 @@ func RootUsersOnly(next http.Handler) http.Handler {
 			next.ServeHTTP(w, req)
 		}
 	})
+}
+
+func optValue(value url.Values, key string) NullString {
+	var opt NullString
+	if _, ok := value[key]; ok {
+		opt.Valid = true
+		opt.String = value.Get(key)
+	}
+	return opt
 }

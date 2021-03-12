@@ -22,7 +22,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 interface ParamLogProps extends ParamDialogProps {
-	onChange: (param: API.IParam) => void;
+	onChange: (param: API.IParam | null) => void;
 }
 
 export default function ParamLog(props: ParamLogProps) {
@@ -73,7 +73,7 @@ export default function ParamLog(props: ParamLogProps) {
 
 	const handleClose = () => setOpen(false);
 
-	const handleChange = (param: API.IParam) => {
+	const handleChange = (param: API.IParam | null) => {
 		load();
 		props.onChange(param);
 	};

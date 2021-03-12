@@ -94,7 +94,7 @@ func SelectLog(ctx context.Context, filter LogFilter, lastID int) ([]LogEntry, e
 		SELECT
 			l.ID, l.NodeID, t.Path, l.Version, l.ContentType, l.Value, l.MTime, l.Author, l.Comment, l.Deleted,
 			my_config_tree_access(t.ID, ?) AS RW,
-			l.ContentType = t.ContentType AND ((l.Value IS NULL AND t.Value IS NULL) OR l.Value = t.Value) AS Same
+			l.ContentType = t.ContentType AND ((l.Value IS NULL AND t.Value IS NULL) OR l.Value = t.Value) AND l.Deleted = t.Deleted AS Same
 		FROM my_config_tree_log l JOIN my_config_tree t ON t.ID = l.NodeID
 	`
 	if len(condition) > 0 {

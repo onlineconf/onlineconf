@@ -196,6 +196,10 @@ function parentPath(path: string) {
 	return parentPath;
 }
 
+function paramName(path: string) {
+	return path.replace(/^.*\//, '');
+}
+
 interface ConfigTreeProps {
 	history: History;
 	search: string;
@@ -485,7 +489,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			dialog: <ParamDeleteConfirm
 				path={param.path}
 				version={param.version}
-				onDeleted={() => this.handleDeleted(param)}
+				onDeleted={() => this.handleDeleted(param.path)}
 				onError={this.props.onError}
 				onClose={this.handleDialogClose}
 			/>,
@@ -493,17 +497,18 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		});
 	}
 
-	handleDeleted = (param: IParamNode) => {
+	handleDeleted = (path: string) => {
 		this.setState(({ root }) => {
-			const parent = getNode(root!, parentPath(param.path));
+			const parent = getNode(root!, parentPath(path));
 			if (parent !== undefined && parent.children !== undefined) {
-				if (parent.children[param.name] !== undefined) {
+				const name = paramName(path);
+				if (parent.children[name] !== undefined) {
 					parent.num_children--;
 				}
-				delete(parent.children[param.name]);
-				return { root, dialog: null };
+				delete(parent.children[name]);
+				return { root };
 			}
-			return { dialog: null };
+			return null;
 		});
 	}
 
@@ -604,9 +609,23 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				}));
 				this.props.onError(error);
 			};
+			let deleted = false;
+			const handleLogChange = (param: API.IParam | null) => {
+				if (param !== null) {
+					if (deleted) {
+						this.handleAddChildDone(param);
+					} else {
+						this.handleEditDone(param);
+					}
+					deleted = false;
+				} else {
+					this.handleDeleted(path);
+					deleted = true;
+				}
+			};
 			return {
 				root: modifyNode(prevState.root!, path, node => { node.logLoading = true; }),
-				dialog: <ParamLog path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError} onChange={this.handleEditDone}/>,
+				dialog: <ParamLog path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError} onChange={handleLogChange}/>,
 			};
 		});
 	}

@@ -41,7 +41,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 interface RollbackDialogProps extends ParamDialogProps, ValueProps {
 	version: number;
-	onChange: (param: API.IParam) => void;
+	deleted: boolean;
+	onChange: (param: API.IParam | null) => void;
 }
 
 export default function RollbackDialog(props: RollbackDialogProps) {
@@ -52,7 +53,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
 	const genericOnError = React.useContext(ErrorContext);
-	const [ current, setCurrent ] = React.useState<API.IParam>();
+	const [ current, setCurrent ] = React.useState<API.IParam | null>();
 	const [ comment, setComment ] = React.useState('');
 	const [ editor, setEditor ] = React.useState<JSX.Element>();
 
@@ -64,8 +65,13 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 				props.onLoaded();
 			})
 			.catch(error => {
-				props.onError(error);
-				props.onClose();
+				if (error.response?.status === 404) {
+					setCurrent(null);
+					props.onLoaded();
+				} else {
+					props.onError(error);
+					props.onClose();
+				}
 			});
 		return () => cts.cancel('Operation canceled by the user.');
 	}, [props]);
@@ -73,56 +79,82 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 		return null;
 	}
 
-	const changeDone = (param: API.IParam) => {
+	const changeDone = (param: API.IParam | null) => {
 		props.onChange(param);
 		props.onClose();
 	};
 
-	const handleEdit = (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>>) => setEditor(
-		<Editor
-			path={edit.path}
-			version={current.version}
-			type={edit.type}
-			value={edit.value}
-			summary={current.summary}
-			description={current.description}
-			onChange={changeDone}
-			onError={genericOnError}
-			onClose={() => setEditor(undefined)}
-		/>
-	);
-	const currentEditProps = { path: current.path, type: current.mime, value: current.data };
+	const handleEdit = current !== null
+		? (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>>) => setEditor(
+			<Editor
+				path={edit.path}
+				version={current.version}
+				type={edit.type}
+				value={edit.value}
+				summary={current.summary}
+				description={current.description}
+				onChange={changeDone}
+				onError={genericOnError}
+				onClose={() => setEditor(undefined)}
+			/>
+		)
+		: undefined;
 
 	const handleRollback = () => {
-		API.postParam(props.path, {
-			version: current.version,
-			mime: props.type,
-			data: props.value,
-			comment,
-		})
-			.then(changeDone)
-			.catch(props.onError);
+		if (props.deleted) {
+			if (current === null) return;
+			API.deleteParam(props.path, {
+				version: current.version,
+				comment,
+			})
+				.then(() => changeDone(null))
+				.catch(props.onError);
+		} else {
+			const ver = current !== null ? { version: current.version } : {};
+			API.postParam(props.path, {
+				...ver,
+				mime: props.type,
+				data: props.value,
+				comment,
+			})
+				.then(changeDone)
+				.catch(props.onError);
+		}
 	};
 
 	return (
 		<Dialog open onClose={props.onClose} fullScreen={fullScreen}>
 			<ParamDialogTitle path={props.path}>{t('log.rollback.rollback')}</ParamDialogTitle>
 			<DialogContent>
-				<DialogContentText component="div" className={classes.current}>
-					<div className={classes.textBlock}>
-						<div className={classes.text}>{t('log.rollback.current', { version: current.version})}</div>
-						<div className={classes.edit}><IconButton onClick={() => handleEdit(currentEditProps)}><EditIcon/></IconButton></div>
-					</div>
-					{current.rw === null ? <NoAccess/> : (
-						<ValueView type={current.mime} value={current.data}/>
-					)}
-				</DialogContentText>
+				{current !== null && (
+					<DialogContentText component="div" className={classes.current}>
+						<div className={classes.textBlock}>
+							<div className={classes.text}>{t('log.rollback.current', { version: current.version})}</div>
+							{handleEdit && (
+								<div className={classes.edit}>
+									<IconButton onClick={() => handleEdit({ path: current.path, type: current.mime, value: current.data })}>
+										<EditIcon/>
+									</IconButton>
+								</div>
+							)}
+						</div>
+						{current.rw === null ? <NoAccess/> : (
+							<ValueView type={current.mime} value={current.data}/>
+						)}
+					</DialogContentText>
+				)}
 				<DialogContentText component="div">
-					<div className={classes.textBlock}>
-						<div className={classes.text}>{t('log.rollback.confirmation', { param: props.path, version: props.version })}</div>
-						<div className={classes.edit}><IconButton onClick={() => handleEdit(props)}><EditIcon/></IconButton></div>
-					</div>
-					<ValueView type={props.type} value={props.value}/>
+					{props.deleted ? t('param.delete.confirm', { param: props.path }) : (
+						<React.Fragment>
+							<div className={classes.textBlock}>
+								<div className={classes.text}>{t('log.rollback.confirmation', { param: props.path, version: props.version })}</div>
+								{handleEdit && (
+									<div className={classes.edit}><IconButton onClick={() => handleEdit(props)}><EditIcon/></IconButton></div>
+								)}
+							</div>
+							<ValueView type={props.type} value={props.value}/>
+						</React.Fragment>
+					)}
 				</DialogContentText>
 				<TextField
 					label={t('param.comment')}

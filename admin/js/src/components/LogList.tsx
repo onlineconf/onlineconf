@@ -1,5 +1,4 @@
 import * as React from 'react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import CardHeader from '@material-ui/core/CardHeader';
@@ -26,6 +25,7 @@ import RollbackDialog from './RollbackDialog';
 import ButtonProgress from './ButtonProgress';
 import ErrorContext from './ErrorContext';
 import NoAccess from './NoAccess';
+import ParamIcon from './ParamIcon';
 
 const useItemStyles = makeStyles((theme: Theme) => ({
 	root: {
@@ -39,29 +39,45 @@ const useItemStyles = makeStyles((theme: Theme) => ({
 	path: {
 		wordBreak: 'break-all',
 	},
-	versionLine: {
-		overflow: 'hidden',
-		textOverflow: 'ellipsis',
-		whiteSpace: 'nowrap',
+	versionRow: {
+		display: 'flex',
 	},
-	headerComment: {
-		marginLeft: theme.spacing(1),
-		color: theme.palette.text.secondary,
+	versionBlock: {
+		flex: 'none',
+		maxWidth: '100%',
 	},
-	version: {
-		backgroundColor: theme.palette.text.secondary,
-		color: theme.palette.background.default,
-		padding: '0 2px',
-		borderRadius: 4,
+	flexBlock: {
+		display: 'flex',
+		alignItems: 'center',
+		columnGap: theme.spacing(0.5),
 	},
-	preview: {
+	flexBlockText: {
+		flex: 'auto',
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
 		whiteSpace: 'nowrap',
 		color: theme.palette.text.primary,
 	},
+	version: {
+		backgroundColor: theme.palette.text.secondary,
+		color: theme.palette.background.default,
+		borderRadius: 6,
+		minWidth: 20,
+		lineHeight: 1,
+		padding: 2,
+		textAlign: 'center',
+	},
+	headerComment: {
+		marginLeft: theme.spacing(0.5),
+		color: theme.palette.text.secondary,
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		whiteSpace: 'nowrap',
+	},
 	deleted: {
-		textDecoration: '3px solid line-through rgba(255, 0, 0, 0.5)',
+		color: theme.palette.text.secondary,
+		letterSpacing: '1em',
+		fontVariant: 'small-caps',
 	},
 	content: {
 		paddingTop: 0,
@@ -81,7 +97,7 @@ const useItemStyles = makeStyles((theme: Theme) => ({
 
 interface LogItemProps extends API.IParamLog {
 	showPath?: boolean;
-	onChange: (param: API.IParam) => void;
+	onChange: (param: API.IParam | null) => void;
 }
 
 function LogItem(props: LogItemProps) {
@@ -100,6 +116,7 @@ function LogItem(props: LogItemProps) {
 			type={props.mime}
 			value={props.data}
 			version={props.version}
+			deleted={props.deleted}
 			onLoaded={() => setRollbackLoading(false)}
 			onChange={props.onChange}
 			onError={onError}
@@ -109,31 +126,36 @@ function LogItem(props: LogItemProps) {
 			}}
 		/>);
 		setRollbackLoading(true);
-	}, [onError, props.data, props.mime, props.onChange, props.path, props.version]);
+	}, [onError, props.data, props.deleted, props.mime, props.onChange, props.path, props.version]);
 
 	return (
 		<ListItem disableGutters className={classes.root}>
 			<CardHeader
 				title={
 					<React.Fragment>
-						{props.showPath && <span className={classes.path}><symlink.view type="application/x-symlink" value={props.path}/></span>}
-						<div className={classes.versionLine}>
-							<span className={classes.version}>{props.version}</span>
-							{' ' + props.mtime + ' '}
+						{props.showPath && <div className={classes.path}><symlink.view type="application/x-symlink" value={props.path}/></div>}
+						<div className={classes.versionRow}>
+							<div className={`${classes.flexBlock} ${classes.versionBlock}`}>
+								<div className={classes.version}>{props.version}</div>
+								<div className={classes.flexBlockText}>{props.mtime}</div>
+							</div>
 							<Fade in={!expanded}>
-								<span className={classes.headerComment}>
+								<div className={classes.headerComment}>
 									<CommentIcon className={classes.commentIcon}/>
 									{props.comment}
-								</span>
+								</div>
 							</Fade>
 						</div>
 					</React.Fragment>
 				}
 				subheader={
 					<Collapse in={!expanded}>
-						{props.rw === null ? <NoAccess/> : (
-							<div className={clsx(classes.preview, props.deleted && classes.deleted)}>
-								<ValuePreview type={props.mime} value={props.data}/>
+						{props.deleted ? <div className={classes.deleted}>{t('log.deleted')}</div> : (
+							<div className={classes.flexBlock}>
+								<ParamIcon type={props.mime} fontSize="small" color="action"/>
+								<div className={classes.flexBlockText}>
+									{props.rw === null ? <NoAccess/> : <ValuePreview type={props.mime} value={props.data}/>}
+								</div>
 							</div>
 						)}
 					</Collapse>
@@ -144,13 +166,18 @@ function LogItem(props: LogItemProps) {
 						{expanded ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
 					</IconButton>
 				}
+				disableTypography
 				classes={headerClasses}
 			/>
 			<Collapse in={expanded} mountOnEnter unmountOnExit>
 				<CardContent className={classes.content}>
-					{props.rw === null ? <NoAccess/> : (
-						<ValueView type={props.mime} value={props.data} className={clsx(props.deleted && classes.deleted)}/>
-					)}
+					{
+						props.deleted
+							? <span className={classes.deleted}>{t('log.deleted')}</span>
+							: props.rw === null
+								? <NoAccess/>
+								: <ValueView type={props.mime} value={props.data}/>
+					}
 					<Typography variant="body2" color="textSecondary" component="div" className={classes.commentBlock}>
 						<CommentIcon className={classes.commentIcon}/>
 						{props.comment}
@@ -178,7 +205,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 interface LogListProps {
 	data: API.IParamLog[];
 	showPath?: boolean;
-	onChange: (param: API.IParam) => void;
+	onChange: (param: API.IParam | null) => void;
 }
 
 export default function LogList(props: LogListProps) {
