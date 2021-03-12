@@ -61,7 +61,7 @@ func (auth *headerAuthenticator) SelectUsers(ctx context.Context, term string) (
 	bind := make([]interface{}, 0)
 	if term != "" {
 	}
-	query := "SELECT User FROM my_config_user_group"
+	query := "SELECT DISTINCT User FROM my_config_user_group"
 	if term != "" {
 		query += " WHERE User LIKE ?"
 		bind = append(bind, "%"+termRe.ReplaceAllString(term, "\\$1")+"%", term)
