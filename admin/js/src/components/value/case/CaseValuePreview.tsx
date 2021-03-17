@@ -10,7 +10,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 		color: theme.palette.text.secondary,
 	},
 	key: {
-		color: theme.onlineconf.palette.case.key,
+		color: theme.palette.onlineconf.caseKey,
 	},
 }), { name: 'CaseValuePreview' });
 

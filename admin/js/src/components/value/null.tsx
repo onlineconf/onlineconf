@@ -9,7 +9,7 @@ export function NullValuePreview(props: NullValueProps) {
 
 const useViewStyles = makeStyles((theme: Theme) => ({
 	root: {
-		color: theme.onlineconf.palette.null,
+		color: theme.palette.onlineconf.null,
 	},
 }));
 
