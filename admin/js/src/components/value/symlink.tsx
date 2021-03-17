@@ -6,7 +6,7 @@ import PathField from '../PathField';
 
 const viewStyles = (theme: Theme) => createStyles({
 	root: {
-		color: theme.onlineconf.palette.symlink,
+		color: theme.palette.onlineconf.symlink,
 		textDecorationLine: 'none',
 		textDecorationColor: 'inherit',
 	},

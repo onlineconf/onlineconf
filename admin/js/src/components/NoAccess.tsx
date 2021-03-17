@@ -4,7 +4,7 @@ import { WithStyles, createStyles, Theme, withStyles } from '@material-ui/core/s
 
 const styles = (theme: Theme) => createStyles({
 	root: {
-		color: theme.onlineconf.palette.noAccess,
+		color: theme.palette.onlineconf.noAccess,
 		letterSpacing: '1em',
 		fontVariant: 'small-caps',
 	},

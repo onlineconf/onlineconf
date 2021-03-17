@@ -1,12 +1,12 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
-import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
+import { makeStyles, Theme } from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 
 import ErrorContext from './components/ErrorContext';
 import { WhoAmIProvider } from './components/WhoAmIContext';
-import UIConfigProvider from './components/UIConfig';
+import UIConfigProvider, { PaletteType } from './components/UIConfig';
 import TopBar from './components/TopBar';
 import LeftMenu, { leftMenuWidth } from './components/LeftMenu';
 import ConfigTree from './components/ConfigTree';
@@ -15,7 +15,7 @@ import Access from './components/Access';
 import ErrorSnackbar from './components/ErrorSnackbar';
 import GlobalLog from './components/GlobalLog';
 
-const styles = (theme: Theme) => ({
+const useStyles = makeStyles((theme: Theme) => ({
 	root: {
 	},
 	menu: {
@@ -37,70 +37,62 @@ const styles = (theme: Theme) => ({
 			marginLeft: leftMenuWidth,
 		},
 	},
-});
+}), { name: 'App' });
 
-interface AppState {
-	menu: boolean;
-	search: string;
-	searching: boolean;
+interface AppRootProps {
 	error?: Error;
+	onError(error: Error): void;
+	paletteType: PaletteType;
+	onChangePaletteType(value: PaletteType): void;
 }
 
-export default withStyles(styles)(
-	class App extends React.Component<WithStyles<typeof styles>, AppState> {
+function AppRoot(props: AppRootProps) {
+	const classes = useStyles();
+	const { onError } = props;
 
-		state: AppState = {
-			menu: false,
-			search: '',
-			searching: false,
-		};
+	const [ menu, setMenu ] = React.useState(false);
+	const [ search, setSearch ] = React.useState('');
+	const [ searching, setSearching ] = React.useState(false);
 
-		handleMenuToggle = () => {
-			this.setState(({ menu }) => ({ menu: !menu }));
-		}
+	return (
+		<React.Fragment>
+			<CssBaseline/>
+			<BrowserRouter>
+				<div className={classes.root}>
+					<TopBar onMenu={() => setMenu(m => !m)} onSearch={setSearch} searching={searching}/>
+					<LeftMenu open={menu} onClose={() => setMenu(false)} paletteType={props.paletteType} onChangePaletteType={props.onChangePaletteType}/>
+					<main className={clsx(classes.main, menu && classes.mainShift)}>
+						<Route exact path="/" render={props => <ConfigTree {...props} search={search} onSearching={setSearching} onError={onError}/>}/>
+						<Route exact path="/history/" render={props => <GlobalLog {...props} onError={onError}/>}/>
+						<Route exact path="/server/" render={props => <Servers {...props} onError={onError}/>}/>
+						<Route exact path="/access-group/" render={props => <Access {...props} onError={onError}/>}/>
+					</main>
+				</div>
+			</BrowserRouter>
+			<ErrorSnackbar error={props.error}/>
+		</React.Fragment>
+	);
+}
 
-		handleMenuClose = () => {
-			this.setState({ menu: false });
-		}
+export default function App() {
+	const [ error, setError ] = React.useState<Error>();
 
-		handleSearch = (term: string) => {
-			this.setState({ search: term });
-		}
+	const [ paletteType, setPaletteType ] = React.useState<PaletteType>(() => {
+		const value = window.localStorage.getItem('paletteType');
+		return value === 'light' || value === 'dark' ? value : 'system';
+	});
+	const onChangePaletteType = (paletteType: PaletteType) => {
+		setPaletteType(paletteType);
+		window.localStorage.setItem('paletteType', paletteType);
+	};
 
-		handleSearching = (searching: boolean) => {
-			this.setState({ searching });
-		}
-
-		handleError = (error?: Error) => {
-			this.setState({ error });
-		}
-
-		public render() {
-			const { classes } = this.props;
-			const mainClassName = clsx(classes.main, { [classes.mainShift]: this.state.menu });
-			return (
-				<ErrorContext.Provider value={this.handleError}>
-					<WhoAmIProvider>
-						<UIConfigProvider onError={this.handleError}>
-							<CssBaseline/>
-							<BrowserRouter>
-								<div className={this.props.classes.root}>
-									<TopBar onMenu={this.handleMenuToggle} onSearch={this.handleSearch} searching={this.state.searching}/>
-									<LeftMenu open={this.state.menu} onClose={this.handleMenuClose}/>
-									<main className={mainClassName}>
-										<Route exact path="/" render={props => <ConfigTree {...props} search={this.state.search} onSearching={this.handleSearching} onError={this.handleError}/>}/>
-										<Route exact path="/history/" render={props => <GlobalLog {...props} onError={this.handleError}/>}/>
-										<Route exact path="/server/" render={props => <Servers {...props} onError={this.handleError}/>}/>
-										<Route exact path="/access-group/" render={props => <Access {...props} onError={this.handleError}/>}/>
-									</main>
-								</div>
-							</BrowserRouter>
-							<ErrorSnackbar error={this.state.error}/>
-						</UIConfigProvider>
-					</WhoAmIProvider>
-				</ErrorContext.Provider>
-			);
-		}
-
-	}
-);
+	return (
+		<ErrorContext.Provider value={setError}>
+			<WhoAmIProvider>
+				<UIConfigProvider onError={setError} paletteType={paletteType}>
+					<AppRoot error={error} onError={setError} paletteType={paletteType} onChangePaletteType={onChangePaletteType}/>
+				</UIConfigProvider>
+			</WhoAmIProvider>
+		</ErrorContext.Provider>
+	);
+}

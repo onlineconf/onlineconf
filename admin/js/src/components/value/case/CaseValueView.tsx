@@ -18,7 +18,7 @@ const styles = (theme: Theme) => createStyles({
 		whiteSpace: 'nowrap',
 	},
 	key: {
-		color: theme.onlineconf.palette.case.key,
+		color: theme.palette.onlineconf.caseKey,
 	},
 	keyDefault: {
 		fontStyle: 'italic',

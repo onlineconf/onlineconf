@@ -11,7 +11,7 @@ const usePreviewStyles = makeStyles((theme: Theme) => ({
 	},
 	variable: {
 		textDecoration: 'none',
-		color: '#0055aa',
+		color: theme.palette.onlineconf.templateVariable,
 	},
 }));
 
