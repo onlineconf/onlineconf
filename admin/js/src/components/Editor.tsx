@@ -48,7 +48,7 @@ export interface EditorProps extends Partial<ValueProps> {
 }
 
 interface EditorState extends ValueProps {
-	name?: string;
+	name: string;
 	summary: string;
 	description: string;
 	notification?: Notification | null;
@@ -60,6 +60,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	constructor(props: EditorProps & WithStyles<typeof styles> & WithTranslation) {
 		super(props);
 		this.state = {
+			name: '',
 			type: props.type !== undefined ? props.type : 'application/x-null',
 			value: props.value !== undefined ? props.value : null,
 			summary: props.summary !== undefined ? props.summary : '',
