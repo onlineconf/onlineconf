@@ -16,7 +16,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 		'& > .CodeMirror': {
 			height: 'auto',
 			background: 'none',
-			fontFamily: 'monospace, monospace',
+			fontFamily: '"Roboto Mono", "Menlo", monospace',
 			color: 'inherit',
 			'& .CodeMirror-lines': {
 				padding: 0,
