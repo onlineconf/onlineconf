@@ -701,17 +701,13 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 		def := 0
 		for _, c := range cases {
 			i := 0
-			if c["server"].Valid {
-				i++
-			}
-			if c["group"].Valid {
-				i++
-			}
-			if c["datacenter"].Valid {
-				i++
-			}
-			if c["service"].Valid {
-				i++
+			for _, key := range []string{"server", "group", "datacenter", "service"} {
+				if c[key].Valid {
+					i++
+					if c[key].String == "" {
+						return ErrInvalidValue
+					}
+				}
 			}
 			if i == 0 {
 				def++
