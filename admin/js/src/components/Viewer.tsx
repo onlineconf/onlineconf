@@ -37,7 +37,7 @@ interface ViewerProps {
 }
 
 const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof styles> & WithTranslation) => (
-	<Dialog open onClose={props.onClose} fullScreen={props.fullScreen}>
+	<Dialog open onClose={props.onClose} maxWidth={false} fullScreen={props.fullScreen}>
 		<DialogTitle className={classes.title}>
 			{param.path}
 			{param.summary !== '' && <Typography variant="body2" color="textSecondary">{param.summary}</Typography>}

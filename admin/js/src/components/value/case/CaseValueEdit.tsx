@@ -33,21 +33,26 @@ const styles = (theme: Theme) => createStyles({
 	caseKey: {
 		display: 'flex',
 		flexWrap: 'wrap',
-		marginLeft: theme.spacing(0.5),
-		marginRight: theme.spacing(0.5),
+		alignItems: 'center',
+		columnGap: theme.spacing(1),
+		paddingLeft: theme.spacing(1),
+		paddingRight: theme.spacing(1),
 	},
 	caseField: {
 		flex: 'auto',
-		marginLeft: theme.spacing(0.5),
-		marginRight: theme.spacing(0.5),
+	},
+	caseKeyValue: {
+		minWidth: '10em',
 	},
 	remove: {
-		margin: theme.spacing(1, 0.5),
 	},
 	caseValue: {
 		paddingLeft: theme.spacing(1),
 		paddingRight: theme.spacing(1),
 		paddingBottom: theme.spacing(0.5),
+		'& .CodeMirror': {
+			maxHeight: '50vh',
+		},
 	},
 	add: {
 		textAlign: 'center',
@@ -183,99 +188,97 @@ export default withStyles(styles)(withTranslation()(
 			const cases: Case[] = JSON.parse(this.props.value);
 			return (
 				<ValueOutline>
-					<div>
-						{cases.map((c, i) => {
-							let caseType: CaseConditions | 'default' = 'default';
-							for (const t of caseConditions) {
-								if (t in c) {
-									caseType = t;
-									break;
-								}
+					{cases.map((c, i) => {
+						let caseType: CaseConditions | 'default' = 'default';
+						for (const t of caseConditions) {
+							if (t in c) {
+								caseType = t;
+								break;
 							}
+						}
 
-							let caseKey;
-							const commonProps: TextFieldProps = {
-								variant: 'outlined',
-								margin: 'dense',
-								className: classes.caseField,
-								onChange: this.createCaseKeyHandler(i),
-							};
-							switch (caseType) {
-								case 'server': {
-									caseKey = <TextField label={t('param.case.server')} value={c.server} {...commonProps}/>;
-									break;
-								}
-								case 'group': {
-									const { groups, loading } = this.state;
-									if (groups) {
-										caseKey = (
-											<TextField select label={t('param.case.group')} value={c.group} {...commonProps}>
-												{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
-											</TextField>
-										);
-									} else if (loading.groups) {
-										caseKey = <CircularProgress/>;
-									}
-									break;
-								}
-								case 'datacenter': {
-									const { datacenters, loading } = this.state;
-									if (datacenters) {
-										caseKey = (
-											<TextField select label={t('param.case.datacenter')} value={c.datacenter} {...commonProps}>
-												{Object.keys(datacenters).map(key => <MenuItem key={key} value={key}>{datacenters[key]}</MenuItem>)}
-											</TextField>)
-										;
-									} else if (loading.datacenters) {
-										caseKey = <CircularProgress/>;
-									}
-									break;
-								}
-								case 'service': {
-									const { services, loading } = this.state;
-									if (services) {
-										caseKey = (
-											<TextField select label={t('param.case.service')} value={c.service} {...commonProps}>
-												{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
-											</TextField>
-										);
-									} else if (loading.services) {
-										caseKey = <CircularProgress/>;
-									}
-									break;
-								}
+						let caseKey;
+						const commonProps: TextFieldProps = {
+							variant: 'outlined',
+							margin: 'dense',
+							className: `${classes.caseField} ${classes.caseKeyValue}`,
+							onChange: this.createCaseKeyHandler(i),
+						};
+						switch (caseType) {
+							case 'server': {
+								caseKey = <TextField label={t('param.case.server')} value={c.server} {...commonProps}/>;
+								break;
 							}
-
-							return (
-								<div key={i} className={classes.case}>
-									<div className={classes.caseKey}>
-										<IconButton className={classes.remove} onClick={this.createRemoveCaseHandler(i)}>
-											<RemoveIcon/>
-										</IconButton>
-										<TextField
-											select
-											label={t('param.case.by')}
-											value={caseType}
-											variant="outlined"
-											margin="dense"
-											className={classes.caseField}
-											onChange={this.createCaseTypeHandler(i)}
-										>
-											<MenuItem value="default">{t('param.case.default')}</MenuItem>
-											<MenuItem value="server">{t('param.case.server')}</MenuItem>
-											<MenuItem value="group">{t('param.case.group')}</MenuItem>
-											<MenuItem value="datacenter">{t('param.case.datacenter')}</MenuItem>
-											<MenuItem value="service">{t('param.case.service')}</MenuItem>
+							case 'group': {
+								const { groups, loading } = this.state;
+								if (groups) {
+									caseKey = (
+										<TextField select label={t('param.case.group')} value={c.group} {...commonProps}>
+											{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
 										</TextField>
-										{caseKey}
-									</div>
-									<div className={classes.caseValue}>
-										<TypeValueFields type={c.mime} value={c.value} onChange={this.createDataHandler(i)} onError={this.props.onError}/>
-									</div>
+									);
+								} else if (loading.groups) {
+									caseKey = <CircularProgress/>;
+								}
+								break;
+							}
+							case 'datacenter': {
+								const { datacenters, loading } = this.state;
+								if (datacenters) {
+									caseKey = (
+										<TextField select label={t('param.case.datacenter')} value={c.datacenter} {...commonProps}>
+											{Object.keys(datacenters).map(key => <MenuItem key={key} value={key}>{datacenters[key]}</MenuItem>)}
+										</TextField>)
+									;
+								} else if (loading.datacenters) {
+									caseKey = <CircularProgress/>;
+								}
+								break;
+							}
+							case 'service': {
+								const { services, loading } = this.state;
+								if (services) {
+									caseKey = (
+										<TextField select label={t('param.case.service')} value={c.service} {...commonProps}>
+											{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
+										</TextField>
+									);
+								} else if (loading.services) {
+									caseKey = <CircularProgress/>;
+								}
+								break;
+							}
+						}
+
+						return (
+							<div key={i} className={classes.case}>
+								<div className={classes.caseKey}>
+									<IconButton className={classes.remove} onClick={this.createRemoveCaseHandler(i)}>
+										<RemoveIcon/>
+									</IconButton>
+									<TextField
+										select
+										label={t('param.case.by')}
+										value={caseType}
+										variant="outlined"
+										margin="dense"
+										className={classes.caseField}
+										onChange={this.createCaseTypeHandler(i)}
+									>
+										<MenuItem value="default">{t('param.case.default')}</MenuItem>
+										<MenuItem value="server">{t('param.case.server')}</MenuItem>
+										<MenuItem value="group">{t('param.case.group')}</MenuItem>
+										<MenuItem value="datacenter">{t('param.case.datacenter')}</MenuItem>
+										<MenuItem value="service">{t('param.case.service')}</MenuItem>
+									</TextField>
+									{caseKey}
 								</div>
-							);
-						})}
-					</div>
+								<div className={classes.caseValue}>
+									<TypeValueFields type={c.mime} value={c.value} onChange={this.createDataHandler(i)} onError={this.props.onError}/>
+								</div>
+							</div>
+						);
+					})}
 					<div className={classes.add}>
 						<IconButton onClick={this.handleAddCase}>
 							<AddIcon/>

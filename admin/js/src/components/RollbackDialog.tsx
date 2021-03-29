@@ -123,7 +123,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 	};
 
 	return (
-		<Dialog open onClose={props.onClose} fullScreen={fullScreen}>
+		<Dialog open onClose={props.onClose} maxWidth={false} fullScreen={fullScreen}>
 			<ParamDialogTitle path={props.path}>{t('log.rollback.rollback')}</ParamDialogTitle>
 			<DialogContent>
 				{current !== null && (
