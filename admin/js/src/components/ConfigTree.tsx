@@ -187,6 +187,23 @@ function showSelected(root: IParamNode, selected?: string) {
 	}
 }
 
+function maxDepth(node: IParamNode | undefined) {
+	if (node === undefined) {
+		return 0;
+	}
+	if (node.state !== 'open' || node.children === undefined) {
+		return 1;
+	}
+	let max = 0;
+	for (const child of Object.values(node.children)) {
+		const depth = maxDepth(child);
+		if (depth > max) {
+			max = depth;
+		}
+	}
+	return max + 1;
+}
+
 function parentPath(path: string) {
 	// eslint-disable-next-line no-useless-escape
 	let parentPath = path.replace(/\/[^\/]+$/, '');
@@ -209,6 +226,7 @@ interface ConfigTreeProps {
 
 interface ConfigTreeState {
 	root?: IParamNode;
+	maxDepth: number;
 	selected?: string;
 	menu?: string;
 	menuAnchorX?: number;
@@ -219,6 +237,7 @@ interface ConfigTreeState {
 class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, ConfigTreeState > {
 
 	public state: ConfigTreeState = {
+		maxDepth: 0,
 		popover: null,
 		dialog: null,
 	};
@@ -297,7 +316,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				for (const path of Object.keys(nodes).sort()) {
 					root = updateTree(root, nodes[path], { open: options.open, selected: prevState.selected });
 				}
-				return { root };
+				return { root, maxDepth: maxDepth(root) };
 			});
 		} catch (error) {
 			this.setState(({ root }) => ({ root: modifyNodes(root!, paths, node => { node.state = 'closed'; }) }));
@@ -384,14 +403,20 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		const node = getNode(this.state.root!, path);
 
 		if (node && node.children) {
-			this.setState({ root: setNodeState(this.state.root!, path, 'open') });
+			this.setState(({ root }) => ({
+				root: setNodeState(root!, path, 'open'),
+				maxDepth: maxDepth(root),
+			}));
 		} else {
 			this.loadNode(path, { open: true, withChildren: true });
 		}
 	}
 
 	handleClose = (path: string) => {
-		this.setState({ root: setNodeState(this.state.root!, path, 'closed') });
+		this.setState(({ root }) => ({
+			root: setNodeState(root!, path, 'closed'),
+			maxDepth: maxDepth(root),
+		}));
 	}
 
 	handleSelect = (param: IParamNode) => {
@@ -480,7 +505,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				parent.num_children++;
 			}
 			parent.children[param.name] = paramNode(param);
-			return { root };
+			return { root, maxDepth: maxDepth(root) };
 		});
 	}
 
@@ -669,8 +694,8 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 
 	public render() {
 		return (
-			<div>
-				<Tree>
+			<React.Fragment>
+				<Tree style={{ ['--max-depth' as never]: this.state.maxDepth }}>
 					{this.state.root && (
 						<ConfigTreeNode
 							param={this.state.root}
@@ -698,7 +723,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				</Tree>
 				{this.state.popover}
 				{this.state.dialog}
-			</div>
+			</React.Fragment>
 		);
 	}
 

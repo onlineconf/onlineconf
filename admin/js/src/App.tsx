@@ -17,6 +17,7 @@ import GlobalLog from './components/GlobalLog';
 
 const useStyles = makeStyles((theme: Theme) => ({
 	root: {
+		['--left-menu-width' as never]: '0px',
 	},
 	menu: {
 		width: leftMenuWidth,
@@ -27,16 +28,30 @@ const useStyles = makeStyles((theme: Theme) => ({
 			easing: theme.transitions.easing.sharp,
 			duration: theme.transitions.duration.leavingScreen,
 		}),
+		'&$menuSliding .tree-value-column': {
+			transition: theme.transitions.create('width', {
+				easing: theme.transitions.easing.sharp,
+				duration: theme.transitions.duration.leavingScreen,
+			}),
+		},
 	},
 	mainShift: {
 		transition: theme.transitions.create('margin', {
 			easing: theme.transitions.easing.easeOut,
 			duration: theme.transitions.duration.enteringScreen,
 		}),
-		[theme.breakpoints.up('sm')]: {
+		'&$menuSliding .tree-value-column': {
+			transition: theme.transitions.create('width', {
+				easing: theme.transitions.easing.easeOut,
+				duration: theme.transitions.duration.enteringScreen,
+			}),
+		},
+		[theme.breakpoints.up('md')]: {
 			marginLeft: leftMenuWidth,
+			['--left-menu-width' as never]: `${leftMenuWidth}px`,
 		},
 	},
+	menuSliding: {},
 }), { name: 'App' });
 
 interface AppRootProps {
@@ -51,6 +66,7 @@ function AppRoot(props: AppRootProps) {
 	const { onError } = props;
 
 	const [ menu, setMenu ] = React.useState(false);
+	const [ menuSliding, setMenuSliding ] = React.useState(false);
 	const [ search, setSearch ] = React.useState('');
 	const [ searching, setSearching ] = React.useState(false);
 
@@ -59,9 +75,15 @@ function AppRoot(props: AppRootProps) {
 			<CssBaseline/>
 			<BrowserRouter>
 				<div className={classes.root}>
-					<TopBar onMenu={() => setMenu(m => !m)} onSearch={setSearch} searching={searching}/>
-					<LeftMenu open={menu} onClose={() => setMenu(false)} paletteType={props.paletteType} onChangePaletteType={props.onChangePaletteType}/>
-					<main className={clsx(classes.main, menu && classes.mainShift)}>
+					<TopBar onMenu={() => { setMenu(m => !m); setMenuSliding(true); }} onSearch={setSearch} searching={searching}/>
+					<LeftMenu
+						open={menu}
+						onClose={() => { setMenu(false); setMenuSliding(true); }}
+						onSlideEnd={() => setMenuSliding(false)}
+						paletteType={props.paletteType}
+						onChangePaletteType={props.onChangePaletteType}
+					/>
+					<main className={clsx(classes.main, menu && classes.mainShift, menuSliding && classes.menuSliding)}>
 						<Route exact path="/" render={props => <ConfigTree {...props} search={search} onSearching={setSearching} onError={onError}/>}/>
 						<Route exact path="/history/" render={props => <GlobalLog {...props} onError={onError}/>}/>
 						<Route exact path="/server/" render={props => <Servers {...props} onError={onError}/>}/>

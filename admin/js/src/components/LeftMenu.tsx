@@ -96,6 +96,7 @@ interface LeftMenuProps {
 	onClose: () => void;
 	paletteType: PaletteType;
 	onChangePaletteType(value: PaletteType): void;
+	onSlideEnd?: () => void;
 }
 
 export default function LeftMenu(props: LeftMenuProps) {
@@ -107,9 +108,15 @@ export default function LeftMenu(props: LeftMenuProps) {
 		className: props.paletteType === paletteType ? classes.selected : undefined,
 		onClick: () => props.onChangePaletteType(paletteType),
 	});
-	const variant = useMediaQuery(theme.breakpoints.up('sm')) ? 'persistent' : 'temporary';
+	const variant = useMediaQuery(theme.breakpoints.up('md')) ? 'persistent' : 'temporary';
 	return (
-		<Drawer open={props.open} onClose={props.onClose} classes={{ paper: classes.paper }} variant={variant}>
+		<Drawer
+			open={props.open}
+			onClose={props.onClose}
+			variant={variant}
+			classes={{ paper: classes.paper }}
+			SlideProps={{ onEntered: props.onSlideEnd, onExited: props.onSlideEnd }}
+		>
 			<div className={classes.toolbar}>
 				<Typography variant="h6" color="primary">OnlineConf</Typography>
 			</div>

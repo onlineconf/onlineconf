@@ -59,21 +59,22 @@ const usePreviewStyles = makeStyles((theme: Theme) => {
 		},
 		valueContainer: {
 			flex: 'none',
-			width: '5em',
 			display: 'flex',
 			alignItems: 'center',
-			'@media (min-width: 400px)': { width: '10em' },
-			'@media (min-width: 500px)': { width: '15em' },
-			'@media (min-width: 600px)': { width: '20em' },
-			'@media (min-width: 960px)': { width: '25em' },
-			'@media (min-width: 1280px)': { width: '40em' },
-			'@media (min-width: 1920px)': { width: '50em' },
+			overflow: 'hidden',
+			justifyContent: 'flex-end',
+			width: 'calc(min(50vw - var(--left-menu-width, 0px) / 2, calc(100vw - (var(--left-menu-width, 0px) + (var(--max-depth, 0) + 1) * 28px + 10ch))) - 28px)',
 		},
 		value: {
 			flex: 'auto',
 			marginLeft: spacingUnit,
 			marginRight: spacingUnit,
 			...overflow
+		},
+		extraButtons: {
+			'@media (max-width: 400px)': {
+				display: 'none',
+			},
 		},
 		version: {
 			width: '2em',
@@ -125,7 +126,7 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 				{param.name}
 				{param.summary !== '' && <span className={classes.summary}>{param.summary}</span>}
 			</div>
-			<div className={classes.valueContainer}>
+			<div className={clsx(classes.valueContainer, 'tree-value-column')}>
 				<div className={classes.value}>
 					{param.rw === null ? <NoAccess/> : (
 						<span onMouseEnter={onValuePopoverOpen} onMouseLeave={onValuePopoverClose}>
@@ -134,18 +135,18 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 					)}
 				</div>
 				{param.notification_modified && (
-					<IconButton onClick={onNotification} disabled={param.rw !== true} className={classes.iconButton}><Notifications/></IconButton>
+					<IconButton onClick={onNotification} disabled={param.rw !== true} className={clsx(classes.iconButton, classes.extraButtons)}><Notifications/></IconButton>
 				)}
 				{param.access_modified && (
-					<IconButtonProgress size={buttonSize} loading={param.accessLoading}>
+					<IconButtonProgress size={buttonSize} loading={param.accessLoading} className={classes.extraButtons}>
 						<IconButton onClick={onAccess} disabled={param.rw !== true && !userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
 					</IconButtonProgress>
 				)}
+				<ButtonProgress loading={param.logLoading} className={classes.logButtons}>
+					<Button onClick={onLog} classes={{ root: classes.button, label: classes.version }}>{param.version}</Button>
+					<Button onClick={onLog} classes={{ root: classes.button, label: classes.mtime }}>{param.mtime}</Button>
+				</ButtonProgress>
 			</div>
-			<ButtonProgress loading={param.logLoading} className={classes.logButtons}>
-				<Button onClick={onLog} classes={{ root: classes.button, label: classes.version }}>{param.version}</Button>
-				<Button onClick={onLog} classes={{ root: classes.button, label: classes.mtime }}>{param.mtime}</Button>
-			</ButtonProgress>
 			<IconButton onClick={onViewOpen} className={classes.iconButton}><MoreHoriz/></IconButton>
 		</Typography>
 	);
