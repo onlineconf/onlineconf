@@ -8,13 +8,21 @@ import { EditNonnullValueProps } from '../common';
 import CodeMirrorComponent from '../../CodeMirror';
 
 const useStyles = makeStyles({
+	field: {
+		minHeight: 0,
+	},
+	inputRoot: {
+		alignItems: 'stretch',
+		minHeight: 0,
+	},
+	input: {
+		height: 'auto',
+	},
 	codemirror: {
 		width: 'inherit',
+		height: '100%',
 		'& > .CodeMirror': {
-			maxHeight: '300px',
-			'& .CodeMirror-scroll': {
-				maxHeight: '300px',
-			},
+			height: '100%',
 		},
 	},
 	helper: {
@@ -68,20 +76,22 @@ function CaseHelperText() {
 export default function TextValueEdit(props: EditNonnullValueProps) {
 	const { onChange, type, value } = props;
 	const { t } = useTranslation();
+	const classes = useStyles();
 
 	return (
 		<TextField
 			id="value"
 			label={t('param.value')}
 			fullWidth
-			multiline
 			variant="outlined"
 			margin="dense"
 			helperText={type === 'application/x-template' ? CaseHelperText : undefined}
 			value={value}
+			className={classes.field}
 			InputProps={{
 				inputComponent: CodeMirrorEditor,
-				inputProps: { type, onBeforeChange: onChange },
+				inputProps: { type, onBeforeChange: onChange, className: classes.input },
+				className: classes.inputRoot,
 			}}
 		/>
 	);

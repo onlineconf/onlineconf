@@ -18,6 +18,13 @@ import TypeValueFields from './TypeValueFields';
 import SummaryDescriptionFields from './SummaryDescriptionFields';
 
 const styles = (theme: Theme) => createStyles({
+	paper: {
+		minWidth: theme.breakpoints.width('sm'),
+	},
+	content: {
+		display: 'flex',
+		flexDirection: 'column',
+	},
 	pathPrefix: {
 		marginRight: 0,
 		color: theme.palette.text.secondary,
@@ -48,6 +55,7 @@ export interface EditorProps extends Partial<ValueProps> {
 }
 
 interface EditorState extends ValueProps {
+	open: boolean;
 	name: string;
 	summary: string;
 	description: string;
@@ -60,6 +68,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	constructor(props: EditorProps & WithStyles<typeof styles> & WithTranslation) {
 		super(props);
 		this.state = {
+			open: true,
 			name: '',
 			type: props.type !== undefined ? props.type : 'application/x-null',
 			value: props.value !== undefined ? props.value : null,
@@ -95,7 +104,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	}
 
 	handleClose = () => {
-		this.props.onClose();
+		this.setState({ open: false });
 	}
 
 	handleSave = async () => {
@@ -135,14 +144,21 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	render() {
 		const { t } = this.props;
 		return (
-			<Dialog open onClose={this.handleClose} fullWidth fullScreen={this.props.fullScreen}>
+			<Dialog
+				open={this.state.open}
+				onClose={this.handleClose}
+				onExited={this.props.onClose}
+				maxWidth={false}
+				fullScreen={this.props.fullScreen}
+				classes={this.props.fullScreen ? undefined : { paper: this.props.classes.paper }}
+			>
 				{this.props.create ? <DialogTitle>{t('param.menu.create')}</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
 						{this.props.summary !== '' && <Typography variant="body2" color="textSecondary">{this.props.summary}</Typography>}
 					</DialogTitle>
 				)}
-				<DialogContent>
+				<DialogContent className={this.props.classes.content}>
 					{this.props.create ? (
 						<React.Fragment>
 							<TextField
@@ -184,7 +200,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={this.handleClose}>{t('button.cancel')}</Button>
-					<Button color="primary" onClick={this.handleSave}>{t('button.save')}</Button>
+					<Button color="primary" onClick={this.handleSave} disabled={this.state.comment === ''}>{t('button.save')}</Button>
 				</DialogActions>
 			</Dialog>
 		);
