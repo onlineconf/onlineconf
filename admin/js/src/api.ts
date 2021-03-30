@@ -51,9 +51,9 @@ const commonUrlencodedOptions = {
 	headers: { ...commonOptions.headers, 'Content-Type': 'application/x-www-form-urlencoded' },
 };
 
-export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree') {
+export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree', options: AxiosRequestConfig = {}) {
 	const params = { symlink, depth };
-	const response = await axios.get<IParam>('/config' + path, { ...commonOptions, params });
+	const response = await axios.get<IParam>('/config' + path, { ...options, ...commonOptions, params });
 	return response.data;
 }
 
@@ -104,7 +104,14 @@ export async function search(term: string) {
 }
 
 
+export const logLimit = 50;
+
+interface LogPagination {
+	lastid?: number;
+}
+
 export interface IParamLog {
+	id: number;
 	path: string;
 	version: number;
 	mime: ParamType;
@@ -114,10 +121,12 @@ export interface IParamLog {
 	comment: string;
 	deleted: boolean;
 	rw: boolean | null;
+	same: boolean;
 }
 
-export async function getParamLog(path: string, options: AxiosRequestConfig = {}) {
-	const response = await axios.get<IParamLog[]>('/log' + path, { ...options, ...commonOptions });
+export async function getParamLog(path: string, lastID?: number, options: AxiosRequestConfig = {}) {
+	const params: LogPagination = { lastid: lastID };
+	const response = await axios.get<IParamLog[]>('/log' + path, { ...options, ...commonOptions, params });
 	return response.data;
 }
 
@@ -129,11 +138,11 @@ export interface GlobalLogFilter {
 	all?: boolean;
 }
 
-interface GlobalLogParams extends Omit<GlobalLogFilter, 'all'> {
+interface GlobalLogParams extends Omit<GlobalLogFilter, 'all'>, LogPagination {
 	all?: 1;
 }
 
-export async function getGlobalLog(filter: GlobalLogFilter, options: AxiosRequestConfig = {}) {
+export async function getGlobalLog(filter: GlobalLogFilter, lastID?: number, options: AxiosRequestConfig = {}) {
 	const params: GlobalLogParams = {};
 	for (const k of ['author', 'branch', 'from', 'till'] as const) {
 		if (filter[k] !== undefined && filter[k] !== '') {
@@ -143,6 +152,7 @@ export async function getGlobalLog(filter: GlobalLogFilter, options: AxiosReques
 	if (filter.all) {
 		params.all = 1;
 	}
+	params.lastid = lastID;
 	const response = await axios.get<IParamLog[]>('/global-log', { ...options, ...commonOptions, params });
 	return response.data;
 }

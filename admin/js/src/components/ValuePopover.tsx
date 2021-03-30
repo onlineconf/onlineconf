@@ -1,7 +1,6 @@
 import * as React from 'react';
 import Popover from '@material-ui/core/Popover';
 import { Theme, WithStyles, withStyles } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 
 import { ValueProps } from './common';
 import { ValueView } from './value';
@@ -31,9 +30,7 @@ const ValuePopover = (props: ValuePopoverProps & WithStyles<typeof styles>) => (
 		classes={{ paper: props.classes.paper }}
 		disableRestoreFocus
 	>
-		<Typography component="div" variant="body2">
-			<ValueView type={props.type} value={props.value} accessible/>
-		</Typography>
+		<ValueView type={props.type} value={props.value} disableDecoration/>
 	</Popover>
 );
 

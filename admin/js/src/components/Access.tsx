@@ -17,6 +17,7 @@ import AddIcon from '@material-ui/icons/AddCircle';
 import * as api from '../api';
 import Avatar from './Avatar';
 import UserField from './UserField';
+import WhoAmIContext from './WhoAmIContext';
 
 const styles = (theme: Theme) => createStyles({
 	group: {
@@ -33,7 +34,6 @@ const styles = (theme: Theme) => createStyles({
 });
 
 interface AccessProps {
-	userIsRoot: boolean;
 	onError: (error: Error) => void;
 }
 
@@ -183,6 +183,8 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 		}
 	}
 
+	static contextType = WhoAmIContext;
+
 	render() {
 		const { classes } = this.props;
 		const { access } = this.state;
@@ -197,7 +199,7 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 									color="primary"
 									label={group}
 									className={classes.chip}
-									onDelete={this.props.userIsRoot && access[group].length === 0 ? () => this.deleteGroup(group) : undefined}
+									onDelete={this.context.userIsRoot && access[group].length === 0 ? () => this.deleteGroup(group) : undefined}
 								/>
 								{access[group].map(user => (
 									<Chip
@@ -205,16 +207,16 @@ class Access extends React.Component<AccessProps & WithStyles<typeof styles> & W
 										label={user}
 										avatar={<Avatar username={user} disableTooltip/>}
 										className={classes.chip}
-										onDelete={this.props.userIsRoot ? () => this.removeUser(group, user) : undefined}
+										onDelete={this.context.userIsRoot ? () => this.removeUser(group, user) : undefined}
 									/>
 								))}
-								{this.props.userIsRoot && (
+								{this.context.userIsRoot && (
 									<IconButton className={classes.add} onClick={() => this.showAddUserDialog(group)}><AddIcon/></IconButton>
 								)}
 							</ListItem>
 						);
 					})}
-					{this.props.userIsRoot && (
+					{this.context.userIsRoot && (
 						<ListItem className={classes.group}>
 							<IconButton className={classes.add} onClick={() => this.showCreateGroupDialog()}><AddIcon/></IconButton>
 						</ListItem>

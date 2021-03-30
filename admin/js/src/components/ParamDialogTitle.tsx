@@ -10,7 +10,7 @@ const styles = createStyles({
 });
 
 interface ParamDialogTitleProps {
-	children: string;
+	children: React.ReactNode;
 	path: string;
 }
 

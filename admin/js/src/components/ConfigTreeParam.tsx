@@ -6,47 +6,23 @@ import { Theme, makeStyles, createStyles } from '@material-ui/core/styles';
 import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
-import { SvgIconProps } from '@material-ui/core/SvgIcon';
 
-import DefaultIcon from '@material-ui/icons/Settings';
-import RootIcon from '@material-ui/icons/Language';
-import TopLevelIcon from '@material-ui/icons/Domain';
-import NullIcon from '@material-ui/icons/Block';
-import FolderIcon from '@material-ui/icons/FolderOpen';
-import TextIcon from '@material-ui/icons/Subject';
-import StructIcon from '@material-ui/icons/DeviceHub';
-import SymlinkIcon from '@material-ui/icons/Launch';
-import CaseIcon from '@material-ui/icons/Help';
-import TemplateIcon from '@material-ui/icons/LocalAtm';
-import ListIcon from '@material-ui/icons/List';
 import LockOpen from '@material-ui/icons/LockOpen';
 import MoreHoriz from '@material-ui/icons/MoreHoriz';
 import Notifications from '@material-ui/icons/Notifications';
 
-import { ParamType } from '../api';
 import { IParamNode } from './common';
 import { ValuePreview } from './value';
 import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
 import NoAccess from './NoAccess';
+import WhoAmIContext from './WhoAmIContext';
+import ParamIcon from './ParamIcon';
 
 export const spacingUnit = 2;
 export const buttonSize = 24;
 export const iconButtonPadding = (buttonSize - 24) / 2;
-
-const iconByType: { [P in ParamType]: React.ComponentType<SvgIconProps> } = {
-	'application/x-null': NullIcon,
-	'text/plain': TextIcon,
-	'application/json': StructIcon,
-	'application/x-yaml': StructIcon,
-	'application/x-symlink': SymlinkIcon,
-	'application/x-case': CaseIcon,
-	'application/x-template': TemplateIcon,
-	'application/x-list': ListIcon,
-	'application/x-server': ListIcon,
-	'application/x-server2': ListIcon,
-};
 
 const usePreviewStyles = makeStyles((theme: Theme) => {
 	const overflow: CSS.Properties = {
@@ -122,11 +98,10 @@ const usePreviewStyles = makeStyles((theme: Theme) => {
 			padding: iconButtonPadding,
 		},
 	});
-});
+}, { name: 'ConfigTreeParamPreview' });
 
 interface ConfigTreeParamPreviewProps {
 	param: IParamNode;
-	userIsRoot: boolean;
 	onMenuOpen: () => void;
 	onEdit: () => void;
 	onNotification: () => void;
@@ -139,23 +114,13 @@ interface ConfigTreeParamPreviewProps {
 function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 	const { param, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
 	const classes = usePreviewStyles();
-	let Icon = iconByType[param.mime] || DefaultIcon;
-
-	if (param.mime === 'application/x-null') {
-		if (param.path === '/') {
-			Icon = RootIcon;
-		} else if (param.path === '/' + param.name) {
-			Icon = TopLevelIcon;
-		} else if (param.num_children > 0) {
-			Icon = FolderIcon;
-		}
-	}
+	const { userIsRoot } = React.useContext(WhoAmIContext);
 
 	const className = clsx(classes.root, { [classes.matched]: param.match });
 
 	return (
 		<Typography component="div" variant="body2" className={className}>
-			<Icon className={classes.icon} color="action"/>
+			<ParamIcon type={param.mime} path={param.path} numChildren={param.num_children} className={classes.icon} color="action"/>
 			<div className={classes.name}>
 				{param.name}
 				{param.summary !== '' && <span className={classes.summary}>{param.summary}</span>}
@@ -173,7 +138,7 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 				)}
 				{param.access_modified && (
 					<IconButtonProgress size={buttonSize} loading={param.accessLoading}>
-						<IconButton onClick={onAccess} disabled={param.rw !== true && !props.userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
+						<IconButton onClick={onAccess} disabled={param.rw !== true && !userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
 					</IconButtonProgress>
 				)}
 			</div>
@@ -188,7 +153,6 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 
 interface ConfigTreeParamProps extends Omit<ParamMenuProps, 'onClose' | 'anchorEl'> {
 	param: IParamNode;
-	userIsRoot: boolean;
 	menu?: string;
 	menuAnchorX?: number;
 	onMenuOpen: () => void;
@@ -211,7 +175,6 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 						anchorEl={this.anchorEl.current}
 						anchorX={this.props.menuAnchorX}
 						param={param}
-						userIsRoot={this.props.userIsRoot}
 						onClose={this.props.onMenuClose}
 						onView={this.props.onView}
 						onEdit={onEdit}
@@ -227,7 +190,6 @@ export default class ConfigTreeParam extends React.Component<ConfigTreeParamProp
 				)}
 				<ConfigTreeParamPreview
 					param={param}
-					userIsRoot={this.props.userIsRoot}
 					onMenuOpen={this.props.onMenuOpen}
 					onEdit={onEdit}
 					onNotification={onNotification}

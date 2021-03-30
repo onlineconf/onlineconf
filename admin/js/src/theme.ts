@@ -10,9 +10,7 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 				null: React.CSSProperties['color']
 				symlink: React.CSSProperties['color']
 				case: {
-					root: React.CSSProperties['color']
 					key: React.CSSProperties['color']
-					value: React.CSSProperties['color']
 				}
 			}
 		};
@@ -25,9 +23,7 @@ declare module '@material-ui/core/styles/createMuiTheme' {
 				null?: React.CSSProperties['color']
 				symlink?: React.CSSProperties['color']
 				case?: {
-					root?: React.CSSProperties['color']
 					key?: React.CSSProperties['color']
-					value?: React.CSSProperties['color']
 				}
 			}
 		};
@@ -57,9 +53,7 @@ export default function createTheme(options: ThemeOptions = {}) {
 						null: 'gray',
 						symlink: '#000088',
 						case: {
-							root: 'gray',
 							key: '#005500',
-							value: 'black',
 						},
 					},
 				},

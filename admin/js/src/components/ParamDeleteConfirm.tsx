@@ -33,7 +33,7 @@ class ParamDeleteConfirm extends React.Component<ParamDeleteConfirmProps & WithT
 	}
 
 	private handleConfirm = async (event: React.FormEvent) => {
-		const { onDeleted, onError } = this.props;
+		const { onDeleted, onError, onClose } = this.props;
 		event.preventDefault();
 		try {
 			await deleteParam(this.props.path, { version: this.props.version, comment: this.state.comment });
@@ -41,6 +41,7 @@ class ParamDeleteConfirm extends React.Component<ParamDeleteConfirmProps & WithT
 		} catch (error) {
 			onError(error);
 		}
+		onClose();
 	}
 
 	render() {

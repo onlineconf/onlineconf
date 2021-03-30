@@ -373,7 +373,7 @@ func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 	return list, nil
 }
 
-func CreateParameter(ctx context.Context, path, contentType, value, summary, description, notification, comment string) error {
+func CreateParameter(ctx context.Context, path, contentType, value string, optSummary, optDescription, optNotification NullString, comment string) error {
 	var nullValue NullString
 	if contentType != "application/x-null" {
 		nullValue.Valid = true
@@ -384,14 +384,15 @@ func CreateParameter(ctx context.Context, path, contentType, value, summary, des
 		return err
 	}
 
-	if err := validateNotification(ctx, notification); err != nil {
-		return err
-	}
-
-	var nullNotification NullString
-	if notification != "" {
-		nullNotification.Valid = true
-		nullNotification.String = notification
+	var notification NullString
+	if optNotification.Valid {
+		if err := validateNotification(ctx, optNotification.String); err != nil {
+			return err
+		}
+		if optNotification.String != "" {
+			notification.Valid = true
+			notification.String = optNotification.String
+		}
 	}
 
 	tx, err := DB.BeginTx(ctx, nil)
@@ -414,14 +415,28 @@ func CreateParameter(ctx context.Context, path, contentType, value, summary, des
 	err = row.Scan(&deleted)
 	if err == sql.ErrNoRows {
 		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Value, Summary, Description, Notification) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			parent.ID, name, contentType, nullValue, summary, description, nullNotification)
+			parent.ID, name, contentType, nullValue, optSummary.String, optDescription.String, notification)
 	} else if err == nil {
 		if !deleted {
 			tx.Rollback()
 			return ErrAlreadyExists
 		}
-		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Value = ?, Summary = ?, Description = ?, Notification = ?, Version = Version + 1, MTime = now(), Deleted = false WHERE Path = ?",
-			contentType, nullValue, summary, description, nullNotification, path)
+		fields := "ContentType = ?, Value = ?, "
+		bind := []interface{}{contentType, nullValue}
+		if optSummary.Valid {
+			fields += "Summary = ?, "
+			bind = append(bind, optSummary.String)
+		}
+		if optDescription.Valid {
+			fields += "Description = ?, "
+			bind = append(bind, optDescription.String)
+		}
+		if optNotification.Valid {
+			fields += "Notification = ?, "
+			bind = append(bind, notification)
+		}
+		bind = append(bind, path)
+		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET "+fields+"Version = Version + 1, MTime = now(), Deleted = false WHERE Path = ?", bind...)
 	}
 	if err == nil {
 		err = LogLastVersion(ctx, tx, path, comment)

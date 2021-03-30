@@ -8,7 +8,7 @@ import { ValueView } from '../../value';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
-		color: theme.onlineconf.palette.case.root,
+		color: theme.palette.text.secondary,
 		[theme.breakpoints.up('sm')]: {
 			display: 'grid',
 			gridTemplateColumns: 'auto 1fr',
@@ -24,7 +24,6 @@ const styles = (theme: Theme) => createStyles({
 		fontStyle: 'italic',
 	},
 	value: {
-		color: theme.onlineconf.palette.case.value,
 		marginLeft: theme.spacing(2),
 	},
 });
@@ -52,9 +51,7 @@ const CaseValueView = (props: NonNullValueProps & WithStyles<typeof styles>) => 
 						<div className={props.classes.keyBlock}>
 							<span className={keyClassName}>{key}</span>:
 						</div>
-						<div className={props.classes.value}>
-							<ValueView type={c.mime} value={c.value} accessible/>
-						</div>
+						<ValueView type={c.mime} value={c.value} disableDecoration className={props.classes.value}/>
 					</React.Fragment>
 				);
 			})}

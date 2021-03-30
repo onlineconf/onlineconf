@@ -10,6 +10,7 @@ import TextField from '@material-ui/core/TextField';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 import { Notification } from '../api';
+import WhoAmIContext from './WhoAmIContext';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
@@ -30,7 +31,6 @@ interface NotificationControlProps {
 	compact?: boolean;
 	overridden: boolean;
 	value: Notification;
-	allowNone: boolean;
 	onChange: (value: Notification | null) => void;
 }
 
@@ -58,6 +58,8 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 		this.setState({ indeterminate: false });
 		this.props.onChange(event.target.value as Notification);
 	}
+
+	static contextType = WhoAmIContext;
 
 	render() {
 		const { t } = this.props;
@@ -87,7 +89,7 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						)
 					}}
 				>
-					<MenuItem value="none" disabled={!this.props.allowNone}>{t('param.notifications.none')}</MenuItem>
+					<MenuItem value="none" disabled={!this.context.userIsRoot}>{t('param.notifications.none')}</MenuItem>
 					<MenuItem value="no-value">{t('param.notifications.noValue')}</MenuItem>
 					<MenuItem value="with-value">{t('param.notifications.withValue')}</MenuItem>
 				</TextField>
@@ -101,7 +103,7 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 						onChange={this.handleOverride}
 					/>
 					<RadioGroup value={this.props.value} className={this.props.classes.radioGroup} onChange={this.handleChange}>
-						<FormControlLabel value="none" label={t('param.notifications.none')} disabled={!overridden || !this.props.allowNone} control={<Radio/>}/>
+						<FormControlLabel value="none" label={t('param.notifications.none')} disabled={!overridden || !this.context.userIsRoot} control={<Radio/>}/>
 						<FormControlLabel value="no-value" label={t('param.notifications.noValue')} disabled={!overridden} control={<Radio/>}/>
 						<FormControlLabel value="with-value" label={t('param.notifications.withValue')} disabled={!overridden} control={<Radio/>}/>
 					</RadioGroup>

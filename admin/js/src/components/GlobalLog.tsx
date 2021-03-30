@@ -1,24 +1,23 @@
 import * as React from 'react';
-import axios, { CancelTokenSource } from 'axios';
-import { withTranslation, WithTranslation } from 'react-i18next';
-import { withStyles, createStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { Theme, makeStyles } from '@material-ui/core/styles';
 import TextField from '@material-ui/core/TextField';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
+import LinearProgress from '@material-ui/core/LinearProgress';
 
 import * as API from '../api';
 import UserField from './UserField';
 import PathField from './PathField';
-import ButtonProgress from './ButtonProgress';
-import LogCard from './LogCard';
+import LogList from './LogList';
 
-const styles = (theme: Theme) => createStyles({
+const useFilterStyles = makeStyles((theme: Theme) => ({
 	filter: {
 		display: 'flex',
 		flexWrap: 'wrap',
 		alignItems: 'center',
-		borderBottom: `1px solid ${theme.palette.divider}`,
 		padding: theme.spacing(1),
 	},
 	field: {
@@ -47,138 +46,160 @@ const styles = (theme: Theme) => createStyles({
 	body: {
 		padding: theme.spacing(1, 2),
 	},
-});
+}));
+
+interface GlobalLogFilterProps {
+	loading: boolean;
+	onSubmit: (filter: API.GlobalLogFilter) => void;
+}
+
+function GlobalLogFilter(props: GlobalLogFilterProps) {
+	const { t } = useTranslation();
+	const classes = useFilterStyles();
+	const [ author, setAuthor ] = React.useState('');
+	const [ branch, setBranch ] = React.useState('');
+	const [ from, setFrom ] = React.useState('');
+	const [ till, setTill ] = React.useState('');
+	const [ all, setAll ] = React.useState(false);
+	return (
+		<div className={classes.filter}>
+			<div className={classes.subgroup}>
+				<UserField
+					label={t('log.author')}
+					value={author}
+					onChange={value => setAuthor(value)}
+					variant="outlined"
+					margin="dense"
+					className={classes.field}
+				/>
+				<PathField
+					label={t('log.branch')}
+					value={branch}
+					onChange={value => setBranch(value)}
+					variant="outlined"
+					margin="dense"
+					className={classes.field}
+				/>
+			</div>
+			<div className={classes.subgroup}>
+				<TextField
+					label={t('log.from')}
+					value={from}
+					onChange={event => setFrom(event.target.value)}
+					variant="outlined"
+					margin="dense"
+					className={classes.field}
+				/>
+				<TextField
+					label={t('log.till')}
+					value={till}
+					onChange={event => setTill(event.target.value)}
+					variant="outlined"
+					margin="dense"
+					className={classes.field}
+				/>
+			</div>
+			<div className={classes.loadGroup}>
+				<FormControlLabel
+					value="all"
+					label={t('log.all')}
+					control={<Checkbox />}
+					checked={all}
+					onChange={(event, checked) => setAll(checked)}
+					className={classes.all}
+				/>
+				<Button
+					variant="contained"
+					color="primary"
+					onClick={() => props.onSubmit({ author, branch, from, till, all })}
+					className={classes.load}
+				>
+					{t('log.load')}
+				</Button>
+			</div>
+		</div>
+	);
+}
+
+const useStyles = makeStyles((theme: Theme) => ({
+	progressBlock: {
+		height: 4,
+	}
+}));
 
 interface GlobalLogProps {
-	onLoaded: () => void;
 	onError: (errors: Error) => void;
 }
 
-interface GlobalLogState {
-	author: string;
-	branch: string;
-	from: string;
-	till: string;
-	all: boolean;
-	loading: boolean;
-	data: API.IParamLog[];
-}
-
-class GlobalLog extends React.Component<GlobalLogProps & WithStyles<typeof styles> & WithTranslation, GlobalLogState> {
-
-	state: GlobalLogState = {
+export default function GlobalLog(props: GlobalLogProps) {
+	const [ filter, setFilter ] = React.useState<API.GlobalLogFilter>({
 		author: '',
 		branch: '',
 		from: '',
 		till: '',
 		all: false,
-		loading: false,
-		data: [],
+	});
+	const [ lastID, setLastID ] = React.useState<number>();
+	const [ active, setActive ] = React.useState(0);
+	const [ data, setData ] = React.useState<API.IParamLog[]>([]);
+	const [ more, setMore ] = React.useState(false);
+
+	const { onError } = props;
+	React.useEffect(() => {
+		setActive(a => a + 1);
+		const cts = axios.CancelToken.source();
+		API.getGlobalLog(filter, lastID, { cancelToken: cts.token })
+			.then(data => {
+				if (lastID !== undefined) {
+					setData(currentData => [ ...currentData, ...data ]);
+				} else {
+					setData(data);
+				}
+				setMore(data.length === API.logLimit);
+				setActive(a => a - 1);
+			})
+			.catch(error => {
+				setActive(a => a - 1);
+				if (!axios.isCancel(error)) {
+					onError(error);
+				}
+			});
+		return () => cts.cancel('Operation canceled by the user.');
+	}, [filter, lastID, onError]);
+	const loading = active !== 0;
+
+	const ref = React.useRef<HTMLDivElement>(null);
+	React.useEffect(() => {
+		const handleScroll = () => {
+			if (!more || data.length === 0 || ref.current === null) return;
+			const offsetBottom = ref.current.offsetHeight + ref.current.offsetTop;
+			const windowBottom = window.pageYOffset + window.innerHeight;
+			if (offsetBottom - windowBottom < 100) {
+				setLastID(data[data.length - 1].id);
+			}
+		};
+		window.addEventListener('scroll', handleScroll);
+		return () => window.removeEventListener('scroll', handleScroll);
+	});
+
+	const load = (filter: API.GlobalLogFilter) => {
+		setLastID(undefined);
+		setFilter(filter);
+		setData([]);
 	};
 
-	private cts?: CancelTokenSource;
+	const handleChange = React.useCallback(() => load({ ...filter }), [filter]);
 
-	componentDidMount() {
-		this.load();
-	}
-
-	componentWillUnmount() {
-		this.cancel();
-	}
-
-	private async load() {
-		const { onLoaded, onError } = this.props;
-		const filter: API.GlobalLogFilter = {
-			author: this.state.author,
-			branch: this.state.branch,
-			from: this.state.from,
-			till: this.state.till,
-			all: this.state.all,
-		};
-		try {
-			this.setState({ loading: true });
-			this.cts = axios.CancelToken.source();
-			const data = await API.getGlobalLog(filter, { cancelToken: this.cts.token });
-			this.setState({ data, loading: false });
-			onLoaded();
-		} catch (error) {
-			this.setState({ loading: false });
-			if (axios.isCancel(error)) {
-				onLoaded();
-			} else {
-				onError(error);
-			}
-		}
-	}
-
-	private cancel() {
-		if (this.cts) {
-			this.cts.cancel('Operation canceled by the user.');
-			this.cts = undefined;
-		}
-	}
-
-	render() {
-		const { t } = this.props;
-		return (
-			<div>
-				<div className={this.props.classes.filter}>
-					<div className={this.props.classes.subgroup}>
-						<UserField
-							label={t('log.author')}
-							value={this.state.author}
-							onChange={value => this.setState({ author: value })}
-							variant="filled"
-							margin="dense"
-							className={this.props.classes.field}
-						/>
-						<PathField
-							label={t('log.branch')}
-							value={this.state.branch}
-							onChange={value => this.setState({ branch: value })}
-							variant="filled"
-							margin="dense"
-							className={this.props.classes.field}
-						/>
-					</div>
-					<div className={this.props.classes.subgroup}>
-						<TextField
-							label={t('log.from')}
-							value={this.state.from}
-							onChange={event => this.setState({ from: event.target.value })}
-							variant="filled"
-							margin="dense"
-							className={this.props.classes.field}
-						/>
-						<TextField
-							label={t('log.till')}
-							value={this.state.till}
-							onChange={event => this.setState({ till: event.target.value })}
-							variant="filled"
-							margin="dense"
-							className={this.props.classes.field}
-						/>
-					</div>
-					<div className={this.props.classes.loadGroup}>
-						<FormControlLabel
-							value="all"
-							label={t('log.all')}
-							control={<Checkbox />}
-							checked={this.state.all}
-							onChange={(event, checked) => this.setState({ all: checked })}
-							className={this.props.classes.all} />
-						<ButtonProgress loading={this.state.loading} className={this.props.classes.load}>
-							<Button variant="contained" onClick={() => this.load()}>Load</Button>
-						</ButtonProgress>
-					</div>
+	const classes = useStyles();
+	return (
+		<div ref={ref}>
+			<GlobalLogFilter onSubmit={load} loading={loading}/>
+			<LogList data={data} showPath onChange={handleChange}/>
+			{(more || loading) && (
+				<div className={classes.progressBlock}>
+					{loading && <LinearProgress/>}
 				</div>
-				<div className={this.props.classes.body}>
-					{this.state.data.map(row => <LogCard key={`${row.path} ${row.version}`} {...row} showPath/>)}
-				</div>
-			</div>
-		);
-	}
-
+			)}
+		</div>
+	);
 }
-
-export default withTranslation()(withStyles(styles)(GlobalLog));
