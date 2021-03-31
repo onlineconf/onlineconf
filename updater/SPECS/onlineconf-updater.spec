@@ -24,7 +24,6 @@ BuildRequires:  git = 2.12.2
 BuildRequires:  git
 %endif
 BuildRequires:  golang
-BuildRequires:  glide
 BuildRequires:  mr-rpm-macros
 %if %{with systemd}
 BuildRequires:  systemd-devel, systemd-units
@@ -41,15 +40,13 @@ Conflicts:      perl-MR-Onlineconf < 20120328.1753
 GoLang flavour of onlineconf-updater. Built from revision %{__revision}.
 
 %prep
-%setup -c -n go/src/github.com/onlineconf
-%setup -T -D -n go/src/github.com/onlineconf/onlineconf/updater
+%setup -q -c -n %{name}-%{version}
+%setup -T -D -n %{name}-%{version}/onlineconf/updater
 
 %build
-export GOPATH="%{_builddir}/go"
 # Set proper version of app
 %{__sed} -i 's|const version = ".*"|const version = "%{version}"|' updater/version.go
-glide install
-go build -o onlineconf-updater
+go build -mod vendor -o onlineconf-updater
 
 %install
 %{__mkdir_p} %{buildroot}%{_localetcdir}/onlineconf

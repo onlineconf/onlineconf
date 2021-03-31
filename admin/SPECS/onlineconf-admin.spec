@@ -22,16 +22,12 @@ Requires:       mailru-initd-functions >= 1.11
 onlineconf-admin application server. Built from revision %{__revision}.
 
 %prep
-%setup -q -n onlineconf/admin
+%setup -q -c -n %{name}-%{version}
+%setup -T -D -n %{name}-%{version}/onlineconf/admin
 sed -i 's/\(<link href="[^"]*\.css\|<script src="[^"]*\.js\)"/\1?%{version}"/' static/index.html
 
 %build
-%{__rm}   -rf %{_builddir}/onlineconf-admin-build
-%{__mkdir} -p %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf
-%{__cp}    -r %{_builddir}/onlineconf %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/
-
-export GOPATH=%{_builddir}/onlineconf-admin-build
-cd %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/go
+cd go
 go build -mod=vendor -o %{name} ./
 
 cd ../js
@@ -39,11 +35,11 @@ npm run build%{?with_green:-green}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -fr %{buildroot}
-%{__install} -pD -m0755 %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/go/%{name}  %{buildroot}/%{_localbindir}/%{name}
+%{__install} -pD -m0755 go/%{name}  %{buildroot}/%{_localbindir}/%{name}
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
 %{__install} -m 755 init.d/%{name} %{buildroot}/%{_initrddir}/%{name}
-%{__cp} -r %{_builddir}/onlineconf-admin-build/src/github.com/onlineconf/onlineconf/admin/js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
+%{__cp} -r js/build/* $RPM_BUILD_ROOT/usr/local/www/onlineconf/
 %{__cp} -r static $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic
 %if %{with green}
 sed -i '4s/#FFFFFF/#D6F3D6/; 32s/background: white; //' $RPM_BUILD_ROOT/usr/local/www/onlineconf/classic/css/main.css
