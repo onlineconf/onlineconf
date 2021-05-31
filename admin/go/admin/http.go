@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,16 +14,17 @@ import (
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
-var clientError = map[error]int{
-	ErrAccessDenied:    403,
-	ErrAlreadyExists:   400,
-	ErrVersionNotMatch: 400,
-	ErrCommentRequired: 400,
-	ErrInvalidValue:    400,
-	ErrNotEmpty:        400,
-	ErrNotFound:        404,
-	ErrParentNotFound:  400,
-}
+var writeError = WriteErrorFunc(map[error]ErrorResponse{
+	ErrAccessDenied:    {HTTPCode: 403, ErrorCode: "AccessDenied"},
+	ErrAlreadyExists:   {HTTPCode: 400, ErrorCode: "AlreadyExists"},
+	ErrVersionNotMatch: {HTTPCode: 400, ErrorCode: "VersionNotMatch"},
+	ErrCommentRequired: {HTTPCode: 400, ErrorCode: "CommentRequired"},
+	ErrInvalidValue:    {HTTPCode: 400, ErrorCode: "InvalidValue"},
+	ErrNotEmpty:        {HTTPCode: 400, ErrorCode: "NotEmpty"},
+	ErrNotFound:        {HTTPCode: 404, ErrorCode: "NotFound"},
+	ErrParentNotFound:  {HTTPCode: 400, ErrorCode: "ParentNotFound"},
+})
+var writeResponse = WriteResponseOrErrorFunc(writeError)
 
 func RegisterRoutes(r *mux.Router) {
 	r.Use(authMiddleware)
@@ -78,7 +78,7 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 		writeError(req.Context(), w, err)
 		return
 	} else if parameter == nil {
-		writeClientError(req.Context(), w, 404, "Parameter not exists")
+		writeError(req.Context(), w, ErrNotFound)
 		return
 	}
 	var data interface{}
@@ -99,7 +99,6 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 	f := req.PostForm
 
 	var err error
-	var action string
 	if verstr := f.Get("version"); verstr != "" {
 		var version int
 		version, err = strconv.Atoi(verstr)
@@ -110,24 +109,19 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 
 		if newPath := f.Get("path"); newPath != "" {
 			err = MoveParameter(req.Context(), path, newPath, f.Get("symlink") == "1", version, f.Get("comment"))
-			action = "Moved"
 		} else {
 			err = SetParameter(req.Context(), path, version, f.Get("mime"), f.Get("data"), f.Get("comment"))
-			action = "Changed"
 		}
 	} else if contentType := f.Get("mime"); contentType != "" {
 		err = CreateParameter(req.Context(), path, contentType, f.Get("data"), optValue(f, "summary"), optValue(f, "description"), optValue(f, "notification"), f.Get("comment"))
-		action = "Created"
 	} else {
 		_, nOk := f["notification"]
 		_, sOk := f["summary"]
 		_, dOk := f["description"]
 		if len(f) == 1 && nOk {
 			err = SetParameterNotification(req.Context(), path, f.Get("notification"))
-			action = "NotificationChanged"
 		} else if len(f) == 2 && sOk && dOk {
 			err = SetParameterDescription(req.Context(), path, f.Get("summary"), f.Get("description"))
-			action = "Renamed"
 		} else {
 			http.Error(w, "invalid request", 400)
 			return
@@ -145,14 +139,7 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	data := struct {
-		*Parameter
-		Result string `json:"result"`
-	}{
-		Parameter: p,
-		Result:    action,
-	}
-	writeResponse(req.Context(), w, data, err)
+	writeResponse(req.Context(), w, p, err)
 }
 
 func serveDeleteConfig(w http.ResponseWriter, req *http.Request) {
@@ -164,7 +151,7 @@ func serveDeleteConfig(w http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		err = DeleteParameter(req.Context(), mux.Vars(req)["path"], version, req.PostFormValue("comment"))
 	}
-	writeResponse(req.Context(), w, map[string]string{"result": "Deleted"}, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 func serveBatchGetConfig(w http.ResponseWriter, req *http.Request) {
@@ -199,7 +186,11 @@ func validateUserIsRoot(w http.ResponseWriter, req *http.Request) bool {
 		return false
 	}
 	if !canEdit {
-		writeClientError(req.Context(), w, 403, "Allowed to root users only")
+		WriteResponse(req.Context(), w, ErrorResponse{
+			HTTPCode:  403,
+			ErrorCode: "RootRequired",
+			Message:   "Allowed to root users only",
+		})
 		return false
 	}
 	return true
@@ -215,8 +206,7 @@ func serveCreateGroup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err := CreateGroup(req.Context(), mux.Vars(req)["group"])
-	data := map[string]string{"result": "Created"}
-	writeResponse(req.Context(), w, data, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 func serveDeleteGroup(w http.ResponseWriter, req *http.Request) {
@@ -224,8 +214,7 @@ func serveDeleteGroup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err := DeleteGroup(req.Context(), mux.Vars(req)["group"])
-	data := map[string]string{"result": "Deleted"}
-	writeResponse(req.Context(), w, data, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 func serveGetGroupUsers(w http.ResponseWriter, req *http.Request) {
@@ -238,8 +227,7 @@ func serveAddUserToGroup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err := AddUserToGroup(req.Context(), mux.Vars(req)["group"], mux.Vars(req)["user"])
-	data := map[string]string{"result": "Created"}
-	writeResponse(req.Context(), w, data, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 func serveDeleteUserFromGroup(w http.ResponseWriter, req *http.Request) {
@@ -247,8 +235,7 @@ func serveDeleteUserFromGroup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err := DeleteUserFromGroup(req.Context(), mux.Vars(req)["group"], mux.Vars(req)["user"])
-	data := map[string]string{"result": "Deleted"}
-	writeResponse(req.Context(), w, data, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 func validateUserCanEditAccess(w http.ResponseWriter, req *http.Request) bool {
@@ -258,7 +245,7 @@ func validateUserCanEditAccess(w http.ResponseWriter, req *http.Request) bool {
 		return false
 	}
 	if !canEdit {
-		writeClientError(req.Context(), w, 403, "Forbidden")
+		WriteResponse(req.Context(), w, ErrorResponse{HTTPCode: 403, ErrorCode: "Forbidden", Message: "Forbidden"})
 		return false
 	}
 	return true
@@ -270,22 +257,15 @@ func writeModifyAccessResponse(w http.ResponseWriter, req *http.Request, err err
 		return
 	}
 	group := req.PostFormValue("group")
-	var data interface{}
 	if list, err := SelectAccess(req.Context(), mux.Vars(req)["path"]); err == nil {
 		for _, access := range list {
 			if access.Group == group {
-				data = &struct {
-					Access
-					Result string `json:"result"`
-				}{
-					Access: access,
-					Result: "Changed",
-				}
-				break
+				WriteResponse(req.Context(), w, access)
+				return
 			}
 		}
 	}
-	writeJSON(req.Context(), w, data)
+	WriteResponse(req.Context(), w, struct{}{})
 }
 
 func serveGetAccess(w http.ResponseWriter, req *http.Request) {
@@ -360,7 +340,7 @@ func serveDeleteServerFromMonitoring(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	err := DeleteServerStatus(req.Context(), mux.Vars(req)["host"])
-	writeResponse(req.Context(), w, map[string]string{"Result": "Deleted"}, err)
+	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
 const avatarPath = "/onlineconf/ui/avatar"
@@ -410,57 +390,12 @@ func serveUIConfig(w http.ResponseWriter, req *http.Request) {
 	writeResponse(req.Context(), w, config, err)
 }
 
-func writeResponse(ctx context.Context, w http.ResponseWriter, data interface{}, err error) {
-	if err == nil {
-		writeJSON(ctx, w, data)
-	} else {
-		writeError(ctx, w, err)
-	}
-}
-
-func writeJSON(ctx context.Context, w http.ResponseWriter, data interface{}) {
-	content, err := json.Marshal(data)
-	if err != nil {
-		WriteServerError(ctx, w, err)
-		return
-	}
-
-	header := w.Header()
-	header.Add("Content-Type", "application/json")
-	header.Add("Content-Length", strconv.Itoa(len(content)))
-	w.Write(content)
-}
-
-func writeClientError(ctx context.Context, w http.ResponseWriter, code int, message string) {
-	content, err := json.Marshal(map[string]string{
-		"status":  "Error",
-		"message": message,
-	})
-	if err != nil {
-		WriteServerError(ctx, w, err)
-		return
-	}
-	header := w.Header()
-	header.Add("Content-Type", "application/json")
-	header.Add("Content-Length", strconv.Itoa(len(content)))
-	w.WriteHeader(code)
-	w.Write(content)
-}
-
-func writeError(ctx context.Context, w http.ResponseWriter, err error) {
-	if code, ok := clientError[err]; ok {
-		writeClientError(ctx, w, code, err.Error())
-	} else {
-		WriteServerError(ctx, w, err)
-	}
-}
-
 func csrfProtection(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if _, ok := req.Header["X-Requested-With"]; ok {
 			next.ServeHTTP(w, req)
 		} else {
-			writeClientError(req.Context(), w, 403, "Forbidden")
+			WriteResponse(req.Context(), w, ErrorResponse{HTTPCode: 403, ErrorCode: "Forbidden", Message: "Forbidden"})
 		}
 	})
 }

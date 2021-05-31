@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"github.com/ugorji/go/codec"
 	"reflect"
+
+	"github.com/ugorji/go/codec"
 )
 
 type NullString struct {
 	sql.NullString
 }
 
-func (ns *NullString) MarshalJSON() ([]byte, error) {
+func (ns NullString) MarshalJSON() ([]byte, error) {
 	if ns.Valid {
 		return json.Marshal(ns.String)
 	} else {
@@ -50,7 +51,7 @@ type NullBool struct {
 	sql.NullBool
 }
 
-func (ns *NullBool) MarshalJSON() ([]byte, error) {
+func (ns NullBool) MarshalJSON() ([]byte, error) {
 	if ns.Valid {
 		return json.Marshal(ns.Bool)
 	} else {

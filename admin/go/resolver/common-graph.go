@@ -3,17 +3,11 @@ package resolver
 import (
 	"context"
 	"encoding/hex"
-	"errors"
 	"net"
 	"sort"
-	"strings"
 
 	"github.com/gobwas/glob"
 	"github.com/rs/zerolog/log"
-)
-
-var (
-	ErrInvalidIPNets = errors.New("Invalid IP networks list")
 )
 
 type datacenter struct {
@@ -89,10 +83,10 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 			continue
 		}
 		if name == "priority" {
-			untrimed := strings.Split(gr.Value.String, ",")
-			priority = make([]string, 0, len(untrimed))
-			for _, name := range untrimed {
-				priority = append(priority, strings.TrimSpace(name))
+			var err error
+			priority, err = gr.Strings()
+			if err != nil {
+				return nil, err
 			}
 		} else {
 			groupNames = append(groupNames, name)
@@ -163,6 +157,14 @@ func (graph *commonGraph) fillServices(ctx context.Context, services map[string]
 	}
 }
 
+func (graph *commonGraph) synchronize(ctx context.Context, path string, target Synchronized) {
+	param := graph.get(ctx, path)
+	if param != nil {
+		graph.resolveChildren(ctx, &param)
+	}
+	target.Update(ctx, param)
+}
+
 type commonCaseResolver struct{}
 
 func (cr commonCaseResolver) resolveCase(context.Context, *Param) *Case {
@@ -174,11 +176,12 @@ func (cr commonCaseResolver) getTemplateVar(string) (string, bool) {
 }
 
 func readIPNets(param *Param) ([]net.IPNet, error) {
-	if !(param.Value.Valid && (param.ContentType == "text/plain" || param.ContentType == "application/x-list")) {
-		return nil, ErrInvalidIPNets
+	ipstrs, err := param.Strings()
+	if err != nil {
+		return nil, err
 	}
 	ipnets := []net.IPNet{}
-	for _, ipstr := range strings.Split(param.Value.String, ",") {
+	for _, ipstr := range ipstrs {
 		_, ipnet, err := net.ParseCIDR(ipstr)
 		if err != nil {
 			return nil, err
