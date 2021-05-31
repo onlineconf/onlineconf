@@ -3,11 +3,14 @@ package resolver
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
@@ -30,6 +33,32 @@ type Param struct {
 	deepResolved bool
 	seen         bool
 	serialized   []byte
+}
+
+func (node *Param) Strings() ([]string, error) {
+	switch node.ContentType {
+	case "application/x-null":
+		return nil, nil
+	case "application/x-list", "text/plain":
+		untrimmed := strings.Split(node.Value.String, ",")
+		list := make([]string, 0, len(untrimmed))
+		for _, item := range untrimmed {
+			if trimmed := strings.TrimSpace(item); trimmed != "" {
+				list = append(list, trimmed)
+			}
+		}
+		return list, nil
+	case "application/json":
+		var list []string
+		err := json.Unmarshal([]byte(node.Value.String), &list)
+		return list, err
+	case "application/x-yaml":
+		var list []string
+		err := yaml.Unmarshal([]byte(node.Value.String), &list)
+		return list, err
+	default:
+		return nil, errors.New("Can't read []string from " + node.ContentType)
+	}
 }
 
 func (node *Param) deepMarkCommon(ctx context.Context) {
@@ -75,6 +104,8 @@ type tree struct {
 	datacenters  []datacenter
 	groups       []group
 	services     map[string][]byte
+	synchronized []synchronizedEntry
+	syncMutex    sync.Mutex
 }
 
 func getTreeMTime(ctx context.Context) (string, error) {
@@ -163,6 +194,12 @@ func (t *tree) update(ctx context.Context) error {
 		return err
 	}
 
+	t.syncMutex.Lock()
+	for _, entry := range t.synchronized {
+		cg.synchronize(ctx, entry.path, entry.target)
+	}
+	t.syncMutex.Unlock()
+
 	t.rw.Lock()
 	t.root = root
 	t.ephemeralIPs = ephemeralIPs
@@ -195,4 +232,26 @@ func (t *tree) getEphemeralIPs() []net.IPNet {
 	t.rw.RLock()
 	defer t.rw.RUnlock()
 	return t.ephemeralIPs
+}
+
+type Synchronized interface {
+	Update(context.Context, *Param)
+}
+
+type synchronizedEntry struct {
+	path   string
+	target Synchronized
+}
+
+func (t *tree) synchronize(ctx context.Context, path string, target Synchronized) {
+	t.syncMutex.Lock()
+	t.synchronized = append(t.synchronized, synchronizedEntry{path: path, target: target})
+	t.syncMutex.Unlock()
+
+	t.rw.RLock()
+	defer t.rw.RUnlock()
+	if t.root != nil {
+		cg := newCommonGraph(t.root.deepClone())
+		cg.synchronize(ctx, path, target)
+	}
 }

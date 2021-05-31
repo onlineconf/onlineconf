@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/onlineconf/onlineconf/admin/go/admin"
+	"github.com/onlineconf/onlineconf/admin/go/botapi"
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 	"github.com/onlineconf/onlineconf/admin/go/resolver"
 )
@@ -57,9 +58,13 @@ func main() {
 	adminRouter := r.PathPrefix("/").Subrouter()
 	admin.RegisterRoutes(adminRouter)
 
+	botapiRouter := r.PathPrefix("/botapi/").Subrouter()
+	botapi.RegisterRoutes(botapiRouter)
+
 	registerStaticFileServer(r.PathPrefix("/").Subrouter())
 
 	handler := hlog.AccessHandler(writeAccessLog)(r)
+	handler = UsernameMiddleware(handler)
 	if config.HTTP.BehindReverseProxy {
 		handler = handlers.ProxyHeaders(handler)
 	}
@@ -102,8 +107,8 @@ func readConfigFile(filename string) *ConfigFile {
 func writeAccessLog(r *http.Request, status, size int, duration time.Duration) {
 	l := hlog.FromRequest(r).Info().
 		Str("remote", strings.Split(r.RemoteAddr, ":")[0])
-	if r.URL.User != nil {
-		l = l.Str("username", r.URL.User.Username())
+	if username := Username(r.Context()); username != "" {
+		l = l.Str("username", username)
 	}
 	l.Str("method", r.Method).
 		Str("uri", r.RequestURI).

@@ -24,3 +24,8 @@ func Initialize() {
 		}
 	}()
 }
+
+func Synchronize(path string, target Synchronized) {
+	ctx := log.Logger.WithContext(context.Background())
+	treeI.synchronize(ctx, path, target)
+}
