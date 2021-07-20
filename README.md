@@ -166,6 +166,10 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 Symlinks in this parameter are intentionally not supported. Only JSON and YAML types are allowed.
 A value of the parameter will be implicitly readable by all users through `/ui-config` API method.
 
+### /onlineconf/botapi/bot
+
+Direct children of `/onlineconf/botapi/bot` are users of the server-server API of OnlineConf. Names of children parameters are usernames, values are SHA256-encrypted passwords (MUST contain random 16+ characters long strings). User parameters can contain subparameter `scopes` (`/onlineconf/botapi/bot/*/scopes`) of type List which is used to allow these users access to various parts of the API.
+
 ## Reading a configuration from an application
 
 Several languages already have libraries to work with configuration files: [Go](https://github.com/onlineconf/onlineconf-go), [Swift](https://github.com/onlineconf/onlineconf-swift), [Perl](https://github.com/onlineconf/onlineconf-perl), [Python](https://github.com/onlineconf/onlineconf-python) and [Node.js](https://github.com/onlineconf/onlineconf-nodejs).
@@ -185,3 +189,17 @@ Due to symlinks and cases OnlineConf is very flexible. During the time of using 
 * *Top level elements represent projects. Every project has its own chroot.* `/onlineconf/module` contains case of symlinks pointing for every project to its own `/onlineconf/chroot/${projectname}`. Every `/onlineconf/chroot/${projectname}/TREE/${projectname}` is a symlink pointing to `/${projectname}`. This way each project has its own configuration while paths to parameters on managed servers and in the configuration tree are the same.
 
 * *Separate infrastructure.* Parameters supposed to be managed by system administrators (addresses of databases and services, credentials, tokens an so on) are stored separately in `/infrastructure` hierarchy. This hierarchy is allowed to be read and written by system administrators only, is not used directly anywhere, only through symlinks in appropriate places in a logical hierarchy of projects.
+
+## BotAPI
+
+Besides the client-server API which is used by the UI OnlineConf has the server-server API which can be used by various scripts and daemons to perform user-specific operations.
+
+BotAPI requires the basic authentication which is configured using `/onlineconf/botapi/bot` parameters (see above).
+
+### GET /notification/
+
+Returns `limit` notifications starting from the next after `lastID`.
+If there are no notifications and `wait` query parameter is provided then waits for maximum `wait` seconds until a new notification arrives.
+If `limit=0` then the method just returns the current `lastID`.
+
+Scope `notifications` is required to access this method.
