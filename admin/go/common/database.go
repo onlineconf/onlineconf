@@ -32,6 +32,7 @@ func OpenDatabase(config DatabaseConfig) *sql.DB {
 		log.Fatal().Err(err).Msg("failed to open database")
 	}
 	db.SetConnMaxLifetime(time.Duration(config.MaxLifetime) * time.Second)
+	db.SetMaxOpenConns(config.MaxConn)
 	return db
 }
 

@@ -7,6 +7,7 @@ type DatabaseConfig struct {
 	Base        string
 	Timeout     int
 	MaxLifetime int `yaml:"max_lifetime"`
+	MaxConn     int `yaml:"max_conn"`
 }
 
 type CommonConfig struct {
