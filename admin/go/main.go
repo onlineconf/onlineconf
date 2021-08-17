@@ -101,8 +101,8 @@ func readConfigFile(filename string) *ConfigFile {
 		log.Fatal().Msg("header authenticator can be used behind reverse proxy only")
 	}
 
-	if config.CommonConfig.Database.MaxConn <= 0 {
-		config.CommonConfig.Database.MaxConn = 100
+	if config.Database.MaxConn <= 0 {
+		config.Database.MaxConn = 100
 	}
 
 	return &config
