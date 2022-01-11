@@ -8,3 +8,4 @@ auth:
   password_field: user_passwd
   condition: "`user_group` = 'my'"
   realm: MY-admin
+# method: "header"
