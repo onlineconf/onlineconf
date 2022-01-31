@@ -1,0 +1,19 @@
+[Unit]
+Description=OnlineConf Admin
+Requires=cronolog@%p.service
+After=cronolog@%p.service
+
+[Service]
+Type=simple
+LimitCORE=infinity
+ExecStart=/usr/local/bin/onlineconf-admin
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGINT
+Restart=always
+StandardOutput=tty
+StandardError=tty
+TTYPath=/run/cronolog@%p.tty
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
