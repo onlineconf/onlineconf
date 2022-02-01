@@ -28,7 +28,15 @@ type Server struct {
 	Datacenter string
 }
 
-var configSemaphore = make(chan struct{}, int(0.8*float32(runtime.NumCPU())))
+var configSemaphore chan struct{}
+
+func init() {
+	maxResolvers := int(0.8*float32(runtime.GOMAXPROCS(0)))
+	if maxResolvers < 1 {
+		maxResolvers = 1
+	}
+	configSemaphore = make(chan struct{}, maxResolvers)
+}
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
