@@ -6,7 +6,7 @@ OnlineConf is developed with horizontal scalability and fault tolerance in mind,
 
 OnlineConf is developed by Mail.Ru where it is used since 2011 to configure high load projects deployed on thousands of servers.
 
-![Screenshot](screenshot.png)
+![Screenshot](docs/images/screenshot.png)
 
 ## Features
 
@@ -151,6 +151,11 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 ### /onlineconf/ephemeral-ip
 
 `/onlineconf/ephemeral-ip` contains a list of networks where IP addresses are assigned dynamically and are valid only during a service lifetime (in Kubernetes cluster, for example). Reverse DNS query and monitoring are skipped for these networks.
+
+Add new values step by step:
+1. Create a new value in `/onlineconf/ephemeral-ip` of type "Text" or "JSON"
+2. Write down the values of the ip/mask type (in the case of json, use a json array, if you use a string, write list the values separated by the character `,`)
+   ![Example ephemeral ip](docs/images/example_ephemeral_ip.png)
 
 ### /onlineconf/ui/avatar
 
