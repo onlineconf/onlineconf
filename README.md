@@ -155,7 +155,6 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 Add new values step by step:
 1. Create a new value in `/onlineconf/ephemeral-ip` of type "Text" or "JSON"
 2. Write down the values of the ip/mask type (in the case of json, use a json array, if you use a string, write list of ip/mask separated by the character `,`)
-   ![Example ephemeral ip](docs/images/example_ephemeral_ip.png)
 
 ### /onlineconf/ui/avatar
 
