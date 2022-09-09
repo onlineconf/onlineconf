@@ -31,7 +31,7 @@ type Server struct {
 var configSemaphore chan struct{}
 
 func init() {
-	maxResolvers := int(0.8*float32(runtime.GOMAXPROCS(0)))
+	maxResolvers := int(0.8 * float32(runtime.GOMAXPROCS(0)))
 	if maxResolvers < 1 {
 		maxResolvers = 1
 	}
@@ -136,6 +136,8 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 }
 
 func authenticateByIP(req *http.Request) (*Server, error) {
+	ctx := req.Context()
+
 	ipstr := strings.Split(req.RemoteAddr, ":")[0]
 	if ipstr == "" {
 		return nil, ErrEmptyIP
@@ -156,6 +158,8 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 	if host == "" {
 		hosts, err := net.LookupAddr(ipstr)
 		if err != nil {
+			log.Ctx(ctx).Warn().Err(err).Str("ip", ipstr).Msg("can`t do lookup addr, maybe you need to use ephemeral-ip?")
+
 			return nil, err
 		}
 		if len(hosts) == 0 {
@@ -166,13 +170,15 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 			for _, host := range hosts {
 				arr.Str(host)
 			}
-			log.Ctx(req.Context()).Warn().Str("ip", ipstr).Array("hosts", arr).Msg("more then one PTR record found")
+			log.Ctx(ctx).Warn().Str("ip", ipstr).Array("hosts", arr).Msg("more then one PTR record found")
 		}
 		host = hosts[0]
 	}
 
 	ips, err := net.LookupHost(host)
 	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Str("ip", ipstr).Msg("can`t do lookup host, maybe you need to use ephemeral-ip?")
+
 		return nil, err
 	}
 
