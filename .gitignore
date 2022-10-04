@@ -1,0 +1,41 @@
+updater/data
+updater/vendor
+updater/onlineconf-updater
+
+updater/.devcontainer
+updater/.vscode
+
+# IDE
+.idea
+# OS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.fseventsd
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Temporary
+*~
+._*
+*.tmp
+
+# Logs
+*.log
+
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+test/coverage.*/
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
