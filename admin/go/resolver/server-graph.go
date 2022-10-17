@@ -52,12 +52,13 @@ func (graph *serverGraph) modules(ctx context.Context) map[string]*Param {
 }
 
 type serverCaseResolver struct {
-	server     Server
-	datacenter string
-	groups     []string
-	services   []string
-	shortname  string
-	ip         string
+	server        Server
+	datacenter    string
+	groups        []string
+	services      []string
+	serviceGroups []string
+	shortname     string
+	ip            string
 }
 
 func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverCaseResolver {
@@ -109,24 +110,47 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 		}
 	}
 
+	serviceGroups := make([]string, 0)
+	serviceGroupExists := make(map[string]bool)
+	for _, service := range services {
+		str := "service:" + service
+		for _, group := range t.groups {
+			if serviceGroupExists[group.name] {
+				continue
+			}
+			for _, glob := range group.globs {
+				if glob.Match(str) {
+					serviceGroups = append(serviceGroups, group.name)
+					serviceGroupExists[group.name] = true
+					break
+				}
+			}
+		}
+	}
+
 	if e := log.Ctx(ctx).Debug(); e.Enabled() {
 		arr := zerolog.Arr()
 		for _, group := range groups {
 			arr.Str(group)
 		}
-		e.Str("datacenter", datacenter).Str("service", service).Array("groups", arr).Msg("")
+		svcArr := zerolog.Arr()
+		for _, group := range serviceGroups {
+			svcArr.Str(group)
+		}
+		e.Str("datacenter", datacenter).Array("groups", arr).Str("service", service).Array("service_groups", svcArr).Msg("")
 	}
 	dot := strings.IndexRune(server.Host, '.')
 	if dot == -1 {
 		dot = len(server.Host)
 	}
 	return &serverCaseResolver{
-		server:     server,
-		datacenter: datacenter,
-		groups:     groups,
-		services:   services,
-		shortname:  server.Host[:dot],
-		ip:         server.IP.String(),
+		server:        server,
+		datacenter:    datacenter,
+		groups:        groups,
+		services:      services,
+		serviceGroups: serviceGroups,
+		shortname:     server.Host[:dot],
+		ip:            server.IP.String(),
 	}
 }
 
@@ -197,6 +221,12 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 
 	for _, service := range cr.services {
 		if cs, ok := byService[service]; ok {
+			return &cs
+		}
+	}
+
+	for _, group := range cr.serviceGroups {
+		if cs, ok := byGroup[group]; ok {
 			return &cs
 		}
 	}
