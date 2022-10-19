@@ -5,7 +5,7 @@ import (
 	"math"
 	"regexp"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var floatRE = regexp.MustCompile(`^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$`) // RFC8259
@@ -51,7 +51,7 @@ func (v *yamlValue) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	switch value.(type) {
+	switch typedVal := value.(type) {
 	case bool: // strict YAML 1.2
 		var str string
 		err := unmarshal(&str)
@@ -66,7 +66,7 @@ func (v *yamlValue) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 		return nil
 	case float64:
-		if math.IsNaN(value.(float64)) || math.IsInf(value.(float64), 0) {
+		if math.IsNaN(typedVal) || math.IsInf(typedVal, 0) {
 			v.value = nil
 		} else {
 			v.value = value

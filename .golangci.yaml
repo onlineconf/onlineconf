@@ -1,0 +1,6 @@
+# fix everything during Q5!
+
+issues:
+  exclude:
+    - cuddle
+    - Error return value.*is not checked
