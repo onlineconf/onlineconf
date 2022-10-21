@@ -3,7 +3,6 @@ module github.com/onlineconf/onlineconf/admin/go
 go 1.11
 
 require (
-	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gorilla/handlers v1.5.1
