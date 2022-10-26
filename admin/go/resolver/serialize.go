@@ -143,7 +143,7 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 		MTime:       maxMTime,
 		Version:     1,
 		ContentType: "text/plain",
-		Value: NullString{sql.NullString{
+		Value: NullString{NullString: sql.NullString{
 			String: strings.Join(childrenNames, ","),
 			Valid:  true,
 		}},
