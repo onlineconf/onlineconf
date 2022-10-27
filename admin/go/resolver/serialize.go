@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"path"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/ugorji/go/codec"
@@ -135,6 +136,8 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 	if !strings.HasSuffix(listPath, "/") {
 		listPath += "/"
 	}
+
+	sort.Strings(childrenNames)
 
 	ser.writeParam(listPath, listName, &Param{
 		ID:          param.ID + FolderIDBase,
