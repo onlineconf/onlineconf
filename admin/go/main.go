@@ -109,11 +109,17 @@ func readConfigFile(filename string) *ConfigFile {
 }
 
 func writeAccessLog(r *http.Request, status, size int, duration time.Duration) {
-	l := hlog.FromRequest(r).Info().
-		Str("remote", strings.Split(r.RemoteAddr, ":")[0])
+	remoteAddr, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteAddr = r.RemoteAddr
+	}
+
+	l := hlog.FromRequest(r).Info().Str("remote", remoteAddr)
+
 	if username := Username(r.Context()); username != "" {
 		l = l.Str("username", username)
 	}
+
 	l.Str("method", r.Method).
 		Str("uri", r.RequestURI).
 		Int("status", status).

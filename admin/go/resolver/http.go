@@ -139,7 +139,7 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 func authenticateByIP(req *http.Request) (*Server, error) {
 	ipstr, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
-		return nil, fmt.Errorf("net.SplitHostPort(%s): %w", req.RemoteAddr, err)
+		return nil, fmt.Errorf("authenticateByIP: net.SplitHostPort(%s): %w", req.RemoteAddr, err)
 	}
 
 	if ipstr == "" {

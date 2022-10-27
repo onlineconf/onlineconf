@@ -5,8 +5,9 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
+	"net"
 	"net/http"
-	"strings"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
@@ -44,7 +45,10 @@ func (auth *headerAuthenticator) Authenticate(req *http.Request) (string, error)
 		return "", nil
 	}
 
-	remoteIP := strings.Split(req.RemoteAddr, ":")[0]
+	remoteIP, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return "", fmt.Errorf("Authenticate: net.SplitHostPort(%s): %w", req.RemoteAddr, err)
+	}
 
 	h := md5.New()
 	h.Write([]byte(username))
