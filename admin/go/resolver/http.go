@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"runtime"
@@ -31,7 +32,7 @@ type Server struct {
 var configSemaphore chan struct{}
 
 func init() {
-	maxResolvers := int(0.8*float32(runtime.GOMAXPROCS(0)))
+	maxResolvers := int(0.8 * float32(runtime.GOMAXPROCS(0)))
 	if maxResolvers < 1 {
 		maxResolvers = 1
 	}
@@ -142,7 +143,7 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 	}
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
-		return nil, ErrParseIP
+		return nil, fmt.Errorf("%s: %w", ipstr, ErrParseIP)
 	}
 
 	ephemeralIPs := treeI.getEphemeralIPs()
