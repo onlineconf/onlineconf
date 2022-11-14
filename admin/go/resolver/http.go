@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"runtime"
@@ -139,7 +138,7 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 func authenticateByIP(req *http.Request) (*Server, error) {
 	ipstr, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
-		return nil, fmt.Errorf("authenticateByIP: net.SplitHostPort(%s): %w", req.RemoteAddr, err)
+		return nil, err
 	}
 
 	if ipstr == "" {
@@ -148,7 +147,7 @@ func authenticateByIP(req *http.Request) (*Server, error) {
 
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
-		return nil, fmt.Errorf("%s: %w", ipstr, ErrParseIP)
+		return nil, ErrParseIP
 	}
 
 	ephemeralIPs := treeI.getEphemeralIPs()

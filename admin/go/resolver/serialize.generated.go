@@ -219,33 +219,25 @@ func (x *serializerParam) CodecEncodeSelf(e *codec1978.Encoder) {
 		_, _ = yysep2, yy2arr2
 		const yyr2 bool = false // struct tag has 'toArray'
 		if yyr2 || yy2arr2 {
-			z.EncWriteArrayStart(7)
-			z.EncWriteArrayElem()
-			r.EncodeInt(int64(x.ID))
-			z.EncWriteArrayElem()
-			r.EncodeString(string(x.ContentType))
-			z.EncWriteArrayElem()
-			yy12 := &x.Value
-			yy12.CodecEncodeSelf(e)
-			z.EncWriteArrayElem()
-			r.EncodeInt(int64(x.Version))
+			z.EncWriteArrayStart(3)
 			z.EncWriteArrayElem()
 			r.EncodeString(string(x.Path))
 			z.EncWriteArrayElem()
-			r.EncodeString(string(x.Name))
+			r.EncodeString(string(x.ContentType))
 			z.EncWriteArrayElem()
-			r.EncodeString(string(x.MTime))
+			yy8 := &x.Value
+			yy8.CodecEncodeSelf(e)
 			z.EncWriteArrayEnd()
 		} else {
-			z.EncWriteMapStart(7)
+			z.EncWriteMapStart(3)
 			z.EncWriteMapElemKey()
 			if z.IsJSONHandle() {
-				z.WriteStr("\"ID\"")
+				z.WriteStr("\"Path\"")
 			} else {
-				r.EncodeString(`ID`)
+				r.EncodeString(`Path`)
 			}
 			z.EncWriteMapElemValue()
-			r.EncodeInt(int64(x.ID))
+			r.EncodeString(string(x.Path))
 			z.EncWriteMapElemKey()
 			if z.IsJSONHandle() {
 				z.WriteStr("\"ContentType\"")
@@ -261,40 +253,8 @@ func (x *serializerParam) CodecEncodeSelf(e *codec1978.Encoder) {
 				r.EncodeString(`Value`)
 			}
 			z.EncWriteMapElemValue()
-			yy20 := &x.Value
-			yy20.CodecEncodeSelf(e)
-			z.EncWriteMapElemKey()
-			if z.IsJSONHandle() {
-				z.WriteStr("\"Version\"")
-			} else {
-				r.EncodeString(`Version`)
-			}
-			z.EncWriteMapElemValue()
-			r.EncodeInt(int64(x.Version))
-			z.EncWriteMapElemKey()
-			if z.IsJSONHandle() {
-				z.WriteStr("\"Path\"")
-			} else {
-				r.EncodeString(`Path`)
-			}
-			z.EncWriteMapElemValue()
-			r.EncodeString(string(x.Path))
-			z.EncWriteMapElemKey()
-			if z.IsJSONHandle() {
-				z.WriteStr("\"Name\"")
-			} else {
-				r.EncodeString(`Name`)
-			}
-			z.EncWriteMapElemValue()
-			r.EncodeString(string(x.Name))
-			z.EncWriteMapElemKey()
-			if z.IsJSONHandle() {
-				z.WriteStr("\"MTime\"")
-			} else {
-				r.EncodeString(`MTime`)
-			}
-			z.EncWriteMapElemValue()
-			r.EncodeString(string(x.MTime))
+			yy12 := &x.Value
+			yy12.CodecEncodeSelf(e)
 			z.EncWriteMapEnd()
 		}
 	}
@@ -344,20 +304,12 @@ func (x *serializerParam) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 		yys3 := z.StringView(r.DecodeStringAsBytes())
 		z.DecReadMapElemValue()
 		switch yys3 {
-		case "ID":
-			x.ID = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
+		case "Path":
+			x.Path = (string)(string(r.DecodeStringAsBytes()))
 		case "ContentType":
 			x.ContentType = (string)(string(r.DecodeStringAsBytes()))
 		case "Value":
 			x.Value.CodecDecodeSelf(d)
-		case "Version":
-			x.Version = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
-		case "Path":
-			x.Path = (string)(string(r.DecodeStringAsBytes()))
-		case "Name":
-			x.Name = (string)(string(r.DecodeStringAsBytes()))
-		case "MTime":
-			x.MTime = (string)(string(r.DecodeStringAsBytes()))
 		default:
 			z.DecStructFieldNotFound(-1, yys3)
 		} // end switch yys3
@@ -368,105 +320,57 @@ func (x *serializerParam) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) 
 	var h codecSelfer2018
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
-	var yyj11 int
-	var yyb11 bool
-	var yyhl11 bool = l >= 0
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
+	var yyj7 int
+	var yyb7 bool
+	var yyhl7 bool = l >= 0
+	yyj7++
+	if yyhl7 {
+		yyb7 = yyj7 > l
 	} else {
-		yyb11 = z.DecCheckBreak()
+		yyb7 = z.DecCheckBreak()
 	}
-	if yyb11 {
-		z.DecReadArrayEnd()
-		return
-	}
-	z.DecReadArrayElem()
-	x.ID = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
-	} else {
-		yyb11 = z.DecCheckBreak()
-	}
-	if yyb11 {
-		z.DecReadArrayEnd()
-		return
-	}
-	z.DecReadArrayElem()
-	x.ContentType = (string)(string(r.DecodeStringAsBytes()))
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
-	} else {
-		yyb11 = z.DecCheckBreak()
-	}
-	if yyb11 {
-		z.DecReadArrayEnd()
-		return
-	}
-	z.DecReadArrayElem()
-	x.Value.CodecDecodeSelf(d)
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
-	} else {
-		yyb11 = z.DecCheckBreak()
-	}
-	if yyb11 {
-		z.DecReadArrayEnd()
-		return
-	}
-	z.DecReadArrayElem()
-	x.Version = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
-	} else {
-		yyb11 = z.DecCheckBreak()
-	}
-	if yyb11 {
+	if yyb7 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
 	x.Path = (string)(string(r.DecodeStringAsBytes()))
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
+	yyj7++
+	if yyhl7 {
+		yyb7 = yyj7 > l
 	} else {
-		yyb11 = z.DecCheckBreak()
+		yyb7 = z.DecCheckBreak()
 	}
-	if yyb11 {
+	if yyb7 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
-	x.Name = (string)(string(r.DecodeStringAsBytes()))
-	yyj11++
-	if yyhl11 {
-		yyb11 = yyj11 > l
+	x.ContentType = (string)(string(r.DecodeStringAsBytes()))
+	yyj7++
+	if yyhl7 {
+		yyb7 = yyj7 > l
 	} else {
-		yyb11 = z.DecCheckBreak()
+		yyb7 = z.DecCheckBreak()
 	}
-	if yyb11 {
+	if yyb7 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
-	x.MTime = (string)(string(r.DecodeStringAsBytes()))
+	x.Value.CodecDecodeSelf(d)
 	for {
-		yyj11++
-		if yyhl11 {
-			yyb11 = yyj11 > l
+		yyj7++
+		if yyhl7 {
+			yyb7 = yyj7 > l
 		} else {
-			yyb11 = z.DecCheckBreak()
+			yyb7 = z.DecCheckBreak()
 		}
-		if yyb11 {
+		if yyb7 {
 			break
 		}
 		z.DecReadArrayElem()
-		z.DecStructFieldNotFound(yyj11-1, "")
+		z.DecStructFieldNotFound(yyj7-1, "")
 	}
 }
 

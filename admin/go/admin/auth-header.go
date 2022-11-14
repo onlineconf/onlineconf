@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"net"
 	"net/http"
 
@@ -47,7 +46,7 @@ func (auth *headerAuthenticator) Authenticate(req *http.Request) (string, error)
 
 	remoteIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
-		return "", fmt.Errorf("Authenticate: net.SplitHostPort(%s): %w", req.RemoteAddr, err)
+		return "", err
 	}
 
 	h := md5.New()
