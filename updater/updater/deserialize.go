@@ -41,7 +41,6 @@ type ConfigData struct {
 }
 
 type ConfigParam struct {
-	//Name        string
 	Path        string
 	ContentType string
 	Value       NullString

@@ -17,6 +17,9 @@ import (
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
+// FolderIDBase is added to folder's ID to get a child list ID (/-suffixed), so they are predictable and repeatable.
+const FolderIDBase = 1_000_000
+
 var cborHandle codec.CborHandle = codec.CborHandle{BasicHandle: codec.BasicHandle{EncodeOptions: codec.EncodeOptions{Raw: true}}}
 
 var stringValueReplacer = strings.NewReplacer("\n", "\\n", "\r", "\\r")
@@ -27,10 +30,11 @@ type serializerData struct {
 }
 
 type serializerParam struct {
-	//Name        string
-	Path        string
+	ID          int
 	ContentType string
 	Value       NullString
+	Path        string
+	Name        string
 }
 
 type serializer struct {
@@ -135,7 +139,8 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 	}
 
 	ser.writeParam(listPath, listName, &Param{
-		//Name:        listName,
+		ID:          param.ID + FolderIDBase,
+		Name:        listName,
 		Path:        listPath,
 		ContentType: "application/json",
 		Value: NullString{NullString: sql.NullString{
@@ -181,7 +186,8 @@ func newSerializerParam(path string, param *Param) *serializerParam {
 	}
 
 	return &serializerParam{
-		//Name:        param.Name,
+		ID:          param.ID,
+		Name:        param.Name,
 		Path:        path,
 		ContentType: param.ContentType,
 		Value:       value,

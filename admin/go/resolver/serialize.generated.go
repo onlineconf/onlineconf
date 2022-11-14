@@ -219,25 +219,29 @@ func (x *serializerParam) CodecEncodeSelf(e *codec1978.Encoder) {
 		_, _ = yysep2, yy2arr2
 		const yyr2 bool = false // struct tag has 'toArray'
 		if yyr2 || yy2arr2 {
-			z.EncWriteArrayStart(3)
+			z.EncWriteArrayStart(5)
 			z.EncWriteArrayElem()
-			r.EncodeString(string(x.Path))
+			r.EncodeInt(int64(x.ID))
 			z.EncWriteArrayElem()
 			r.EncodeString(string(x.ContentType))
 			z.EncWriteArrayElem()
-			yy8 := &x.Value
-			yy8.CodecEncodeSelf(e)
+			yy10 := &x.Value
+			yy10.CodecEncodeSelf(e)
+			z.EncWriteArrayElem()
+			r.EncodeString(string(x.Path))
+			z.EncWriteArrayElem()
+			r.EncodeString(string(x.Name))
 			z.EncWriteArrayEnd()
 		} else {
-			z.EncWriteMapStart(3)
+			z.EncWriteMapStart(5)
 			z.EncWriteMapElemKey()
 			if z.IsJSONHandle() {
-				z.WriteStr("\"Path\"")
+				z.WriteStr("\"ID\"")
 			} else {
-				r.EncodeString(`Path`)
+				r.EncodeString(`ID`)
 			}
 			z.EncWriteMapElemValue()
-			r.EncodeString(string(x.Path))
+			r.EncodeInt(int64(x.ID))
 			z.EncWriteMapElemKey()
 			if z.IsJSONHandle() {
 				z.WriteStr("\"ContentType\"")
@@ -253,8 +257,24 @@ func (x *serializerParam) CodecEncodeSelf(e *codec1978.Encoder) {
 				r.EncodeString(`Value`)
 			}
 			z.EncWriteMapElemValue()
-			yy12 := &x.Value
-			yy12.CodecEncodeSelf(e)
+			yy16 := &x.Value
+			yy16.CodecEncodeSelf(e)
+			z.EncWriteMapElemKey()
+			if z.IsJSONHandle() {
+				z.WriteStr("\"Path\"")
+			} else {
+				r.EncodeString(`Path`)
+			}
+			z.EncWriteMapElemValue()
+			r.EncodeString(string(x.Path))
+			z.EncWriteMapElemKey()
+			if z.IsJSONHandle() {
+				z.WriteStr("\"Name\"")
+			} else {
+				r.EncodeString(`Name`)
+			}
+			z.EncWriteMapElemValue()
+			r.EncodeString(string(x.Name))
 			z.EncWriteMapEnd()
 		}
 	}
@@ -304,12 +324,16 @@ func (x *serializerParam) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 		yys3 := z.StringView(r.DecodeStringAsBytes())
 		z.DecReadMapElemValue()
 		switch yys3 {
-		case "Path":
-			x.Path = (string)(string(r.DecodeStringAsBytes()))
+		case "ID":
+			x.ID = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
 		case "ContentType":
 			x.ContentType = (string)(string(r.DecodeStringAsBytes()))
 		case "Value":
 			x.Value.CodecDecodeSelf(d)
+		case "Path":
+			x.Path = (string)(string(r.DecodeStringAsBytes()))
+		case "Name":
+			x.Name = (string)(string(r.DecodeStringAsBytes()))
 		default:
 			z.DecStructFieldNotFound(-1, yys3)
 		} // end switch yys3
@@ -320,57 +344,81 @@ func (x *serializerParam) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) 
 	var h codecSelfer2018
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
-	var yyj7 int
-	var yyb7 bool
-	var yyhl7 bool = l >= 0
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
+	var yyj9 int
+	var yyb9 bool
+	var yyhl9 bool = l >= 0
+	yyj9++
+	if yyhl9 {
+		yyb9 = yyj9 > l
 	} else {
-		yyb7 = z.DecCheckBreak()
+		yyb9 = z.DecCheckBreak()
 	}
-	if yyb7 {
+	if yyb9 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
-	x.Path = (string)(string(r.DecodeStringAsBytes()))
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
+	x.ID = (int)(z.C.IntV(r.DecodeInt64(), codecSelferBitsize2018))
+	yyj9++
+	if yyhl9 {
+		yyb9 = yyj9 > l
 	} else {
-		yyb7 = z.DecCheckBreak()
+		yyb9 = z.DecCheckBreak()
 	}
-	if yyb7 {
+	if yyb9 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
 	x.ContentType = (string)(string(r.DecodeStringAsBytes()))
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
+	yyj9++
+	if yyhl9 {
+		yyb9 = yyj9 > l
 	} else {
-		yyb7 = z.DecCheckBreak()
+		yyb9 = z.DecCheckBreak()
 	}
-	if yyb7 {
+	if yyb9 {
 		z.DecReadArrayEnd()
 		return
 	}
 	z.DecReadArrayElem()
 	x.Value.CodecDecodeSelf(d)
+	yyj9++
+	if yyhl9 {
+		yyb9 = yyj9 > l
+	} else {
+		yyb9 = z.DecCheckBreak()
+	}
+	if yyb9 {
+		z.DecReadArrayEnd()
+		return
+	}
+	z.DecReadArrayElem()
+	x.Path = (string)(string(r.DecodeStringAsBytes()))
+	yyj9++
+	if yyhl9 {
+		yyb9 = yyj9 > l
+	} else {
+		yyb9 = z.DecCheckBreak()
+	}
+	if yyb9 {
+		z.DecReadArrayEnd()
+		return
+	}
+	z.DecReadArrayElem()
+	x.Name = (string)(string(r.DecodeStringAsBytes()))
 	for {
-		yyj7++
-		if yyhl7 {
-			yyb7 = yyj7 > l
+		yyj9++
+		if yyhl9 {
+			yyb9 = yyj9 > l
 		} else {
-			yyb7 = z.DecCheckBreak()
+			yyb9 = z.DecCheckBreak()
 		}
-		if yyb7 {
+		if yyb9 {
 			break
 		}
 		z.DecReadArrayElem()
-		z.DecStructFieldNotFound(yyj7-1, "")
+		z.DecStructFieldNotFound(yyj9-1, "")
 	}
 }
 
