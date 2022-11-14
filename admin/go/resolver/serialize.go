@@ -33,6 +33,7 @@ type serializerParam struct {
 	ID          int
 	ContentType string
 	Value       NullString
+	Version     int
 	Path        string
 	Name        string
 }
@@ -142,6 +143,7 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 		ID:          param.ID + FolderIDBase,
 		Name:        listName,
 		Path:        listPath,
+		Version:     1,
 		ContentType: "application/json",
 		Value: NullString{NullString: sql.NullString{
 			String: string(chilrenNamesJson),
@@ -187,9 +189,10 @@ func newSerializerParam(path string, param *Param) *serializerParam {
 
 	return &serializerParam{
 		ID:          param.ID,
-		Name:        param.Name,
-		Path:        path,
 		ContentType: param.ContentType,
 		Value:       value,
+		Version:     param.Version,
+		Path:        path,
+		Name:        param.Name,
 	}
 }
