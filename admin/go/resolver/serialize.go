@@ -41,6 +41,7 @@ type serializerParam struct {
 type serializer struct {
 	data   serializerData
 	pushed int
+	compat bool
 }
 
 func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serializer {
@@ -51,6 +52,7 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 			Modules: make([]string, 0, len(modules)),
 			Nodes:   make([]interface{}, 0, 1024),
 		},
+		compat: compat,
 	}
 
 	for name := range modules {
@@ -125,6 +127,10 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 		childrenNames = append(childrenNames, name)
 	}
 
+	if ser.compat {
+		return
+	}
+
 	listPath := pathFunc("", param)
 	listName := path.Base(listPath) + "/"
 
@@ -150,8 +156,6 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 			Valid:  true,
 		}},
 	})
-
-	return
 }
 
 func (ser *serializer) serialize() ([]byte, error) {
