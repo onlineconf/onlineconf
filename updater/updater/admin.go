@@ -110,7 +110,11 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		if delimiter == "/" {
 			mParam.path = strings.Join(append([]string{""}, pc[4:]...), "/")
 		} else {
-			mParam.path = strings.Join(pc[4:], ".")
+			mParam.path = strings.Join(pc[4:], delimiter)
+
+			if mParam.path == "" {
+				mParam.path = delimiter
+			}
 		}
 
 		switch param.ContentType {
