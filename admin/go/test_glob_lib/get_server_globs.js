@@ -78,10 +78,13 @@ function saveGlobs(fileName) {
 
 	var serverGlobs = new Set();
 	traverseCases(["/"], serverGlobs);
-	traverseGroups(["/onlineconf/group"], serverGlobs);
+
+	var groupGlobs = new Set();
+	traverseGroups(["/onlineconf/group"], groupGlobs);
 
 	var output = new Object();
-	output.globs = Array.from(serverGlobs);
+	output.server_globs = Array.from(serverGlobs);
+	output.group_globs = Array.from(groupGlobs);
 	output.servers = getServers();
 
 	var file = document.createElement("a");
