@@ -14,9 +14,10 @@ function getNodes(paths) {
 }
 
 function processCase(node, serverGlobs) {
-	for (var c of JSON.parse(node.data))
-		if (c.server)
-			serverGlobs.add(c.server);
+	if (node.data)
+		for (var c of JSON.parse(node.data))
+			if (c.server)
+				serverGlobs.add(c.server);
 }
 
 function traverseCases(paths, serverGlobs) {
