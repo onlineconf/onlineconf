@@ -7,12 +7,18 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gobwas/glob"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/onlineconf/onlineconf/admin/go/common"
+
+	_ "unsafe"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
+
+//go:linkname matchWithSeparator github.com/bmatcuk/doublestar/v4.matchWithSeparator
+func matchWithSeparator(pattern, name string, separator rune, validate bool) (matched bool, err error)
 
 var serverSortRe = regexp.MustCompile(`(?:[\*\?]+|\{.*?\}|\[.*?\])`)
 
@@ -95,7 +101,10 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 	groups := make([]string, 0)
 	for _, group := range t.groups {
 		for _, glob := range group.globs {
-			if glob.Match(server.Host) {
+			match, err := matchWithSeparator(glob, server.Host, '.', true)
+			if err != nil {
+				log.Ctx(ctx).Warn().Err(err).Str("group", glob).Msg("invalid glob")
+			} else if match {
 				groups = append(groups, group.name)
 				break
 			}
@@ -119,7 +128,10 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 				continue
 			}
 			for _, glob := range group.globs {
-				if glob.Match(str) {
+				match, err := matchWithSeparator(glob, str, '.', true)
+				if err != nil {
+					log.Ctx(ctx).Warn().Err(err).Str("group", glob).Msg("invalid glob")
+				} else if match {
 					serviceGroups = append(serviceGroups, group.name)
 					serviceGroupExists[group.name] = true
 					break
@@ -201,10 +213,10 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	})
 
 	for _, cs := range byServer {
-		g, err := glob.Compile(cs.Server) // TODO add '.' separator
+		match, err := doublestar.Match(cs.Server, cr.server.Host) // using '/' separator for compatibility reason
 		if err != nil {
 			log.Ctx(ctx).Warn().Str("server", cs.Server).Msg("invalid server glob")
-		} else if g.Match(cr.server.Host) {
+		} else if match {
 			return &cs
 		}
 	}

@@ -6,7 +6,6 @@ import (
 	"net"
 	"sort"
 
-	"github.com/gobwas/glob"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,7 +17,7 @@ type datacenter struct {
 
 type group struct {
 	name  string
-	globs []glob.Glob
+	globs []string
 }
 
 type commonGraph struct {
@@ -112,15 +111,7 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 	sorted := groupsSortedByInclusion(byPriority, globsByName)
 	result := make([]group, 0, len(sorted))
 	for _, name := range sorted {
-		globs := make([]glob.Glob, 0, len(globsByName[name]))
-		for _, str := range globsByName[name] {
-			g, err := glob.Compile(str, '.')
-			if err == nil {
-				globs = append(globs, g)
-			} else {
-				log.Ctx(ctx).Warn().Err(err).Str("group", name).Msg("invalid glob")
-			}
-		}
+		globs := globsByName[name]
 		if len(globs) > 0 {
 			result = append(result, group{name, globs})
 		}
