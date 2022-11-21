@@ -1,5 +1,4 @@
 import axios, { AxiosRequestConfig } from 'axios';
-import * as qs from 'querystring';
 import { Omit } from '@material-ui/types';
 
 export type ParamType = 'application/x-null'
@@ -24,25 +23,21 @@ interface ParamFields {
 	description: string;
 	version: number;
 	mtime: string;
-	rw: boolean | null;
-	notification: Notification;
 }
 
 export interface IParam extends ParamFields {
+	rw: boolean | null;
+	notification: Notification;
 	access_modified: boolean;
 	notification_modified: boolean;
 	num_children: number;
 	children?: IParam[];
 }
 
-export interface ParamModify extends Partial<Omit<ParamFields, 'notification'>> {
+export interface ParamModify extends Partial<ParamFields> {
 	notification?: Notification | null;
 	symlink?: boolean;
 	comment?: string;
-}
-
-interface ParamParams extends Omit<ParamModify, 'symlink'> {
-	symlink?: 1;
 }
 
 const commonOptions = { headers: { 'X-Requested-With': 'XMLHttpRequest' } };
@@ -58,13 +53,18 @@ export async function getParam(path: string, symlink?: 'resolve' | 'follow', dep
 }
 
 export async function postParam(path: string, modify: ParamModify) {
-	const { symlink, ...rest } = modify;
-	const params: ParamParams = rest;
-	if (symlink) {
-		params.symlink = 1;
+	const { data, notification, symlink, ...rest } = modify;
+	const params = new URLSearchParams(rest as Record<string, string>);
+	if (data !== undefined) {
+		params.append('data', data !== null ? data : '');
 	}
-	const data = qs.stringify(params);
-	const response = await axios.post<IParam>('/config' + path, data, commonUrlencodedOptions);
+	if (notification !== undefined) {
+		params.append('notification', notification !== null ? notification : '');
+	}
+	if (symlink) {
+		params.append('symlink', '1');
+	}
+	const response = await axios.post<IParam>('/config' + path, params, commonUrlencodedOptions);
 	return response.data;
 }
 
@@ -73,7 +73,7 @@ export async function deleteParam(path: string, info: { version: number, comment
 		...commonUrlencodedOptions,
 		url: '/config' + path,
 		method: 'DELETE',
-		data: qs.stringify(info),
+		data: new URLSearchParams({ version: info.version.toString(), comment: info.comment }),
 	});
 	return response.data;
 }
@@ -225,7 +225,7 @@ export async function getParamAccess(path: string, options: AxiosRequestConfig =
 export async function postParamAccess(path: string, group: string, rw: boolean | null) {
 	const response = await axios.post<ParamAccessGroup>(
 		'/access' + path,
-		qs.stringify({ group, rw: rw === null ? 'null' : rw }),
+		new URLSearchParams({ group, rw: String(rw) }),
 		commonUrlencodedOptions,
 	);
 	return response.data;
@@ -236,7 +236,7 @@ export async function deleteParamAccess(path: string, group: string) {
 		...commonUrlencodedOptions,
 		url: '/access' + path,
 		method: 'DELETE',
-		data: qs.stringify({ group }),
+		data: new URLSearchParams({ group }),
 	});
 	return response.data;
 }
