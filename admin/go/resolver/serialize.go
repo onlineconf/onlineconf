@@ -17,9 +17,6 @@ import (
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
-// FolderIDBase is added to folder's ID to get a child list ID (/-suffixed), so they are predictable and repeatable.
-const FolderIDBase = 1_000_000
-
 var cborHandle codec.CborHandle = codec.CborHandle{BasicHandle: codec.BasicHandle{EncodeOptions: codec.EncodeOptions{Raw: true}}}
 
 var stringValueReplacer = strings.NewReplacer("\n", "\\n", "\r", "\\r")
@@ -146,7 +143,7 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 	}
 
 	ser.writeParam(listPath, listName, &Param{
-		ID:          param.ID + FolderIDBase,
+		ID:          -param.ID,
 		Name:        listName,
 		Path:        listPath,
 		Version:     1,
