@@ -56,7 +56,7 @@ export default function ConfigTreeNode(props: ConfigTreeNodeProps) {
 			selected={param.selected}
 			onOpen={() => props.onOpen(param.path)}
 			onClose={() => props.onClose(param.path)}
-			onClick={() => { if (!param.selected) { props.onSelect(param); } }}
+			onClick={() => { if (!param.selected) { props.onSelect(param) } }}
 			onDoubleClick={() => param.rw === true ? props.onEdit(param) : props.onView(param)}
 			onContextMenu={event => {
 				event.preventDefault();

@@ -34,7 +34,7 @@ export default class UserField extends React.Component<Omit<AutocompleteProps, '
 		const options = users.map(user => ({ label: user, value: user }));
 		this.cache[value] = options;
 		return options;
-	}
+	};
 
 	render() {
 		return <Autocomplete {...this.props} loadOptions={this.loadOptions} itemComponent={UserFieldItem}/>;

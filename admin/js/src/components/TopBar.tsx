@@ -37,12 +37,12 @@ class SearchBase extends React.Component<SearchProps & WithTranslation, SearchSt
 			this.props.onSearch('');
 		}
 		this.setState({ value: event.target.value });
-	}
+	};
 
 	handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		this.props.onSearch(this.state.value);
-	}
+	};
 
 	render() {
 		return (

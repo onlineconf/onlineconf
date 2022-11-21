@@ -34,11 +34,11 @@ class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTransla
 			}
 			this.props.onChange(state);
 		}
-	}
+	};
 
 	handleValueChange = (value: string | null) => {
 		this.props.onChange({ type: this.props.type, value });
-	}
+	};
 
 	render() {
 		return (

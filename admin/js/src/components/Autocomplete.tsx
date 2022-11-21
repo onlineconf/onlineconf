@@ -74,7 +74,7 @@ class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof
 		if (this.inputRef.current) {
 			this.setState({ menuWidth: this.inputRef.current.clientWidth });
 		}
-	}
+	};
 
 	handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const value = event.target.value;
@@ -84,7 +84,7 @@ class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof
 			options.filter(o => o.value === selected).length > 0 ? { options, selected }
 				: { options, selected: options.length > 0 ? options[0].value : '' }
 		));
-	}
+	};
 
 	handleInputKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
 		if (this.state.options.length === 0) {
@@ -132,7 +132,7 @@ class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof
 				break;
 			}
 		}
-	}
+	};
 
 	setValue(value: string) {
 		this.props.onChange(value);

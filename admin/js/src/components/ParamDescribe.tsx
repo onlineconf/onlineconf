@@ -35,11 +35,11 @@ class ParamDescribe extends React.Component<ParamDescribeProps & WithTranslation
 
 	private handleSummaryChange = (summary: string) => {
 		this.setState({ summary });
-	}
+	};
 
 	private handleDescriptionChange = (description: string) => {
 		this.setState({ description });
-	}
+	};
 
 	private handleSubmit = async (event: React.FormEvent) => {
 		const { onDescribed, onError } = this.props;
@@ -50,7 +50,7 @@ class ParamDescribe extends React.Component<ParamDescribeProps & WithTranslation
 		} catch (error) {
 			onError(error);
 		}
-	}
+	};
 
 	render() {
 		const { t } = this.props;

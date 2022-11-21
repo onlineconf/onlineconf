@@ -36,15 +36,15 @@ class ParamMove extends React.Component<ParamMoveProps & WithTranslation, ParamM
 
 	handlePathChange = (value: string) => {
 		this.setState({ path: value });
-	}
+	};
 
 	handleSymlinkChange = (event: React.ChangeEvent, checked: boolean) => {
 		this.setState({ symlink: checked });
-	}
+	};
 
 	handleCommentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		this.setState({ comment: event.target.value });
-	}
+	};
 
 	handleConfirm = async (event: React.FormEvent) => {
 		const { onMoved, onError } = this.props;
@@ -60,7 +60,7 @@ class ParamMove extends React.Component<ParamMoveProps & WithTranslation, ParamM
 		} catch (error) {
 			onError(error);
 		}
-	}
+	};
 
 	render() {
 		const { t } = this.props;

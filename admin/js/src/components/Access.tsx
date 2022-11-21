@@ -157,7 +157,7 @@ export default class Access extends React.Component<AccessProps, AccessState> {
 		this.setState({
 			dialog: <CreateGroupDialog onSubmit={this.createGroup} onClosed={this.handleDialogClosed}/>
 		});
-	}
+	};
 
 	private createGroup = async (group: string) => {
 		try {
@@ -169,7 +169,7 @@ export default class Access extends React.Component<AccessProps, AccessState> {
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	private deleteGroup = async (group: string) => {
 		try {
@@ -181,13 +181,13 @@ export default class Access extends React.Component<AccessProps, AccessState> {
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	private showAddUserDialog = (group: string) => {
 		this.setState({
 			dialog: <AddUserDialog group={group} onSubmit={this.addUser} onClosed={this.handleDialogClosed}/>
 		});
-	}
+	};
 
 	private addUser = async (group: string, user: string) => {
 		try {
@@ -199,7 +199,7 @@ export default class Access extends React.Component<AccessProps, AccessState> {
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	private removeUser = async (group: string, user: string) => {
 		try {
@@ -210,11 +210,11 @@ export default class Access extends React.Component<AccessProps, AccessState> {
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	private handleDialogClosed = () => {
 		this.setState({ dialog: undefined });
-	}
+	};
 
 	static contextType = WhoAmIContext;
 

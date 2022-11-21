@@ -75,10 +75,10 @@ function AppRoot(props: AppRootProps) {
 			<CssBaseline/>
 			<BrowserRouter>
 				<div className={classes.root}>
-					<TopBar onMenu={() => { setMenu(m => !m); setMenuSliding(true); }} onSearch={setSearch} searching={searching}/>
+					<TopBar onMenu={() => { setMenu(m => !m); setMenuSliding(true) }} onSearch={setSearch} searching={searching}/>
 					<LeftMenu
 						open={menu}
-						onClose={() => { setMenu(false); setMenuSliding(true); }}
+						onClose={() => { setMenu(false); setMenuSliding(true) }}
 						onSlideEnd={() => setMenuSliding(false)}
 						paletteType={props.paletteType}
 						onChangePaletteType={props.onChangePaletteType}

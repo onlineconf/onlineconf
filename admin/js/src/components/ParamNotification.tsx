@@ -28,7 +28,7 @@ class ParamNotification extends React.Component<ParamNotificationProps & WithTra
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	render() {
 		return (

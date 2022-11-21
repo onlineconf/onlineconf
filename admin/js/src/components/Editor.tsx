@@ -81,31 +81,31 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 
 	handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		this.setState({ name: event.target.value });
-	}
+	};
 
 	handleSummaryChange = (summary: string) => {
 		this.setState({ summary });
-	}
+	};
 
 	handleDescriptionChange = (description: string) => {
 		this.setState({ description });
-	}
+	};
 
 	handleTypeValueChange = (newState: Pick<EditorState, 'type' | 'value'>) => {
 		this.setState(newState);
-	}
+	};
 
 	handleNotificationChange = (notification: Notification | null) => {
 		this.setState({ notification });
-	}
+	};
 
 	handleCommentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		this.setState({ comment: event.target.value });
-	}
+	};
 
 	handleClose = () => {
 		this.setState({ open: false });
-	}
+	};
 
 	handleSave = async () => {
 		const { onChange, onError } = this.props;
@@ -139,7 +139,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 		} catch (error) {
 			onError(error);
 		}
-	}
+	};
 
 	render() {
 		const { t } = this.props;
