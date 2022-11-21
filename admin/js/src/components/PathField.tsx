@@ -28,12 +28,12 @@ export default class PathField extends React.Component<PathFieldProps> {
 		const options = parent.children.map(child => ({ label: child.name, value: prefix + '/' + child.name }));
 		this.cache[value] = options;
 		return options;
-	}
+	};
 
 	loadFilteredOptions = async (value: string) => {
 		return (await this.loadOptions(value))
 			.filter(option => option.value.startsWith(value));
-	}
+	};
 
 	render() {
 		const { symlink, ...props } = this.props;

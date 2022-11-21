@@ -51,7 +51,7 @@ export default withStyles(styles)(
 			const list = this.getList();
 			list.push({ host: '', ports: [] });
 			this.setList(list);
-		}
+		};
 
 		private createRemoveHostHandler(id: number) {
 			return () => {

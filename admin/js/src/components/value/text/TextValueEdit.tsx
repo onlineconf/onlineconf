@@ -48,7 +48,7 @@ function CodeMirrorEditor(props: InputBaseComponentProps) {
 				value={value as string}
 				options={{ mode: type, scrollbarStyle: 'null' }}
 				className={classes.codemirror}
-				editorDidMount={(editor) => { editorRef.current = editor; }}
+				editorDidMount={(editor) => { editorRef.current = editor }}
 				onBeforeChange={onBeforeChange ? (editor, data, value) => onBeforeChange(value) : () => undefined}
 				onFocus={onFocus ? (editor, event) => onFocus(event) : undefined}
 				onBlur={onBlur ? (editor, event) => onBlur(event) : undefined}

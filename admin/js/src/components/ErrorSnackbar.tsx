@@ -10,11 +10,11 @@ const styles = (theme: Theme) => createStyles({
 });
 
 interface ErrorSnackbarProps {
-	error?: Error;
+	error?: unknown;
 }
 
 interface ErrorSnackbarState {
-	error?: Error;
+	error?: unknown;
 	open: boolean;
 }
 
@@ -69,16 +69,20 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 		const { error } = this.state;
 		let message: React.ReactNode | undefined;
 		if (error !== undefined) {
-			const response = (error as AxiosError).response;
-			if (response !== undefined && typeof response.data === 'object' && response.data.message) {
-				message = (
-					<div>
-						<div>{error.message}</div>
-						<div>{response.data.message}</div>
-					</div>
-				);
+			if (error instanceof Error) {
+				const response = (error as AxiosError).response;
+				if (response !== undefined && typeof response.data === 'object' && response.data.message) {
+					message = (
+						<div>
+							<div>{error.message}</div>
+							<div>{response.data.message}</div>
+						</div>
+					);
+				} else {
+					message = <span>{error.message}</span>;
+				}
 			} else {
-				message = <span>{error.message}</span>;
+				message = <span>Unknown error</span>;
 			}
 		}
 		return (

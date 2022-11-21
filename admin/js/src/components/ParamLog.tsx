@@ -39,7 +39,7 @@ export default function ParamLog(props: ParamLogProps) {
 
 	const { path } = props;
 	const nextPageHandlers = {
-		onLoaded: React.useCallback(() => { return; }, []),
+		onLoaded: React.useCallback(() => { return }, []),
 		onError: React.useContext(ErrorContext),
 	};
 	const { onLoaded, onError } = lastID === undefined ? props : nextPageHandlers;

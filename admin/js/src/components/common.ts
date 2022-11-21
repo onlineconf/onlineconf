@@ -9,7 +9,7 @@ export interface ValueProps {
 
 export interface EditValueProps extends ValueProps {
 	onChange: (value: string | null) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 export interface IParamNode extends Omit<IParam, 'children'> {
@@ -42,7 +42,7 @@ export interface ParamDialogProps {
 	fullScreen?: boolean;
 	onClose: () => void;
 	onLoaded: () => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 export function smartCompare(a: string, b: string) {

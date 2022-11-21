@@ -12,7 +12,7 @@ interface TypeValueFieldsProps {
 	type: ParamType;
 	value: string | null;
 	onChange: (state: { type: ParamType, value: string | null }) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTranslation> {
@@ -34,11 +34,11 @@ class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTransla
 			}
 			this.props.onChange(state);
 		}
-	}
+	};
 
 	handleValueChange = (value: string | null) => {
 		this.props.onChange({ type: this.props.type, value });
-	}
+	};
 
 	render() {
 		return (
