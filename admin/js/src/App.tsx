@@ -55,8 +55,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 }), { name: 'App' });
 
 interface AppRootProps {
-	error?: Error;
-	onError(error: Error): void;
+	error?: unknown;
+	onError(error: unknown): void;
 	paletteType: PaletteType;
 	onChangePaletteType(value: PaletteType): void;
 }
@@ -97,7 +97,7 @@ function AppRoot(props: AppRootProps) {
 }
 
 export default function App() {
-	const [ error, setError ] = React.useState<Error>();
+	const [ error, setError ] = React.useState<unknown>();
 
 	const [ paletteType, setPaletteType ] = React.useState<PaletteType>(() => {
 		const value = window.localStorage.getItem('paletteType');

@@ -11,7 +11,7 @@ export type PaletteType = 'system' | 'light' | 'dark';
 
 interface UIConfigProviderProps {
 	children: React.ReactNode;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 	paletteType: PaletteType;
 }
 

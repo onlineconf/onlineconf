@@ -14,7 +14,7 @@ interface ParamDeleteConfirmProps {
 	path: string;
 	version: number;
 	onDeleted: () => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 	onClose: () => void;
 }
 

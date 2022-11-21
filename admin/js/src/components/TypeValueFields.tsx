@@ -12,7 +12,7 @@ interface TypeValueFieldsProps {
 	type: ParamType;
 	value: string | null;
 	onChange: (state: { type: ParamType, value: string | null }) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 class TypeValueFields extends React.Component<TypeValueFieldsProps & WithTranslation> {

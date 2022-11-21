@@ -14,7 +14,7 @@ interface ParamDescribeProps {
 	summary: string;
 	description: string;
 	onDescribed: (param: IParam) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 	onClose: () => void;
 }
 

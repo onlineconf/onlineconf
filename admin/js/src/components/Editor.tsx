@@ -51,7 +51,7 @@ export interface EditorProps extends Partial<ValueProps> {
 	fullScreen?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 interface EditorState extends ValueProps {

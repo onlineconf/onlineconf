@@ -16,7 +16,7 @@ interface ParamMoveProps {
 	path: string;
 	version: number;
 	onMoved: (path: string) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 	onClose: () => void;
 }
 

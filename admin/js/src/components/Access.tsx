@@ -127,7 +127,7 @@ function AddUserDialog(props: AddUserDialogProps) {
 }
 
 interface AccessProps {
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 interface AccessState {

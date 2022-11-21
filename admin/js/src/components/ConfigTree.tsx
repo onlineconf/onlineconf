@@ -221,7 +221,7 @@ interface ConfigTreeProps {
 	history: History;
 	search: string;
 	onSearching: (searching: boolean) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 interface ConfigTreeState {
@@ -627,7 +627,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 					menu: undefined,
 				}));
 			};
-			const onError = (error: Error) => {
+			const onError = (error: unknown) => {
 				this.setState(prevState => ({
 					root: modifyNode(prevState.root!, path, node => { delete(node.logLoading); }),
 					dialog: null,
@@ -664,7 +664,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 					menu: undefined,
 				}));
 			};
-			const onError = (error: Error) => {
+			const onError = (error: unknown) => {
 				this.setState(prevState => ({
 					root: modifyNode(prevState.root!, path, node => { delete(node.accessLoading); }),
 					dialog: null,
