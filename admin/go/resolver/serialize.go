@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"path"
 	"runtime"
 	"sort"
 	"strings"
@@ -57,7 +56,7 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 	}
 
 	if tree := modules["TREE"]; tree != nil && tree.Path == "/" && compat {
-		ser.writeParam("/", "", tree)
+		ser.writeParam("/", tree)
 		return &ser
 	}
 
@@ -67,13 +66,13 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 		}
 	}
 	for name, module := range modules {
-		ser.writeParam("/onlineconf/module/"+name, name, module)
+		ser.writeParam("/onlineconf/module/"+name, module)
 	}
 
 	return &ser
 }
 
-func (ser *serializer) writeParam(path string, name string, param *Param) {
+func (ser *serializer) writeParam(path string, param *Param) {
 	if param == nil {
 		return
 	}
@@ -119,7 +118,7 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 	childrenNames := make([]string, 0, len(param.Children))
 
 	for name, childPtr := range param.Children {
-		ser.writeParam(pathFunc(name, *childPtr), name, *childPtr)
+		ser.writeParam(pathFunc(name, *childPtr), *childPtr)
 
 		childrenNames = append(childrenNames, name)
 	}
@@ -129,8 +128,6 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 	}
 
 	listPath := pathFunc("", param)
-	listName := path.Base(listPath) + "/"
-
 	if !strings.HasSuffix(listPath, "/") {
 		listPath += "/"
 	}
@@ -142,9 +139,9 @@ func (ser *serializer) writeChildren(param *Param, pathFunc func(name string, ch
 		zLog.Err(err).Msg("error encoding children names list") // should not happen
 	}
 
-	ser.writeParam(listPath, listName, &Param{
+	ser.writeParam(listPath, &Param{
 		ID:          -param.ID,
-		Name:        listName,
+		Name:        "", // Name field is used by perl legacy updater only
 		Path:        listPath,
 		Version:     1,
 		ContentType: "application/json",
