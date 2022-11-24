@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 
@@ -83,6 +84,44 @@ func (node *Param) deepMarkCommon(ctx context.Context) {
 	}
 }
 
+func (node *Param) deepCreateChildList(ctx context.Context) {
+	if len(node.Children) == 0 {
+		return
+	}
+
+	childrenNames := make([]string, 0, len(node.Children))
+	for name, childPtr := range node.Children {
+		childrenNames = append(childrenNames, name)
+		(*childPtr).deepCreateChildList(ctx)
+	}
+
+	sort.Strings(childrenNames)
+
+	chilrenNamesJson, err := json.Marshal(childrenNames)
+	if err != nil {
+		log.Ctx(ctx).Err(err).Msg("error encoding children names list") // should not happen
+	}
+
+	listPath := node.Path
+	if !strings.HasSuffix(listPath, "/") {
+		listPath += "/"
+	}
+
+	param := &Param{
+		ID:          -node.ID,
+		Name:        "", // Name field is used by perl legacy updater only
+		Path:        listPath,
+		Version:     1,
+		ContentType: "application/json",
+		Value: NullString{NullString: sql.NullString{
+			String: string(chilrenNamesJson),
+			Valid:  true,
+		}},
+	}
+
+	node.Children[""] = &param
+}
+
 func (node *Param) deepClone() *Param {
 	if node.deepResolved {
 		return node
@@ -155,7 +194,10 @@ func selectTree(ctx context.Context) (*Param, error) {
 			root = &param
 		}
 	}
+
+	root.deepCreateChildList(ctx)
 	root.deepMarkCommon(ctx)
+
 	return root, nil
 }
 
