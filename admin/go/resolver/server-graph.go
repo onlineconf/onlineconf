@@ -52,7 +52,9 @@ func (graph *serverGraph) modules(ctx context.Context) map[string]*Param {
 	graph.resolveChildren(ctx, &node)
 	modules := make(map[string]*Param, len(node.Children))
 	for name, childPtr := range node.Children {
-		modules[name] = *childPtr
+		if name != "" {
+			modules[name] = *childPtr
+		}
 	}
 	return modules
 }
