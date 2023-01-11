@@ -3,6 +3,7 @@ package updater
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -68,6 +69,7 @@ func (u *Updater) Update() error {
 		}
 		return err
 	}
+	log.Info().Strs("modules", modulesNames(modules)).Msg("")
 	err = writeModules(u.config.DataDir, modules, respMtime)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write config files")
@@ -76,6 +78,15 @@ func (u *Updater) Update() error {
 	u.mtime = respMtime
 	log.Info().Str("mtime", u.mtime).Msg("configuration updated")
 	return nil
+}
+
+func modulesNames(m map[string][]moduleParam) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func writeModules(dir string, modules map[string][]moduleParam, mtime string) error {
