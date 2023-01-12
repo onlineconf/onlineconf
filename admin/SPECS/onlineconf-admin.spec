@@ -19,7 +19,6 @@ Group:          MAILRU
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildRequires:  mr-rpm-macros
-BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  golang
 BuildRequires:  golang-bin
 BuildRequires:  nodejs
