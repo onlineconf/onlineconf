@@ -9,7 +9,7 @@ COPY go .
 RUN go build -o onlineconf-admin
 
 
-FROM node:18
+FROM node:19
 
 WORKDIR /usr/src/onlineconf-admin
 
