@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -18,27 +19,23 @@ import (
 var configFile = flag.String("config", "/usr/local/etc/onlineconf.yaml", "config file")
 var once = flag.Bool("once", false, "fetch configuration once and exit")
 
-type AdminConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-}
-
 type ConfigFile struct {
 	Hostname       string
 	Datacenter     string
-	Admin          AdminConfig
+	Admin          config.AdminConfig
 	DataDir        string `yaml:"data_dir"`
 	UpdateInterval int    `yaml:"update_interval"`
 	Variables      map[string]string
+	ResolvePlugins config.ResolvePluginsConfig `yaml:"resolve_plugins"`
 }
 
 func main() {
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
-	updater.InitPluginsUsage()
+	if config.ResolvePlugins.Enable {
+		updater.InitPluginsUsage(config.ResolvePlugins.Plugins)
+	}
 	if *once {
 		if u.Update() != nil {
 			os.Exit(1)
@@ -93,5 +90,6 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 		DataDir:        config.DataDir,
 		UpdateInterval: time.Duration(config.UpdateInterval) * time.Second,
 		Variables:      config.Variables,
+		ResolvePlugins: config.ResolvePlugins,
 	}
 }

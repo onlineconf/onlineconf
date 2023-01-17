@@ -11,5 +11,6 @@ resolve_plugins:
   plugins:
     etcd:
       endpoints: 127.0.0.1
+      dial_timeout: 5s
 variables:
   vault: test

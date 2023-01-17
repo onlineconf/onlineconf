@@ -1,20 +1,21 @@
 package updater
 
 import (
+	"context"
 	"github.com/onlineconf/onlineconf/updater/v3/updater/resolver-plugins/etcd"
 	"github.com/rs/zerolog/log"
 	"strings"
 )
 
 type IResolverPlugin interface {
-	Resolve(string) (string, error)
+	Resolve(context.Context, string) (string, error)
 	Info() string
 	Prefix() string
 	Name() string
 }
 
-func InitPluginsUsage() {
-	etcd, err := etcd.New()
+func InitPluginsUsage(pluginsCfgs map[string]map[string]string) {
+	etcd, err := etcd.New(pluginsCfgs[etcd.ResolverName])
 	if err == nil {
 		IncludedPlugins = append(IncludedPlugins, etcd)
 	} else {
@@ -27,7 +28,7 @@ var IncludedPlugins []IResolverPlugin
 func TryResolveByResolverPlugins(key string) (resolved string, ok bool) {
 	for _, p := range IncludedPlugins {
 		if strings.HasPrefix(key, p.Prefix()) {
-			val, err := p.Resolve(strings.TrimPrefix(key, p.Prefix()))
+			val, err := p.Resolve(context.TODO(), strings.TrimPrefix(key, p.Prefix()))
 			if err != nil {
 				return "", false
 			}

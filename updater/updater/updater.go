@@ -1,6 +1,7 @@
 package updater
 
 import (
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,12 +24,7 @@ type UpdaterConfig struct {
 	DataDir        string
 	UpdateInterval time.Duration
 	Variables      map[string]string
-	ResolvePlugins ResolvePluginsConfig `yaml:"resolve_plugins"`
-}
-
-type ResolvePluginsConfig struct {
-	Enable  bool
-	Plugins map[string]map[string]string
+	ResolvePlugins config.ResolvePluginsConfig `yaml:"resolve_plugins"`
 }
 
 type Updater struct {
