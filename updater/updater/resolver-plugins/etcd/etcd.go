@@ -2,8 +2,7 @@ package etcd
 
 import (
 	"context"
-	"fmt"
-	"go.etcd.io/etcd/client/v3"
+	"github.com/coreos/etcd/clientv3"
 	"strings"
 	"time"
 )
@@ -35,14 +34,16 @@ type Resolver struct {
 }
 
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
-	return "", nil
 	resp, err := r.kv.Get(ctx, key)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println(resp)
-	return "etcd", nil
+	if len(resp.Kvs) == 0 {
+		return "", nil
+	}
+
+	return string(resp.Kvs[0].Value), nil
 }
 
 func (r *Resolver) Info() string {
