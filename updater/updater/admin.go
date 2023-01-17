@@ -140,7 +140,18 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		case "application/x-template":
 			mParam.value = templateRe.ReplaceAllStringFunc(param.Value.String, func(match string) string {
 				name := match[2 : len(match)-1]
-				return vars[name]
+
+				val := vars[name]
+				if vars[name] == "" {
+					val, ok := TryResolveByResolverPlugins(name)
+					if !ok {
+						return ""
+					}
+
+					return val
+				}
+
+				return val
 			})
 		default:
 			mParam.value = param.Value.String

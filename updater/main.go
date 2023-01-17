@@ -38,7 +38,7 @@ func main() {
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
-
+	updater.InitPluginsUsage()
 	if *once {
 		if u.Update() != nil {
 			os.Exit(1)

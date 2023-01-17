@@ -23,6 +23,12 @@ type UpdaterConfig struct {
 	DataDir        string
 	UpdateInterval time.Duration
 	Variables      map[string]string
+	ResolvePlugins ResolvePluginsConfig `yaml:"resolve_plugins"`
+}
+
+type ResolvePluginsConfig struct {
+	Enable  bool
+	Plugins map[string]map[string]string
 }
 
 type Updater struct {
