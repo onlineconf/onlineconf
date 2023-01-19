@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -11,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
