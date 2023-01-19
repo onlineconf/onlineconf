@@ -143,7 +143,7 @@ func prepareModules(ctx context.Context, data *ConfigData, vars map[string]strin
 				name := match[2 : len(match)-1]
 
 				val := vars[name]
-				if vars[name] == "" {
+				if val == "" {
 					val, ok := TryResolveByResolverPlugins(ctx, name)
 					if !ok {
 						return ""
