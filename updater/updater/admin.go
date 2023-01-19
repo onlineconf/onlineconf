@@ -146,6 +146,8 @@ func prepareModules(ctx context.Context, data *ConfigData, vars map[string]strin
 				if val == "" {
 					val, ok := TryResolveByResolverModule(ctx, name)
 					if !ok {
+						log.Ctx(ctx).Warn().Str("key", name).Msg("no resolver could get the value")
+
 						return ""
 					}
 
