@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type IResolverPlugin interface {
+type ResolverPlugin interface {
 	Resolve(context.Context, string) (string, error)
 	Info() string
 	Prefix() string
@@ -23,7 +23,7 @@ func InitPluginsUsage(pluginsCfgs map[string]map[string]string) {
 	}
 }
 
-var IncludedPlugins []IResolverPlugin
+var IncludedPlugins []ResolverPlugin
 
 func TryResolveByResolverPlugins(ctx context.Context, key string) (resolved string, ok bool) {
 	for _, p := range IncludedPlugins {
