@@ -25,7 +25,7 @@ type UpdaterConfig struct {
 	DataDir        string
 	UpdateInterval time.Duration
 	Variables      map[string]string
-	ResolvePlugins config.ResolvePluginsConfig `yaml:"resolve_plugins"`
+	ResolveModules config.ResolveModulesConfig `yaml:"resolve_modules"`
 }
 
 type Updater struct {

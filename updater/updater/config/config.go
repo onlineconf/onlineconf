@@ -1,8 +1,8 @@
 package config
 
-type ResolvePluginsConfig struct {
-	Enable  bool
-	Plugins map[string]map[string]string
+type ResolveModulesConfig struct {
+	Enable  bool                         `yaml:"enable"`
+	Modules map[string]map[string]string `yaml:"modules"`
 }
 
 type AdminConfig struct {

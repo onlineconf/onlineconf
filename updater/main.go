@@ -24,10 +24,10 @@ type ConfigFile struct {
 	Hostname       string
 	Datacenter     string
 	Admin          config.AdminConfig
-	DataDir        string `yaml:"data_dir"`
-	UpdateInterval int    `yaml:"update_interval"`
-	Variables      map[string]string
-	ResolvePlugins config.ResolvePluginsConfig `yaml:"resolve_plugins"`
+	DataDir        string                      `yaml:"data_dir"`
+	UpdateInterval int                         `yaml:"update_interval"`
+	Variables      map[string]string           `yaml:"variables"`
+	ResolvePlugins config.ResolveModulesConfig `yaml:"resolve_modules"`
 }
 
 func main() {
@@ -35,8 +35,8 @@ func main() {
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
-	if config.ResolvePlugins.Enable {
-		updater.InitPluginsUsage(config.ResolvePlugins.Plugins)
+	if config.ResolveModules.Enable {
+		updater.InitResolveModulesUsage(config.ResolveModules.Modules)
 	}
 	if *once {
 		if u.Update(ctx) != nil {
@@ -92,6 +92,6 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 		DataDir:        config.DataDir,
 		UpdateInterval: time.Duration(config.UpdateInterval) * time.Second,
 		Variables:      config.Variables,
-		ResolvePlugins: config.ResolvePlugins,
+		ResolveModules: config.ResolvePlugins,
 	}
 }

@@ -7,28 +7,27 @@ import (
 	"strings"
 )
 
-type ResolverPlugin interface {
+type ResolverModule interface {
 	Resolve(context.Context, string) (string, error)
-	Info() string
 	Prefix() string
 	Name() string
 }
 
-func InitPluginsUsage(pluginsCfgs map[string]map[string]string) {
-	etcd, err := etcd.New(pluginsCfgs[etcd.ResolverName])
+func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) {
+	etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
 	if err == nil {
-		IncludedPlugins = append(IncludedPlugins, etcd)
+		IncludedResolveModules = append(IncludedResolveModules, etcd)
 	} else {
-		log.Error().Err(err).Msg("cant init " + etcd.Name() + "plugin")
+		log.Error().Err(err).Msg("cant init " + etcd.Name() + "resolver module")
 	}
 }
 
-var IncludedPlugins []ResolverPlugin
+var IncludedResolveModules []ResolverModule
 
-func TryResolveByResolverPlugins(ctx context.Context, key string) (resolved string, ok bool) {
-	for _, p := range IncludedPlugins {
-		if strings.HasPrefix(key, p.Prefix()) {
-			val, err := p.Resolve(ctx, strings.TrimPrefix(key, p.Prefix()))
+func TryResolveByResolverModule(ctx context.Context, key string) (resolved string, ok bool) {
+	for _, m := range IncludedResolveModules {
+		if strings.HasPrefix(key, m.Prefix()) {
+			val, err := m.Resolve(ctx, strings.TrimPrefix(key, m.Prefix()))
 			if err != nil {
 				return "", false
 			}

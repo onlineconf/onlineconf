@@ -46,10 +46,6 @@ func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
 	return string(resp.Kvs[0].Value), nil
 }
 
-func (r *Resolver) Info() string {
-	return "etcd resolver plugin can resolve your template values by etcd: prefix"
-}
-
 func (r *Resolver) Name() string {
 	return ResolverName
 }

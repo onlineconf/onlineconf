@@ -6,11 +6,11 @@ admin:
 data_dir: /usr/local/etc/onlineconf/
 reload_local: 10
 update_interval: 60
-resolve_plugins:
+resolve_modules:
   enable: true
-  plugins:
+  modules:
     etcd:
       endpoints: 127.0.0.1:2379
       dial_timeout: 5s
 variables:
-  vault: test
+  key1: value1
