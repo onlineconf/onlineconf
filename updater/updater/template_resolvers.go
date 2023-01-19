@@ -15,10 +15,10 @@ type ResolverModule interface {
 
 func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) {
 	etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
-	if err == nil {
-		IncludedResolveModules = append(IncludedResolveModules, etcd)
-	} else {
+	if err != nil {
 		log.Error().Err(err).Msg("cant init " + etcd.Name() + "resolver module")
+	} else {
+		IncludedResolveModules = append(IncludedResolveModules, etcd)
 	}
 }
 
