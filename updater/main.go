@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"io/ioutil"
@@ -30,6 +31,7 @@ type ConfigFile struct {
 }
 
 func main() {
+	ctx := context.Background()
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
@@ -37,7 +39,7 @@ func main() {
 		updater.InitPluginsUsage(config.ResolvePlugins.Plugins)
 	}
 	if *once {
-		if u.Update() != nil {
+		if u.Update(ctx) != nil {
 			os.Exit(1)
 		}
 		return
@@ -54,8 +56,8 @@ func main() {
 		u.Stop()
 	}()
 
-	u.Update()
-	u.Run()
+	u.Update(ctx)
+	u.Run(ctx)
 	log.Info().Msg("onlineconf-updater stopped")
 }
 

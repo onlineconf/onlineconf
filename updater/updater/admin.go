@@ -2,6 +2,7 @@ package updater
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,12 +17,12 @@ var ErrNotModified = errors.New("config not modified")
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+func getModules(ctx context.Context, config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
 	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime)
 	if err != nil {
 		return "", nil, err
 	}
-	modules := prepareModules(data, vars)
+	modules := prepareModules(ctx, data, vars)
 	return respMtime, modules, nil
 }
 
@@ -62,7 +63,7 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 	}
 }
 
-func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
+func prepareModules(ctx context.Context, data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -143,7 +144,7 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 
 				val := vars[name]
 				if vars[name] == "" {
-					val, ok := TryResolveByResolverPlugins(name)
+					val, ok := TryResolveByResolverPlugins(ctx, name)
 					if !ok {
 						return ""
 					}

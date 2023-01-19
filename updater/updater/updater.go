@@ -1,6 +1,7 @@
 package updater
 
 import (
+	"context"
 	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ func NewUpdater(config UpdaterConfig) *Updater {
 	}
 }
 
-func (u *Updater) Run() {
+func (u *Updater) Run(ctx context.Context) {
 	ticker := time.NewTicker(u.config.UpdateInterval)
 	defer ticker.Stop()
 	for {
@@ -54,7 +55,7 @@ func (u *Updater) Run() {
 		case <-u.done:
 			return
 		case <-ticker.C:
-			u.Update()
+			u.Update(ctx)
 		}
 	}
 }
@@ -63,8 +64,8 @@ func (u *Updater) Stop() {
 	close(u.done)
 }
 
-func (u *Updater) Update() error {
-	respMtime, modules, err := getModules(u.config.Admin, u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
+func (u *Updater) Update(ctx context.Context) error {
+	respMtime, modules, err := getModules(ctx, u.config.Admin, u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")
