@@ -16,3 +16,5 @@ require (
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/bmatcuk/doublestar/v4 v4.4.0 => github.com/AndrewDeryabin/doublestar/v4 v4.0.0-20230123130924-38953b2ce9a0

@@ -6,14 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	_ "unsafe"
 
-	_ "github.com/bmatcuk/doublestar/v4"
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/gobwas/glob"
 )
-
-//go:linkname matchWithSeparator github.com/bmatcuk/doublestar/v4.matchWithSeparator
-func matchWithSeparator(pattern, name string, separator rune, validate bool) (matched bool, err error)
 
 type serversGlobs struct {
 	ServerGlobs []string `json:"server_globs"`
@@ -31,7 +27,7 @@ func testGlobs(globs, servers []string, separator rune) {
 
 		for _, srv := range servers {
 			gobwas := g.Match(srv)
-			bmatcuk, err := matchWithSeparator(glb, srv, separator, true)
+			bmatcuk, err := doublestar.MatchWithSeparator(glb, srv, separator)
 
 			if err != nil {
 				log.Printf("bmatcuk: %s: %v", glb, err)
