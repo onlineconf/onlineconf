@@ -27,7 +27,7 @@ type ConfigFile struct {
 	DataDir        string                      `yaml:"data_dir"`
 	UpdateInterval int                         `yaml:"update_interval"`
 	Variables      map[string]string           `yaml:"variables"`
-	ResolvePlugins config.ResolveModulesConfig `yaml:"resolve_modules"`
+	ResolveModules config.ResolveModulesConfig `yaml:"resolve_modules"`
 }
 
 func main() {
@@ -92,6 +92,6 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 		DataDir:        config.DataDir,
 		UpdateInterval: time.Duration(config.UpdateInterval) * time.Second,
 		Variables:      config.Variables,
-		ResolveModules: config.ResolvePlugins,
+		ResolveModules: config.ResolveModules,
 	}
 }
