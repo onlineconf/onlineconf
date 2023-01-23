@@ -2,13 +2,13 @@ package updater
 
 import (
 	"context"
-	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"github.com/rs/zerolog/log"
 )
 

@@ -2,9 +2,10 @@ package updater
 
 import (
 	"context"
+	"strings"
+
 	"github.com/onlineconf/onlineconf/updater/v3/updater/resolvers/etcd"
 	"github.com/rs/zerolog/log"
-	"strings"
 )
 
 type TemplateVariableResolver interface {
