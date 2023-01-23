@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type ResolverModule interface {
+type TemplateVariableResolver interface {
 	Resolve(context.Context, string) (string, error)
 	Prefix() string
 	Name() string
@@ -22,7 +22,7 @@ func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) {
 	}
 }
 
-var IncludedResolveModules []ResolverModule
+var IncludedResolveModules []TemplateVariableResolver
 
 func TryResolveByResolverModule(ctx context.Context, key string) (resolved string, ok bool) {
 	for _, m := range IncludedResolveModules {
