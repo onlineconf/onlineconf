@@ -17,12 +17,12 @@ var ErrNotModified = errors.New("config not modified")
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-func getModules(ctx context.Context, config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
 	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime)
 	if err != nil {
 		return "", nil, err
 	}
-	modules := prepareModules(ctx, data, vars)
+	modules := prepareModules(data, vars)
 	return respMtime, modules, nil
 }
 
@@ -63,7 +63,7 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 	}
 }
 
-func prepareModules(ctx context.Context, data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
+func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -144,9 +144,9 @@ func prepareModules(ctx context.Context, data *ConfigData, vars map[string]strin
 
 				val := vars[name]
 				if val == "" {
-					val, ok := TryResolveByResolverModule(ctx, name)
+					val, ok := TryResolveByResolverModule(context.TODO(), name) // todo: fix after major patch
 					if !ok {
-						log.Ctx(ctx).Warn().Str("key", name).Msg("no resolver could get the value")
+						log.Warn().Str("key", name).Msg("no resolver could get the value")
 
 						return ""
 					}

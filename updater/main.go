@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -31,15 +30,19 @@ type ConfigFile struct {
 }
 
 func main() {
-	ctx := context.Background()
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
 	if config.ResolveModules.Enable {
-		updater.InitResolveModulesUsage(config.ResolveModules.Modules)
+		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
+		if err != nil {
+			log.Error().Err(err).Msg("cant init resolve modules")
+
+			os.Exit(2)
+		}
 	}
 	if *once {
-		if u.Update(ctx) != nil {
+		if u.Update() != nil {
 			os.Exit(1)
 		}
 		return
@@ -56,8 +59,8 @@ func main() {
 		u.Stop()
 	}()
 
-	u.Update(ctx)
-	u.Run(ctx)
+	u.Update()
+	u.Run()
 	log.Info().Msg("onlineconf-updater stopped")
 }
 

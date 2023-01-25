@@ -2,10 +2,10 @@ package updater
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/onlineconf/onlineconf/updater/v3/updater/resolvers/etcd"
-	"github.com/rs/zerolog/log"
 )
 
 type TemplateVariableResolver interface {
@@ -14,13 +14,14 @@ type TemplateVariableResolver interface {
 	Name() string
 }
 
-func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) {
+func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) error {
 	etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
 	if err != nil {
-		log.Error().Err(err).Msg("cant init " + etcd.Name() + "resolver module")
-	} else {
-		IncludedResolveModules = append(IncludedResolveModules, etcd)
+		return fmt.Errorf("cant init etcd resolve module: %w", err)
 	}
+	IncludedResolveModules = append(IncludedResolveModules, etcd)
+
+	return nil
 }
 
 var IncludedResolveModules []TemplateVariableResolver
