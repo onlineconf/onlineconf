@@ -1,16 +1,8 @@
 admin:
-  host: 127.0.0.1
+  host: xxx
   port: 80
-  username: gopher
-  password: gopher
-data_dir: /usr/local/etc/onlineconf/
-reload_local: 10
-update_interval: 60
-resolve_modules:
-  enable: true
-  modules:
-    etcd:
-      endpoints: 127.0.0.1:2379
-      dial_timeout: 5s
-variables:
-  key1: value1
+  username: onlineconf.updater
+  password: xxx
+  data_dir: /usr/local/etc/onlineconf/
+  reload_local: 10
+  update_interval: 60
