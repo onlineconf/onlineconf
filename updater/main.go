@@ -19,10 +19,17 @@ import (
 var configFile = flag.String("config", "/usr/local/etc/onlineconf.yaml", "config file")
 var once = flag.Bool("once", false, "fetch configuration once and exit")
 
+type AdminConfig struct {
+	Host     string
+	Port     int
+	Username string
+	Password string
+}
+
 type ConfigFile struct {
 	Hostname       string
 	Datacenter     string
-	Admin          config.AdminConfig
+	Admin          AdminConfig
 	DataDir        string                      `yaml:"data_dir"`
 	UpdateInterval int                         `yaml:"update_interval"`
 	Variables      map[string]string           `yaml:"variables"`
