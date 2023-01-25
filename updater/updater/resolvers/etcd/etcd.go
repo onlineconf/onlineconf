@@ -52,5 +52,5 @@ func (r *Resolver) Name() string {
 }
 
 func (r *Resolver) Prefix() string {
-	return ResolverName + ":"
+	return ResolverName
 }

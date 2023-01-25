@@ -8,6 +8,8 @@ import (
 	"github.com/onlineconf/onlineconf/updater/v3/updater/resolvers/etcd"
 )
 
+const separator = ":"
+
 type TemplateVariableResolver interface {
 	Resolve(context.Context, string) (string, error)
 	Prefix() string
@@ -28,8 +30,8 @@ var IncludedResolveModules []TemplateVariableResolver
 
 func TryResolveByResolverModule(ctx context.Context, key string) (resolved string, ok bool) {
 	for _, m := range IncludedResolveModules {
-		if strings.HasPrefix(key, m.Prefix()) {
-			val, err := m.Resolve(ctx, strings.TrimPrefix(key, m.Prefix()))
+		if strings.HasPrefix(key, m.Prefix()+separator) {
+			val, err := m.Resolve(ctx, strings.TrimPrefix(key, m.Prefix()+separator))
 			if err != nil {
 				return "", false
 			}
