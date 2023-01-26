@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -37,10 +38,13 @@ type ConfigFile struct {
 }
 
 func main() {
+	ctx := context.Background()
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
 	if config.ResolveModules.Enable {
+		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, 10*time.Second, u.UpdateForce)
+		go updater.ResolveChecker.StartCronCheck()
 		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
 		if err != nil {
 			log.Error().Err(err).Msg("cant init resolve modules")
