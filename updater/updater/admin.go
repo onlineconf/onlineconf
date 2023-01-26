@@ -29,7 +29,7 @@ func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map
 func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (string, *ConfigData, error) {
 	client := http.Client{}
 
-	req, err := http.NewRequest("GET", config.URI+"/client/config", nil)
+	req, err := http.NewRequest(http.MethodGet, config.URI+"/client/config", nil)
 	if err != nil {
 		return "", nil, err
 	}
