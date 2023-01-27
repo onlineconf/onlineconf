@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/onlineconf/onlineconf/updater/v3/updater/resolvers/etcd"
@@ -63,7 +62,6 @@ type ResolveModulesValChecker struct {
 	ctx             context.Context
 	rebuildTreeFunc func() error
 	cancel          context.CancelFunc
-	tickReady       atomic.Bool
 	ticker          *time.Ticker
 	storage         moduleCheckVarsStorage
 }
@@ -93,7 +91,6 @@ func NewResolveModulesValChecker(ctx context.Context, d time.Duration, rebuildFu
 		cancel:          cancel,
 		ticker:          time.NewTicker(d),
 		rebuildTreeFunc: rebuildFunc,
-		tickReady:       atomic.Bool{},
 		storage: moduleCheckVarsStorage{
 			pluginCheckVars: make(map[TemplateVariableResolver][]kv),
 			mu:              sync.Mutex{},
