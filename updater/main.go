@@ -43,7 +43,7 @@ func main() {
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
 	if config.ResolveModules.Enable {
-		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, 10*time.Second, u.UpdateForce)
+		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, config.UpdateInterval, u.UpdateForce)
 		go updater.ResolveChecker.StartCronCheck()
 		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
 		if err != nil {
