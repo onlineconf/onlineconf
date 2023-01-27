@@ -100,7 +100,7 @@ func NewResolveModulesValChecker(ctx context.Context, d time.Duration, rebuildFu
 	return checker
 }
 
-func (c *ResolveModulesValChecker) StartCronCheck() {
+func (c *ResolveModulesValChecker) StartPeriodicCheck() {
 	for {
 		select {
 		case <-c.ctx.Done():

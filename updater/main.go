@@ -44,7 +44,7 @@ func main() {
 	u := updater.NewUpdater(*config)
 	if config.ResolveModules.Enable {
 		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, config.UpdateInterval, u.UpdateForce)
-		go updater.ResolveChecker.StartCronCheck()
+		go updater.ResolveChecker.StartPeriodicCheck()
 		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
 		if err != nil {
 			log.Error().Err(err).Msg("cant init resolve modules")
