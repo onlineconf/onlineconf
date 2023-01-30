@@ -19,11 +19,13 @@ type TemplateVariableResolver interface {
 }
 
 func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) error {
-	etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
-	if err != nil {
-		return fmt.Errorf("cant init etcd resolve module: %w", err)
+	if resolversCfgs[etcd.ResolverName] != nil { // todo: rewrite current decision to more functionality
+		etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
+		if err != nil {
+			return fmt.Errorf("cant init etcd resolve module: %w", err)
+		}
+		IncludedResolveModules = append(IncludedResolveModules, etcd)
 	}
-	IncludedResolveModules = append(IncludedResolveModules, etcd)
 
 	return nil
 }
