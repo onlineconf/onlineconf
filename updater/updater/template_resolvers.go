@@ -34,6 +34,10 @@ var IncludedResolveModules []TemplateVariableResolver
 var ResolveChecker *ResolveModulesValChecker
 
 func (c *ResolveModulesValChecker) CleanStorage() {
+	if c == nil {
+		return
+	}
+
 	c.storage.clean()
 }
 
