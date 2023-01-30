@@ -43,6 +43,8 @@ func main() {
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
 	if config.ResolveModules.Enable {
+		log.Info().Msg("resolve module usage enabled")
+
 		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, config.UpdateInterval, u.UpdateForce)
 		go updater.ResolveChecker.StartPeriodicCheck()
 		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
