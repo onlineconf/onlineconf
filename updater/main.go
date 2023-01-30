@@ -53,7 +53,7 @@ func main() {
 		}
 	}
 	if *once {
-		if u.Update() != nil {
+		if u.UpdateForce() != nil {
 			os.Exit(1)
 		}
 		return
