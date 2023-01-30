@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 
@@ -29,18 +31,31 @@ type ConfigFile struct {
 	Hostname       string
 	Datacenter     string
 	Admin          AdminConfig
-	DataDir        string `yaml:"data_dir"`
-	UpdateInterval int    `yaml:"update_interval"`
-	Variables      map[string]string
+	DataDir        string                      `yaml:"data_dir"`
+	UpdateInterval int                         `yaml:"update_interval"`
+	Variables      map[string]string           `yaml:"variables"`
+	ResolveModules config.ResolveModulesConfig `yaml:"resolve_modules"`
 }
 
 func main() {
+	ctx := context.Background()
 	flag.Parse()
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
+	if config.ResolveModules.Enable {
+		log.Info().Msg("resolve module usage enabled")
 
+		updater.ResolveChecker = updater.NewResolveModulesValChecker(ctx, config.UpdateInterval, u.UpdateForce)
+		go updater.ResolveChecker.StartPeriodicCheck()
+		err := updater.InitResolveModulesUsage(config.ResolveModules.Modules)
+		if err != nil {
+			log.Error().Err(err).Msg("cant init resolve modules")
+
+			os.Exit(2)
+		}
+	}
 	if *once {
-		if u.Update() != nil {
+		if u.UpdateForce() != nil {
 			os.Exit(1)
 		}
 		return
@@ -93,5 +108,6 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 		DataDir:        config.DataDir,
 		UpdateInterval: time.Duration(config.UpdateInterval) * time.Second,
 		Variables:      config.Variables,
+		ResolveModules: config.ResolveModules,
 	}
 }

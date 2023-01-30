@@ -31,7 +31,7 @@ type Server struct {
 var configSemaphore chan struct{}
 
 func init() {
-	maxResolvers := int(0.8*float32(runtime.GOMAXPROCS(0)))
+	maxResolvers := int(0.8 * float32(runtime.GOMAXPROCS(0)))
 	if maxResolvers < 1 {
 		maxResolvers = 1
 	}
@@ -69,7 +69,7 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 	mtime := treeI.mtime
 	if clientMTime >= mtime {
 		w.Header().Add("X-OnlineConf-Admin-Last-Modified", mtime)
-		http.Error(w, "", 304)
+		http.Error(w, "", http.StatusNotModified)
 		return
 	}
 
@@ -81,7 +81,7 @@ func serveConfig(w http.ResponseWriter, req *http.Request) {
 		log.Ctx(req.Context()).Info().Msg("suspended")
 		w.Header().Set("X-OnlineConf-Suspended", "true")
 		w.Header().Add("X-OnlineConf-Admin-Last-Modified", clientMTime)
-		http.Error(w, "", 304)
+		http.Error(w, "", http.StatusNotModified)
 		return
 	}
 

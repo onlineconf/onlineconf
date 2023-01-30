@@ -1,0 +1,15 @@
+admin:
+  host: 127.0.0.1
+  port: 80
+  username: gopher
+  password: gopher
+data_dir: /usr/local/etc/onlineconf/
+reload_local: 10
+update_interval: 60
+
+resolve_modules:
+  enable: true
+  modules:
+    etcd:
+      endpoints: "cld-dev1-c7.devmail.ru:2379"
+      dial_timeout: "5s"

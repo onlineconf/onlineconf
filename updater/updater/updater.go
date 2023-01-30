@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onlineconf/onlineconf/updater/v3/updater/config"
 	"github.com/rs/zerolog/log"
 )
 
@@ -23,6 +24,7 @@ type UpdaterConfig struct {
 	DataDir        string
 	UpdateInterval time.Duration
 	Variables      map[string]string
+	ResolveModules config.ResolveModulesConfig `yaml:"resolve_modules"`
 }
 
 type Updater struct {
@@ -62,7 +64,21 @@ func (u *Updater) Stop() {
 }
 
 func (u *Updater) Update() error {
-	respMtime, modules, err := getModules(u.config.Admin, u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
+	return u.update(false)
+}
+
+func (u *Updater) UpdateForce() error {
+	return u.update(true)
+}
+
+func (u *Updater) update(force bool) error {
+	respMtime, modules, err := getModules(u.config.Admin,
+		u.config.Hostname,
+		u.config.Datacenter,
+		u.mtime,
+		u.config.Variables,
+		force)
+
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")

@@ -2,6 +2,7 @@ package updater
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,8 +17,8 @@ var ErrNotModified = errors.New("config not modified")
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
-	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime)
+func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string, force bool) (string, map[string][]moduleParam, error) {
+	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime, force)
 	if err != nil {
 		return "", nil, err
 	}
@@ -25,10 +26,10 @@ func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map
 	return respMtime, modules, nil
 }
 
-func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (string, *ConfigData, error) {
+func getConfigData(config AdminConfig, hostname, datacenter, mtime string, force bool) (string, *ConfigData, error) {
 	client := http.Client{}
 
-	req, err := http.NewRequest("GET", config.URI+"/client/config", nil)
+	req, err := http.NewRequest(http.MethodGet, config.URI+"/client/config", nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -42,7 +43,9 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 	req.Header.Add("X-OnlineConf-Client-Version", version)
 	req.SetBasicAuth(config.Username, config.Password)
 
-	req.Header.Add("X-OnlineConf-Client-Mtime", mtime)
+	if !force {
+		req.Header.Add("X-OnlineConf-Client-Mtime", mtime)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -54,6 +57,7 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 	case 200:
 		respMtime := resp.Header.Get("X-OnlineConf-Admin-Last-Modified")
 		data, err := deserializeConfigData(resp.Body)
+		ResolveChecker.CleanStorage()
 		return respMtime, data, err
 	case 304:
 		return "", nil, ErrNotModified
@@ -64,6 +68,7 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 
 func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
 	modules = make(map[string][]moduleParam, len(data.Modules))
+	// ResolveChecker.storage.clean()
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
 	}
@@ -140,7 +145,19 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		case "application/x-template":
 			mParam.value = templateRe.ReplaceAllStringFunc(param.Value.String, func(match string) string {
 				name := match[2 : len(match)-1]
-				return vars[name]
+
+				val := vars[name]
+				if val == "" {
+					val, ok := TryResolveByResolverModule(context.TODO(), name) // todo: fix after major patch
+					if !ok {
+						log.Warn().Str("key", name).Msg("no resolver could get the value")
+						return ""
+					}
+
+					return val
+				}
+
+				return val
 			})
 		default:
 			mParam.value = param.Value.String

@@ -1,10 +1,19 @@
 module github.com/onlineconf/onlineconf/updater/v3
 
-go 1.11
+go 1.12
 
 require (
 	github.com/colinmarc/cdb v0.0.0-20190223170904-60f317823f70
+	github.com/coreos/etcd v2.3.8+incompatible
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/rs/zerolog v1.15.0
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/ugorji/go/codec v1.1.7
-	gopkg.in/yaml.v2 v2.2.4
+	golang.org/x/text v0.3.5 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
