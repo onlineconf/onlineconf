@@ -52,12 +52,12 @@ class NotificationControl extends React.Component<NotificationControlProps & Wit
 		} else {
 			this.props.onChange(null);
 		}
-	}
+	};
 
 	handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		this.setState({ indeterminate: false });
 		this.props.onChange(event.target.value as Notification);
-	}
+	};
 
 	static contextType = WhoAmIContext;
 

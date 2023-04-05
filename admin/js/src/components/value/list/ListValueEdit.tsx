@@ -23,7 +23,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 
 	handleAddItem = () => {
 		this.props.onChange(this.props.value + ',');
-	}
+	};
 
 	createRemoveItemHandler(id: number) {
 		return () => {

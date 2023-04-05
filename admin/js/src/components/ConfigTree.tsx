@@ -221,7 +221,7 @@ interface ConfigTreeProps {
 	history: History;
 	search: string;
 	onSearching: (searching: boolean) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 interface ConfigTreeState {
@@ -308,7 +308,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 					loadPaths.add(p);
 				}
 			}
-			this.setState(({ root }) => ({ root: modifyNodes(root!, Array.from(loadPaths), node => { node.state = 'loading'; }) }));
+			this.setState(({ root }) => ({ root: modifyNodes(root!, Array.from(loadPaths), node => { node.state = 'loading' }) }));
 			const nodes = await API.getParams(loadPaths);
 
 			this.setState(prevState => {
@@ -319,7 +319,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				return { root, maxDepth: maxDepth(root) };
 			});
 		} catch (error) {
-			this.setState(({ root }) => ({ root: modifyNodes(root!, paths, node => { node.state = 'closed'; }) }));
+			this.setState(({ root }) => ({ root: modifyNodes(root!, paths, node => { node.state = 'closed' }) }));
 			throw error;
 		}
 	}
@@ -410,32 +410,32 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		} else {
 			this.loadNode(path, { open: true, withChildren: true });
 		}
-	}
+	};
 
 	handleClose = (path: string) => {
 		this.setState(({ root }) => ({
 			root: setNodeState(root!, path, 'closed'),
 			maxDepth: maxDepth(root),
 		}));
-	}
+	};
 
 	handleSelect = (param: IParamNode) => {
 		this.selectNode(param.path);
 		this.props.history.push({ hash: '#' + param.path });
-	}
+	};
 
 	handleMenuOpen = (path: string, anchorX?: number) => {
 		this.setState({ menu: path, menuAnchorX: anchorX });
-	}
+	};
 
 	handleMenuClose = (path: string) => {
 		this.setState(({ menu }) => (menu === path ? { menu: undefined } : null));
-	}
+	};
 
 	handleReload = async (param: IParamNode) => {
 		await this.loadNode(param.path, { reload: true, open: param.state === 'open' });
 		this.setState(({ menu }) => (menu === param.path ? { menu: undefined } : null ));
-	}
+	};
 
 	handleView = (param: IParamNode) => {
 		this.setState({
@@ -447,7 +447,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleEdit = (param: IParamNode) => {
 		this.setState({
@@ -464,7 +464,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleEditDone = (param: API.IParam) => {
 		this.setState(({ root }) => ({
@@ -472,7 +472,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				Object.assign(node, paramNode(param));
 			}),
 		}));
-	}
+	};
 
 	handleAddChild = (param: IParamNode) => {
 		this.setState({
@@ -486,7 +486,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleAddChildDone = (param: API.IParam) => {
 		this.setState(({ root }) => {
@@ -507,7 +507,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			parent.children[param.name] = paramNode(param);
 			return { root, maxDepth: maxDepth(root) };
 		});
-	}
+	};
 
 	handleDelete = (param: IParamNode) => {
 		this.setState({
@@ -520,7 +520,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleDeleted = (path: string) => {
 		this.setState(({ root }) => {
@@ -535,7 +535,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			}
 			return null;
 		});
-	}
+	};
 
 	handleMove = (param: IParamNode) => {
 		this.setState({
@@ -548,7 +548,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleMoved = async (param: IParamNode, path: string) => {
 		try {
@@ -563,7 +563,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	handleDescribe = (param: IParamNode) => {
 		this.setState({
@@ -577,7 +577,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleDescribed = (param: API.IParam) => {
 		this.setState(({ root }) => ({
@@ -586,7 +586,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			}),
 			dialog: null,
 		}));
-	}
+	};
 
 	handleNotification = (param: IParamNode) => {
 		this.setState({
@@ -600,7 +600,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 			/>,
 			menu: undefined,
 		});
-	}
+	};
 
 	handleModifyNotification = (param: API.IParam) => {
 		this.setState(({ root }) => ({
@@ -617,19 +617,19 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				onClose={this.handleDialogClose}
 			/>,
 		}));
-	}
+	};
 
 	handleLog = (path: string) => {
 		this.setState((prevState) => {
 			const onLoaded = () => {
 				this.setState(prevState => ({
-					root: modifyNode(prevState.root!, path, node => { delete (node.logLoading); }),
+					root: modifyNode(prevState.root!, path, node => { delete (node.logLoading) }),
 					menu: undefined,
 				}));
 			};
-			const onError = (error: Error) => {
+			const onError = (error: unknown) => {
 				this.setState(prevState => ({
-					root: modifyNode(prevState.root!, path, node => { delete(node.logLoading); }),
+					root: modifyNode(prevState.root!, path, node => { delete(node.logLoading) }),
 					dialog: null,
 				}));
 				this.props.onError(error);
@@ -649,48 +649,48 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				}
 			};
 			return {
-				root: modifyNode(prevState.root!, path, node => { node.logLoading = true; }),
+				root: modifyNode(prevState.root!, path, node => { node.logLoading = true }),
 				dialog: <ParamLog path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError} onChange={handleLogChange}/>,
 			};
 		});
-	}
+	};
 
 	// TODO apply changes to tree
 	handleAccess = (path: string) => {
 		this.setState((prevState) => {
 			const onLoaded = () => {
 				this.setState(prevState => ({
-					root: modifyNode(prevState.root!, path, node => { delete (node.accessLoading); }),
+					root: modifyNode(prevState.root!, path, node => { delete (node.accessLoading) }),
 					menu: undefined,
 				}));
 			};
-			const onError = (error: Error) => {
+			const onError = (error: unknown) => {
 				this.setState(prevState => ({
-					root: modifyNode(prevState.root!, path, node => { delete(node.accessLoading); }),
+					root: modifyNode(prevState.root!, path, node => { delete(node.accessLoading) }),
 					dialog: null,
 				}));
 				this.props.onError(error);
 			};
 			return {
-				root: modifyNode(prevState.root!, path, node => { node.accessLoading = true; }),
+				root: modifyNode(prevState.root!, path, node => { node.accessLoading = true }),
 				dialog: <ParamAccess path={path} onClose={this.handleDialogClose} onLoaded={onLoaded} onError={onError}/>,
 			};
 		});
-	}
+	};
 
 	handleDialogClose = () => {
 		this.setState({ dialog: null });
-	}
+	};
 
 	handleValuePopoverOpen = (event: React.MouseEvent<HTMLElement>, param: IParamNode) => {
 		this.setState({
 			popover: <ValuePopover type={param.mime} value={param.data} onClose={this.handleValuePopoverClose} anchorEl={event.currentTarget as HTMLElement} />
 		});
-	}
+	};
 
 	handleValuePopoverClose = () => {
 		this.setState({ popover: null });
-	}
+	};
 
 	public render() {
 		return (

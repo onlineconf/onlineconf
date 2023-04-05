@@ -15,5 +15,5 @@ export interface NonNullValueProps {
 
 export interface EditNonnullValueProps extends NonNullValueProps {
 	onChange: (value: string) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }

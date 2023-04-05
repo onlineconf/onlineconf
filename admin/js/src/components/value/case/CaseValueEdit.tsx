@@ -90,7 +90,7 @@ export default withStyles(styles)(withTranslation()(
 			this.handleChange(cases => {
 				cases.push({ server: '', mime: 'application/x-null', value: null });
 			});
-		}
+		};
 
 		createRemoveCaseHandler(id: number) {
 			return (event: React.MouseEvent<HTMLElement>) => {

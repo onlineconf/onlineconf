@@ -128,7 +128,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 interface GlobalLogProps {
-	onError: (errors: Error) => void;
+	onError: (errors: unknown) => void;
 }
 
 export default function GlobalLog(props: GlobalLogProps) {

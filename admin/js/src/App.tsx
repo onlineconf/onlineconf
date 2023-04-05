@@ -55,8 +55,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 }), { name: 'App' });
 
 interface AppRootProps {
-	error?: Error;
-	onError(error: Error): void;
+	error?: unknown;
+	onError(error: unknown): void;
 	paletteType: PaletteType;
 	onChangePaletteType(value: PaletteType): void;
 }
@@ -75,10 +75,10 @@ function AppRoot(props: AppRootProps) {
 			<CssBaseline/>
 			<BrowserRouter>
 				<div className={classes.root}>
-					<TopBar onMenu={() => { setMenu(m => !m); setMenuSliding(true); }} onSearch={setSearch} searching={searching}/>
+					<TopBar onMenu={() => { setMenu(m => !m); setMenuSliding(true) }} onSearch={setSearch} searching={searching}/>
 					<LeftMenu
 						open={menu}
-						onClose={() => { setMenu(false); setMenuSliding(true); }}
+						onClose={() => { setMenu(false); setMenuSliding(true) }}
 						onSlideEnd={() => setMenuSliding(false)}
 						paletteType={props.paletteType}
 						onChangePaletteType={props.onChangePaletteType}
@@ -97,7 +97,7 @@ function AppRoot(props: AppRootProps) {
 }
 
 export default function App() {
-	const [ error, setError ] = React.useState<Error>();
+	const [ error, setError ] = React.useState<unknown>();
 
 	const [ paletteType, setPaletteType ] = React.useState<PaletteType>(() => {
 		const value = window.localStorage.getItem('paletteType');

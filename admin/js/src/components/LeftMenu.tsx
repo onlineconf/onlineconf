@@ -41,7 +41,7 @@ class ListLink extends React.Component<ListLinkProps> {
 		const { Icon, to, children } = this.props;
 		return (
 			<Route path={to} exact>
-				{({ match }) => (
+				{({ match }: { match: unknown }) => (
 					<ListItem button component={Link} to={to} selected={ match !== null }>
 						<ListItemIcon><Icon/></ListItemIcon>
 						<ListItemText>{children}</ListItemText>

@@ -15,7 +15,7 @@ interface ParamNotificationProps {
 	overridden: boolean;
 	value: Notification;
 	onChange: (param: IParam) => void;
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 	onClose: () => void;
 }
 
@@ -28,7 +28,7 @@ class ParamNotification extends React.Component<ParamNotificationProps & WithTra
 		} catch (error) {
 			this.props.onError(error);
 		}
-	}
+	};
 
 	render() {
 		return (

@@ -42,7 +42,7 @@ const styles = (theme: Theme) => createStyles({
 type ServerColumns = 'host' | 'mtime' | 'online' | 'package';
 
 interface ServersProps {
-	onError: (error: Error) => void;
+	onError: (error: unknown) => void;
 }
 
 interface ServersState {
