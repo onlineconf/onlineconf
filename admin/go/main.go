@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/onlineconf/onlineconf/admin/go/admin"
 	"github.com/onlineconf/onlineconf/admin/go/botapi"

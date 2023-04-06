@@ -5,7 +5,7 @@ import (
 	"math"
 	"regexp"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var floatRE = regexp.MustCompile(`^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$`) // RFC8259

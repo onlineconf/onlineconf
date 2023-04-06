@@ -10,5 +10,5 @@ require (
 	github.com/rs/zerolog v1.15.0
 	github.com/ugorji/go/codec v1.1.7
 	gitlab.com/nyarla/go-crypt v0.0.0-20160106005555-d9a5dc2b789b
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v3 v3.0.1
 )
