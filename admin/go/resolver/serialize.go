@@ -28,12 +28,12 @@ type serializerParam struct {
 	Version     int
 	Path        string
 	Name        string
-	MTime       string
 }
 
 type serializer struct {
 	data   serializerData
 	pushed int
+	compat bool
 }
 
 func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serializer {
@@ -44,6 +44,7 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 			Modules: make([]string, 0, len(modules)),
 			Nodes:   make([]interface{}, 0, 1024),
 		},
+		compat: compat,
 	}
 
 	for name := range modules {
@@ -51,7 +52,7 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 	}
 
 	if tree := modules["TREE"]; tree != nil && tree.Path == "/" && compat {
-		ser.writeParam("/", "", tree)
+		ser.writeParam("/", tree)
 		return &ser
 	}
 
@@ -61,15 +62,19 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 		}
 	}
 	for name, module := range modules {
-		ser.writeParam("/onlineconf/module/"+name, name, module)
+		ser.writeParam("/onlineconf/module/"+name, module)
 	}
 
 	return &ser
 }
 
-func (ser *serializer) writeParam(path string, name string, param *Param) {
+func (ser *serializer) writeParam(path string, param *Param) {
 	if param == nil {
 		return
+	}
+
+	if ser.compat && path != "/" && strings.HasSuffix(path, "/") {
+		return // skip child lists for legacy perl updater
 	}
 
 	if !param.common {
@@ -83,9 +88,9 @@ func (ser *serializer) writeParam(path string, name string, param *Param) {
 	if param.common && param.Path == path {
 		ser.data.Nodes = append(ser.data.Nodes, codec.Raw(param.serialized))
 
-		for name, childPtr := range param.Children {
+		for _, childPtr := range param.Children {
 			if *childPtr != nil {
-				ser.writeParam((*childPtr).Path, name, *childPtr)
+				ser.writeParam((*childPtr).Path, *childPtr)
 			}
 		}
 	} else {
@@ -97,8 +102,9 @@ func (ser *serializer) writeParam(path string, name string, param *Param) {
 				base = path
 			}
 			path := base + "/" + name
+
 			if *childPtr != nil {
-				ser.writeParam(path, name, *childPtr)
+				ser.writeParam(path, *childPtr)
 			}
 		}
 	}
@@ -149,6 +155,5 @@ func newSerializerParam(path string, param *Param) *serializerParam {
 		Version:     param.Version,
 		Path:        path,
 		Name:        param.Name,
-		MTime:       param.MTime,
 	}
 }

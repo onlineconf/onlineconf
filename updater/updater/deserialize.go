@@ -41,13 +41,9 @@ type ConfigData struct {
 }
 
 type ConfigParam struct {
-	ID          int
+	Path        string
 	ContentType string
 	Value       NullString
-	Version     int
-	Path        string
-	Name        string
-	MTime       string
 }
 
 func deserializeConfigData(r io.Reader) (*ConfigData, error) {
