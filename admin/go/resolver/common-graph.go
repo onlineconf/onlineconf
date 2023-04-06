@@ -6,7 +6,6 @@ import (
 	"net"
 	"sort"
 
-	"github.com/gobwas/glob"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,7 +17,7 @@ type datacenter struct {
 
 type group struct {
 	name  string
-	globs []glob.Glob
+	globs []string
 }
 
 type commonGraph struct {
@@ -45,12 +44,12 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	graph.resolveChildren(ctx, &dcroot)
 	sortedNames := make([]string, 0, len(dcroot.Children))
 	for name, childPtr := range dcroot.Children {
-		if *childPtr != nil {
+		if name != "" && *childPtr != nil {
 			sortedNames = append(sortedNames, name)
 		}
 	}
 	sort.Strings(sortedNames)
-	datacenters := make([]datacenter, 0, len(dcroot.Children))
+	datacenters := make([]datacenter, 0, len(sortedNames))
 	for _, name := range sortedNames {
 		dc := *dcroot.Children[name]
 		datacenter := datacenter{name: name}
@@ -79,7 +78,7 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 	globsByName := make(map[string][]string, len(grroot.Children))
 	for name, grPtr := range grroot.Children {
 		gr := *grPtr
-		if gr == nil {
+		if name == "" || gr == nil {
 			continue
 		}
 		if name == "priority" {
@@ -112,15 +111,7 @@ func (graph *commonGraph) readGroups(ctx context.Context) ([]group, error) {
 	sorted := groupsSortedByInclusion(byPriority, globsByName)
 	result := make([]group, 0, len(sorted))
 	for _, name := range sorted {
-		globs := make([]glob.Glob, 0, len(globsByName[name]))
-		for _, str := range globsByName[name] {
-			g, err := glob.Compile(str, '.')
-			if err == nil {
-				globs = append(globs, g)
-			} else {
-				log.Ctx(ctx).Warn().Err(err).Str("group", name).Msg("invalid glob")
-			}
-		}
+		globs := globsByName[name]
 		if len(globs) > 0 {
 			result = append(result, group{name, globs})
 		}
@@ -143,7 +134,7 @@ func (graph *commonGraph) readServices(ctx context.Context) (map[string][]byte, 
 func (graph *commonGraph) fillServices(ctx context.Context, services map[string][]byte, node *Param, prefix string) {
 	for name, childPtr := range node.Children {
 		child := *childPtr
-		if child == nil {
+		if name == "" || child == nil {
 			continue
 		}
 		serviceName := prefix + name

@@ -1,0 +1,4 @@
+github.com/AndrewDeryabin/doublestar/v4 v4.0.0-20230123132908-d9476b7d41be h1:Ub4m1XpnE6hlUOC+bKekVqsI+XmbB78o/zX58IAQhII=
+github.com/AndrewDeryabin/doublestar/v4 v4.0.0-20230123132908-d9476b7d41be/go.mod h1:Y0bMLOJNLVk+LX1qfV1oASwCVaw+ii7PH9HPhflXDnc=
+github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
+github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=

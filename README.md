@@ -136,7 +136,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 
 ### /onlineconf/group
 
-`/onlineconf/group` groups managed servers and services by name. The name of a parameter is the name of a group, the value is a *glob* (similar to glob used in `bash`) of hostnames belonging to this group or service names with `service:` prefix (for example, `service:gopher/alpha`). Syntax of the used glob flavor is described here: https://github.com/gobwas/glob. For example, `{alpha*.{example.com,i},service:gopher/alpha}` contains servers `alpha*.example.com` and `alpha*.i` (where `*` is any symbol except `.`) and service `gopher/alpha`.
+`/onlineconf/group` groups managed servers and services by name. The name of a parameter is the name of a group, the value is a *glob* (similar to glob used in `bash`) of hostnames belonging to this group or service names with `service:` prefix (for example, `service:gopher/alpha`). Syntax of the used glob flavor is described here: https://github.com/bmatcuk/doublestar#patterns. For example, `{alpha*.{example.com,i},service:gopher/alpha}` contains servers `alpha*.example.com` and `alpha*.i` (where `*` is any symbol except `.`) and service `gopher/alpha`.
 
 `/onlineconf/group/priority` - a list of the groups in descending order. By default the groups are sorted alphabetically. All explicitly unspecified groups are appended to the end of the list or instead of `*` placeholder if presented. Priorities are useful in the case when one server belongs to several groups for which a parameter has different values.
 
