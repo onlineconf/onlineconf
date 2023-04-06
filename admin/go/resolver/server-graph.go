@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gobwas/glob"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/onlineconf/onlineconf/admin/go/common"
 )
 
@@ -46,7 +46,9 @@ func (graph *serverGraph) modules(ctx context.Context) map[string]*Param {
 	graph.resolveChildren(ctx, &node)
 	modules := make(map[string]*Param, len(node.Children))
 	for name, childPtr := range node.Children {
-		modules[name] = *childPtr
+		if name != "" {
+			modules[name] = *childPtr
+		}
 	}
 	return modules
 }
@@ -95,7 +97,10 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 	groups := make([]string, 0)
 	for _, group := range t.groups {
 		for _, glob := range group.globs {
-			if glob.Match(server.Host) {
+			match, err := doublestar.MatchWithSeparator(glob, server.Host, '.')
+			if err != nil {
+				log.Ctx(ctx).Warn().Err(err).Str("group", glob).Msg("invalid glob")
+			} else if match {
 				groups = append(groups, group.name)
 				break
 			}
@@ -119,7 +124,10 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 				continue
 			}
 			for _, glob := range group.globs {
-				if glob.Match(str) {
+				match, err := doublestar.MatchWithSeparator(glob, str, '.')
+				if err != nil {
+					log.Ctx(ctx).Warn().Err(err).Str("group", glob).Msg("invalid glob")
+				} else if match {
 					serviceGroups = append(serviceGroups, group.name)
 					serviceGroupExists[group.name] = true
 					break
@@ -201,10 +209,10 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	})
 
 	for _, cs := range byServer {
-		g, err := glob.Compile(cs.Server) // TODO add '.' separator
+		match, err := doublestar.Match(cs.Server, cr.server.Host) // using '/' separator for compatibility reason
 		if err != nil {
 			log.Ctx(ctx).Warn().Str("server", cs.Server).Msg("invalid server glob")
-		} else if g.Match(cr.server.Host) {
+		} else if match {
 			return &cs
 		}
 	}
