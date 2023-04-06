@@ -59,8 +59,6 @@ func (auth *headerAuthenticator) Authenticate(req *http.Request) (string, error)
 func (auth *headerAuthenticator) SelectUsers(ctx context.Context, term string) ([]string, error) {
 	order := "1"
 	bind := make([]interface{}, 0)
-	if term != "" {
-	}
 	query := "SELECT DISTINCT User FROM my_config_user_group"
 	if term != "" {
 		query += " WHERE User LIKE ?"

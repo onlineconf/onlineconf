@@ -22,7 +22,7 @@ func (ns NullString) MarshalJSON() ([]byte, error) {
 }
 
 func (ns *NullString) UnmarshalJSON(data []byte) error {
-	if bytes.Compare(data, []byte("null")) == 0 {
+	if bytes.Equal(data, []byte("null")) {
 		return nil
 	}
 	ns.Valid = true
@@ -60,7 +60,7 @@ func (ns NullBool) MarshalJSON() ([]byte, error) {
 }
 
 func (ns *NullBool) UnmarshalJSON(data []byte) error {
-	if bytes.Compare(data, []byte("null")) == 0 {
+	if bytes.Equal(data, []byte("null")) {
 		return nil
 	}
 	ns.Valid = true

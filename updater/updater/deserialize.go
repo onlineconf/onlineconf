@@ -25,10 +25,10 @@ func (ns *NullString) CodecEncodeSelf(enc *codec.Encoder) {
 func (ns *NullString) CodecDecodeSelf(dec *codec.Decoder) {
 	var v interface{}
 	dec.MustDecode(&v)
-	switch v.(type) {
+	switch typedVal := v.(type) {
 	case string:
 		ns.Valid = true
-		ns.String = v.(string)
+		ns.String = typedVal
 	case nil:
 	default:
 		log.Warn().Interface("value", v).Msg("invalid NullString value")
