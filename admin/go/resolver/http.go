@@ -31,7 +31,7 @@ type Server struct {
 var configSemaphore chan struct{}
 
 func init() {
-	maxResolvers := int(0.8*float32(runtime.GOMAXPROCS(0)))
+	maxResolvers := int(0.8 * float32(runtime.GOMAXPROCS(0)))
 	if maxResolvers < 1 {
 		maxResolvers = 1
 	}
@@ -136,10 +136,15 @@ func serverStatus(w http.ResponseWriter, req *http.Request) (*Server, string) {
 }
 
 func authenticateByIP(req *http.Request) (*Server, error) {
-	ipstr := strings.Split(req.RemoteAddr, ":")[0]
+	ipstr, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	if ipstr == "" {
 		return nil, ErrEmptyIP
 	}
+
 	ip := net.ParseIP(ipstr)
 	if ip == nil {
 		return nil, ErrParseIP
