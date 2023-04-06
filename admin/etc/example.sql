@@ -91,6 +91,7 @@ INSERT INTO `my_config_tree` VALUES (62,'statistics',57,'/onlineconf/chroot/squi
 INSERT INTO `my_config_tree` VALUES (63,'nut',57,'/onlineconf/chroot/squirrel/red/nut','/squirrel/nut','application/x-symlink','','',1,'2019-08-05 18:28:11',0,NULL);
 INSERT INTO `my_config_tree` VALUES (64,'promocode',8,'/squirrel/promocode','{\n  \"BELKA5\": {\n    \"action\": \"discount\",\n    \"percent\": 5,\n    \"from\": \"2019-09-01\",\n    \"till\": \"2019-12-01\"\n  },\n  \"BELKA15\": {\n    \"premiumCard\": true,\n    \"action\": \"discount\",\n    \"percent\": 15,\n    \"from\": \"2019-09-01\",\n    \"till\": \"2019-12-01\"\n  },\n  \"STRELKA200\": {\n    \"action\": \"bonus\",\n    \"value\": 200,\n    \"from\": \"2019-01-01\",\n    \"till\": \"2020-01-01\"\n  }\n}','application/json','Active promocodes','',1,'2019-09-16 16:23:11',0,NULL);
 INSERT INTO `my_config_tree` VALUES (65,'promocode',58,'/onlineconf/chroot/squirrel/gray/promocode','/squirrel/promocode','application/x-symlink','','',1,'2019-09-16 16:26:42',0,NULL);
+INSERT INTO `my_config_tree` VALUES (66,'ephemeral-ip',2,'/onlineconf/ephemeral-ip','172.0.0.0/8','text/plain','','',1,'2022-10-24 18:15:21',0,NULL);
 
 --
 -- Dumping data for table `my_config_tree_group`

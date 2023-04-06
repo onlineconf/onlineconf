@@ -3,6 +3,7 @@ services:
   onlineconf-admin:
     build: .
     image: onlineconf-admin
+    pull_policy: build
     depends_on:
       - onlineconf-database
     ports:
