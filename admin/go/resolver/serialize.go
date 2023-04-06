@@ -1,6 +1,6 @@
 package resolver
 
-//go:generate codecgen -d 2018 -o serialize.generated.go serialize.go
+//go:generate go run github.com/ugorji/go/codec/codecgen -d 2018 -o serialize.generated.go serialize.go
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
-var cborHandle codec.CborHandle = codec.CborHandle{BasicHandle: codec.BasicHandle{EncodeOptions: codec.EncodeOptions{Raw: true}}}
+var cborHandle = codec.CborHandle{BasicHandle: codec.BasicHandle{EncodeOptions: codec.EncodeOptions{Raw: true}}}
 
 var stringValueReplacer = strings.NewReplacer("\n", "\\n", "\r", "\\r")
 
