@@ -84,21 +84,15 @@ func (node *Param) deepMarkCommon(ctx context.Context) {
 	}
 }
 
-func (node *Param) deepCreateChildList(ctx context.Context) (hasNonEmpty bool) {
+func (node *Param) deepCreateChildList(ctx context.Context) {
 	if len(node.Children) == 0 {
-		return node.ContentType != "application/x-null"
+		return
 	}
 
 	childrenNames := make([]string, 0, len(node.Children))
 	for name, childPtr := range node.Children {
-		if (*childPtr).deepCreateChildList(ctx) {
-			childrenNames = append(childrenNames, name)
-		}
-	}
-
-	// treat null leaf nodes as empty
-	if len(childrenNames) == 0 {
-		return node.ContentType != "application/x-null"
+		childrenNames = append(childrenNames, name)
+		(*childPtr).deepCreateChildList(ctx)
 	}
 
 	sort.Strings(childrenNames)
@@ -126,8 +120,6 @@ func (node *Param) deepCreateChildList(ctx context.Context) (hasNonEmpty bool) {
 	}
 
 	node.Children[""] = &param
-
-	return true
 }
 
 func (node *Param) deepClone() *Param {
