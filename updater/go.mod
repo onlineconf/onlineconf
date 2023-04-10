@@ -1,6 +1,6 @@
 module github.com/onlineconf/onlineconf/updater/v3
 
-go 1.11
+go 1.18
 
 require (
 	github.com/colinmarc/cdb v0.0.0-20190223170904-60f317823f70

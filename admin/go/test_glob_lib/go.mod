@@ -1,6 +1,6 @@
 module test
 
-go 1.13
+go 1.18
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.4.0
