@@ -205,9 +205,15 @@ type httpRedirectionHandler struct {
 }
 
 func (h *httpRedirectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var err error
+
 	url := r.URL
 	url.Scheme = "https"
-	url.Host, _, _ = net.SplitHostPort(r.Host)
+	url.Host, _, err = net.SplitHostPort(r.Host)
+	if err != nil {
+		url.Host = r.Host
+	}
+
 	if h.port != "443" {
 		url.Host = net.JoinHostPort(url.Host, h.port)
 	}
