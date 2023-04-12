@@ -46,7 +46,7 @@ func (auth *headerAuthenticator) Authenticate(req *http.Request) (string, error)
 
 	remoteIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
-		return "", err
+		remoteIP = req.RemoteAddr
 	}
 
 	h := md5.New()
