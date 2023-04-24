@@ -36,6 +36,7 @@ type Resolver struct {
 }
 
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
+	log.Info().Msgf("etcd - resolve: %s", key)
 	resp, err := r.kv.Get(ctx, key)
 	if err != nil {
 		log.Error().Msgf("etcd get error: %s", err)
