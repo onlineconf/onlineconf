@@ -2,53 +2,56 @@ package etcd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/rs/zerolog/log"
+	"go.etcd.io/etcd/client"
 )
 
 const ResolverName = "etcd"
 
 func New(cfg map[string]string) (*Resolver, error) {
-	dialTimeout, err := time.ParseDuration(cfg["dial_timeout"])
+	dialTimeout, err := strconv.Atoi(cfg["dial_timeout"])
 	if err != nil {
-		return nil, err
-	}
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   strings.Split(cfg["endpoints"], ","),
-		DialTimeout: dialTimeout,
-	})
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to transform dial_timeout as string to integer: %s", err)
 	}
 
-	kv := clientv3.NewKV(cli)
+	clientsConfig := client.Config{
+		Endpoints:               strings.Split(cfg["endpoints"], ","),
+		Transport:               client.DefaultTransport,
+		HeaderTimeoutPerRequest: time.Duration(dialTimeout) * time.Second,
+	}
+	etcdClient, err := client.New(clientsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client for etcd: %s", err)
+	}
 
 	return &Resolver{
-		kv: kv,
+		kv: client.NewKeysAPI(etcdClient),
 	}, nil
 }
 
 type Resolver struct {
-	kv clientv3.KV
+	kv client.KeysAPI
 }
 
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
 	log.Info().Msgf("etcd - resolve: %s", key)
-	resp, err := r.kv.Get(ctx, key)
+	resp, err := r.kv.Get(ctx, key, &client.GetOptions{
+		Recursive: true,
+		Quorum:    true,
+	})
 	if err != nil {
 		log.Error().Msgf("etcd get error: %s", err)
 		return "", err
 	}
 
-	if len(resp.Kvs) == 0 {
-		log.Error().Msgf("etcd empty kvs")
-		return "", nil
-	}
-
-	return string(resp.Kvs[0].Value), nil
+	rs := nodeVals(resp.Node, key)
+	val, _ := rs.(string)
+	return val, nil
 }
 
 func (r *Resolver) Name() string {
@@ -57,4 +60,24 @@ func (r *Resolver) Name() string {
 
 func (r *Resolver) Prefix() string {
 	return ResolverName
+}
+
+func nodeVals(node *client.Node, path string) interface{} {
+	if !node.Dir && path == node.Key {
+		return node.Value
+	}
+
+	cfg := make(map[string]interface{})
+
+	for _, n := range node.Nodes {
+		cfg[keyLastChild(n.Key)] = nodeVals(n, n.Key)
+	}
+
+	return cfg
+}
+
+func keyLastChild(key string) string {
+	list := strings.Split(key, "/")
+
+	return list[len(list)-1]
 }
