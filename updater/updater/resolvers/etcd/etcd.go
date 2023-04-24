@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/rs/zerolog/log"
 )
 
 const ResolverName = "etcd"
@@ -37,10 +38,12 @@ type Resolver struct {
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
 	resp, err := r.kv.Get(ctx, key)
 	if err != nil {
+		log.Error().Msgf("etcd get error: %s", err)
 		return "", err
 	}
 
 	if len(resp.Kvs) == 0 {
+		log.Error().Msgf("etcd empty kvs")
 		return "", nil
 	}
 

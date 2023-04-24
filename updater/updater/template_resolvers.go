@@ -20,6 +20,7 @@ type TemplateVariableResolver interface {
 
 func InitResolveModulesUsage(resolversCfgs map[string]map[string]string) error {
 	if resolversCfgs[etcd.ResolverName] != nil { // todo: rewrite current decision to more functionality
+		log.Info().Msg("start init etcd module")
 		etcd, err := etcd.New(resolversCfgs[etcd.ResolverName])
 		if err != nil {
 			return fmt.Errorf("cant init etcd resolve module: %w", err)
@@ -43,9 +44,12 @@ func (c *ResolveModulesValChecker) CleanStorage() {
 
 func TryResolveByResolverModule(ctx context.Context, key string) (resolved string, ok bool) {
 	for _, m := range IncludedResolveModules {
+		log.Info().Msgf("resolve template: key %s, prefix %s", key, m.Name()+separator)
 		if strings.HasPrefix(key, m.Name()+separator) { // that means that val created for resolver usage
 			resolverKey := strings.TrimPrefix(key, m.Name()+separator)
+			log.Info().Msgf("resolver key: %s", resolverKey)
 			val, err := m.Resolve(ctx, resolverKey)
+			log.Info().Msgf("resolved val: %s", val)
 			ResolveChecker.Put(m, resolverKey, val)
 
 			if err != nil {
