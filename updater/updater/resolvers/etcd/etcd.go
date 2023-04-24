@@ -40,18 +40,13 @@ type Resolver struct {
 
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
 	log.Info().Msgf("etcd - resolve: %s", key)
-	resp, err := r.kv.Get(ctx, key, &client.GetOptions{
-		Recursive: true,
-		Quorum:    true,
-	})
+	resp, err := r.kv.Get(ctx, key, nil)
 	if err != nil {
 		log.Error().Msgf("etcd get error: %s", err)
 		return "", err
 	}
 
-	rs := nodeVals(resp.Node, key)
-	val, _ := rs.(string)
-	return val, nil
+	return resp.Node.Value, nil
 }
 
 func (r *Resolver) Name() string {
@@ -60,24 +55,4 @@ func (r *Resolver) Name() string {
 
 func (r *Resolver) Prefix() string {
 	return ResolverName
-}
-
-func nodeVals(node *client.Node, path string) interface{} {
-	if !node.Dir && path == node.Key {
-		return node.Value
-	}
-
-	cfg := make(map[string]interface{})
-
-	for _, n := range node.Nodes {
-		cfg[keyLastChild(n.Key)] = nodeVals(n, n.Key)
-	}
-
-	return cfg
-}
-
-func keyLastChild(key string) string {
-	list := strings.Split(key, "/")
-
-	return list[len(list)-1]
 }
