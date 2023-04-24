@@ -15,7 +15,7 @@ const ResolverName = "etcd"
 func New(cfg map[string]string) (*Resolver, error) {
 	headerTimeout, err := strconv.Atoi(cfg["header_timeout"])
 	if err != nil {
-		return nil, fmt.Errorf("failed to transform dial_timeout as string to integer: %s", err)
+		return nil, fmt.Errorf("failed to transform header_timeout as string to integer: %s", err)
 	}
 
 	clientsConfig := client.Config{
