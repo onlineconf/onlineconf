@@ -2,49 +2,48 @@ package etcd
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/client"
 )
 
 const ResolverName = "etcd"
 
 func New(cfg map[string]string) (*Resolver, error) {
-	dialTimeout, err := time.ParseDuration(cfg["dial_timeout"])
+	headerTimeout, err := strconv.Atoi(cfg["header_timeout"])
 	if err != nil {
-		return nil, err
-	}
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:   strings.Split(cfg["endpoints"], ","),
-		DialTimeout: dialTimeout,
-	})
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to transform header_timeout as string to integer: %s", err)
 	}
 
-	kv := clientv3.NewKV(cli)
+	clientsConfig := client.Config{
+		Endpoints:               strings.Split(cfg["endpoints"], ","),
+		Transport:               client.DefaultTransport,
+		HeaderTimeoutPerRequest: time.Duration(headerTimeout) * time.Second,
+	}
+	etcdClient, err := client.New(clientsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client for etcd: %s", err)
+	}
 
 	return &Resolver{
-		kv: kv,
+		kv: client.NewKeysAPI(etcdClient),
 	}, nil
 }
 
 type Resolver struct {
-	kv clientv3.KV
+	kv client.KeysAPI
 }
 
 func (r *Resolver) Resolve(ctx context.Context, key string) (string, error) {
-	resp, err := r.kv.Get(ctx, key)
+	resp, err := r.kv.Get(ctx, key, nil)
 	if err != nil {
 		return "", err
 	}
 
-	if len(resp.Kvs) == 0 {
-		return "", nil
-	}
-
-	return string(resp.Kvs[0].Value), nil
+	return resp.Node.Value, nil
 }
 
 func (r *Resolver) Name() string {
