@@ -2,6 +2,7 @@ package updater
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,8 +17,29 @@ var ErrNotModified = errors.New("config not modified")
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
-	respMtime, data, err := getConfigData(config, hostname, datacenter, mtime)
+type adminClient struct {
+	client *http.Client
+	config AdminConfig
+}
+
+func newAdminClient(config AdminConfig) *adminClient {
+	client := &http.Client{}
+	if config.ClientCertificates != nil {
+		customTransport := http.DefaultTransport.(*http.Transport).Clone()
+		customTransport.TLSClientConfig = &tls.Config{
+			Certificates: config.ClientCertificates,
+		}
+		client.Transport = customTransport
+
+	}
+	return &adminClient{
+		config: config,
+		client: client,
+	}
+}
+
+func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+	respMtime, data, err := a.getConfigData(hostname, datacenter, mtime)
 	if err != nil {
 		return "", nil, err
 	}
@@ -25,10 +47,8 @@ func getModules(config AdminConfig, hostname, datacenter, mtime string, vars map
 	return respMtime, modules, nil
 }
 
-func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (string, *ConfigData, error) {
-	client := http.Client{}
-
-	req, err := http.NewRequest("GET", config.URI+"/client/config", nil)
+func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string, *ConfigData, error) {
+	req, err := http.NewRequest("GET", a.config.URI+"/client/config", nil)
 	if err != nil {
 		return "", nil, err
 	}
@@ -40,11 +60,11 @@ func getConfigData(config AdminConfig, hostname, datacenter, mtime string) (stri
 		req.Header.Add("X-OnlineConf-Client-Datacenter", datacenter)
 	}
 	req.Header.Add("X-OnlineConf-Client-Version", version)
-	req.SetBasicAuth(config.Username, config.Password)
+	req.SetBasicAuth(a.config.Username, a.config.Password)
 
 	req.Header.Add("X-OnlineConf-Client-Mtime", mtime)
 
-	resp, err := client.Do(req)
+	resp, err := a.client.Do(req)
 	if err != nil {
 		return "", nil, err
 	}
