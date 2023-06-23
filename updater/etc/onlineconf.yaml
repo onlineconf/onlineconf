@@ -1,6 +1,5 @@
 admin:
-  host: xxx
-  port: 80
+  uri: http://xxx:80
   username: onlineconf.updater
   password: xxx
 data_dir: /usr/local/etc/onlineconf/
