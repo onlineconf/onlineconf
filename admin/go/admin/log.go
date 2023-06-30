@@ -144,6 +144,10 @@ func LogLastVersion(ctx context.Context, tx *sql.Tx, path, comment string) error
 }
 
 func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
+	if notifyDB == nil {
+		return nil
+	}
+
 	var path, notification string
 	row := tx.QueryRowContext(ctx, `
 		SELECT t.Path, my_config_tree_notification(t.ID) AS Notification

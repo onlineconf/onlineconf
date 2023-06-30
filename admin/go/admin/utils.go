@@ -16,7 +16,9 @@ var adminConfig *AdminConfig
 func Initialize(config AdminConfig) {
 	adminConfig = &config
 	initAuthenticator(config.Auth)
-	notifyDB = OpenDatabase(config.NotificationDatabase)
+	if config.NotificationDatabase.Host != "" || config.NotificationDatabase.Base != "" {
+		notifyDB = OpenDatabase(config.NotificationDatabase)
+	}
 }
 
 var pathRe = regexp.MustCompile(`^(.*)/([^/]+)$`)
