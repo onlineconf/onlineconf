@@ -70,6 +70,10 @@ func readConfigFile(filename string) *updater.UpdaterConfig {
 
 	var uri string
 
+	if config.Admin.URI == "" && config.Admin.Host == "" {
+		log.Fatal().Str("file", filename).Msg("failed to parse config: no admin uri provided")
+	}
+
 	if config.Admin.URI != "" && (config.Admin.Host != "" || config.Admin.Port != 0) {
 		log.Fatal().Str("file", filename).Msg("failed to parse config: both uri and host:port(deprecated) provided")
 	}
