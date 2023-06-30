@@ -26,9 +26,10 @@ type UpdaterConfig struct {
 }
 
 type Updater struct {
-	config UpdaterConfig
-	mtime  string
-	done   chan struct{}
+	config      UpdaterConfig
+	adminClient *adminClient
+	mtime       string
+	done        chan struct{}
 }
 
 func NewUpdater(config UpdaterConfig) *Updater {
@@ -39,8 +40,9 @@ func NewUpdater(config UpdaterConfig) *Updater {
 		config.UpdateInterval = 10 * time.Second
 	}
 	return &Updater{
-		config: config,
-		done:   make(chan struct{}),
+		config:      config,
+		adminClient: newAdminClient(config.Admin),
+		done:        make(chan struct{}),
 	}
 }
 
@@ -62,7 +64,7 @@ func (u *Updater) Stop() {
 }
 
 func (u *Updater) Update() error {
-	respMtime, modules, err := getModules(u.config.Admin, u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
+	respMtime, modules, err := u.adminClient.getModules(u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")
