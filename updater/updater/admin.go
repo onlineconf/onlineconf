@@ -29,13 +29,13 @@ func newAdminClient(config AdminConfig) *adminClient {
 	}
 }
 
-func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, map[string]*moduleConfig, error) {
 	respMtime, data, err := a.getConfigData(hostname, datacenter, mtime)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
-	modules := prepareModules(data, vars)
-	return respMtime, modules, nil
+	modules, moduleConfigs := prepareModules(data, vars)
+	return respMtime, modules, moduleConfigs, nil
 }
 
 func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string, *ConfigData, error) {
@@ -73,7 +73,8 @@ func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string,
 	}
 }
 
-func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
+func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam, moduleConfigs map[string]*moduleConfig) {
+	moduleConfigs = map[string]*moduleConfig{}
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -81,14 +82,14 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 	sort.Slice(data.Nodes, func(i, j int) bool {
 		return data.Nodes[i].Path < data.Nodes[j].Path
 	})
-	defaultDelimiter := ""
-	delimiter := defaultDelimiter
+	defaultModuleConfig := moduleConfig{}
+	delimiter := defaultModuleConfig.Delimiter
 	for _, param := range data.Nodes {
 		if !strings.HasPrefix(param.Path, "/onlineconf/module/") {
 			switch param.Path {
 			case "/", "/onlineconf":
 			case "/onlineconf/module":
-				defaultDelimiter = readModuleConfig(param).Delimiter
+				defaultModuleConfig = readModuleConfig(param)
 			default:
 				log.Warn().Str("path", param.Path).Msg("parameter is out of '/onlineconf/module/' subtree")
 			}
@@ -100,11 +101,18 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		if modules[moduleName] == nil {
 			modules[moduleName] = []moduleParam{}
 		}
+		if _, ok := moduleConfigs[moduleName]; !ok {
+			moduleConfigs[moduleName] = &moduleConfig{}
+			moduleConfigs[moduleName].Set(defaultModuleConfig)
+		}
+
 		if len(pc) == 4 {
-			delimiter = readModuleConfig(param).Delimiter
+			moduleConfig := readModuleConfig(param)
+			delimiter = moduleConfig.Delimiter
+			moduleConfigs[moduleName].Set(moduleConfig)
 			if delimiter == "" {
-				if defaultDelimiter != "" {
-					delimiter = defaultDelimiter
+				if v := defaultModuleConfig.Delimiter; v != "" {
+					delimiter = v
 				} else if moduleName == "TREE" {
 					delimiter = "/"
 				} else {
@@ -164,6 +172,28 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 
 type moduleConfig struct {
 	Delimiter string
+	Owner     string
+	Mode      string
+}
+
+func (config *moduleConfig) Set(input moduleConfig) bool {
+	modified := false
+	if v := input.Owner; v != "" {
+		config.Owner = v
+		modified = true
+	}
+	if v := input.Mode; v != "" {
+		config.Mode = v
+		modified = true
+	}
+	return modified
+}
+
+func (config *moduleConfig) Empty() bool {
+	if config.Owner != "" || config.Mode != "" {
+		return false
+	}
+	return true
 }
 
 func readModuleConfig(param ConfigParam) (cfg moduleConfig) {
