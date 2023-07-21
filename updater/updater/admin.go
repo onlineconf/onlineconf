@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"os/user"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 )
@@ -29,7 +34,7 @@ func newAdminClient(config AdminConfig) *adminClient {
 	}
 }
 
-func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, map[string]*moduleConfig, error) {
+func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, map[string]moduleConfig, error) {
 	respMtime, data, err := a.getConfigData(hostname, datacenter, mtime)
 	if err != nil {
 		return "", nil, nil, err
@@ -73,8 +78,8 @@ func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string,
 	}
 }
 
-func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam, moduleConfigs map[string]*moduleConfig) {
-	moduleConfigs = map[string]*moduleConfig{}
+func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam, moduleConfigs map[string]moduleConfig) {
+	moduleConfigs = make(map[string]moduleConfig, len(data.Modules))
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -102,14 +107,13 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 			modules[moduleName] = []moduleParam{}
 		}
 		if _, ok := moduleConfigs[moduleName]; !ok {
-			moduleConfigs[moduleName] = &moduleConfig{}
-			moduleConfigs[moduleName].Set(defaultModuleConfig)
+			moduleConfigs[moduleName] = defaultModuleConfig
 		}
 
 		if len(pc) == 4 {
 			moduleConfig := readModuleConfig(param)
 			delimiter = moduleConfig.Delimiter
-			moduleConfigs[moduleName].Set(moduleConfig)
+			moduleConfigs[moduleName] = moduleConfig
 			if delimiter == "" {
 				if v := defaultModuleConfig.Delimiter; v != "" {
 					delimiter = v
@@ -174,26 +178,176 @@ type moduleConfig struct {
 	Delimiter string
 	Owner     string
 	Mode      string
+	usr       *user.User
+	grp       *user.Group
 }
 
-func (config *moduleConfig) Set(input moduleConfig) bool {
-	modified := false
-	if v := input.Owner; v != "" {
-		config.Owner = v
-		modified = true
+type ModuleConfigStatus int
+
+const (
+	FileNotChanged ModuleConfigStatus = iota
+	FileModeChanged
+	FileOwnerChanged
+)
+
+func (config moduleConfig) getFileInfo(file string) (int, int, *syscall.Stat_t, error) {
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		return 0, 0, nil, err
 	}
-	if v := input.Mode; v != "" {
-		config.Mode = v
-		modified = true
+
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, 0, nil, fmt.Errorf("can't fetch stat info for file %s", file)
 	}
-	return modified
+
+	return int(stat.Uid), int(stat.Gid), stat, nil
 }
 
-func (config *moduleConfig) Empty() bool {
-	if config.Owner != "" || config.Mode != "" {
-		return false
+func (config *moduleConfig) getStatus(file string) (ModuleConfigStatus, error) {
+	if config.Owner == "" && config.Mode == "" {
+		return FileNotChanged, nil
 	}
-	return true
+
+	newUsr, newGrp, err := config.parseOwnerString()
+	if err != nil {
+		return FileNotChanged, err
+	}
+
+	fileUID, fileGID, fileInfo, err := config.getFileInfo(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return FileNotChanged, nil
+		}
+		return FileNotChanged, err
+	}
+
+	fileUidStr := strconv.Itoa(fileUID)
+	fileGidStr := strconv.Itoa(fileGID)
+
+	status := FileNotChanged
+	if fileUidStr != newUsr.Uid || fileGidStr != newGrp.Gid {
+		status |= FileOwnerChanged
+	}
+
+	if mode := config.Mode; mode != "" {
+		modeUint, err := strconv.ParseUint(mode, 8, 32)
+		if err != nil {
+			return FileNotChanged, fmt.Errorf("convert file mode %s failure...%v", mode, err)
+		}
+
+		if os.FileMode(modeUint) != os.FileMode(fileInfo.Mode) {
+			status |= FileModeChanged
+		}
+	}
+
+	return status, nil
+}
+
+func (config *moduleConfig) parseOwnerString() (*user.User, *user.Group, error) {
+
+	// return object if already init
+	if config.usr != nil && config.grp != nil {
+
+		return config.usr, config.grp, nil
+	}
+
+	list := strings.Split(config.Owner, ":")
+	if len(list) != 2 {
+		return nil, nil, fmt.Errorf("wrong owner format: '%s'", config.Owner)
+	}
+
+	var err error
+	usrStr, grpStr := list[0], list[1]
+
+	// init user object
+	var usr *user.User
+	if _, err = strconv.ParseInt(usrStr, 10, 64); err == nil {
+
+		usr, err = user.LookupId(usrStr)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+
+		usr, err = user.Lookup(usrStr)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	// init group object
+	var grp *user.Group
+	if _, err = strconv.ParseInt(grpStr, 10, 64); err == nil {
+
+		grp, err = user.LookupGroupId(grpStr)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+
+		grp, err = user.LookupGroup(grpStr)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	config.usr = usr
+	config.grp = grp
+
+	return usr, grp, nil
+}
+
+func (config *moduleConfig) changeOwner(file string) error {
+	newUsr, newGrp, err := config.parseOwnerString()
+	if err != nil {
+		return err
+	}
+
+	uid, err := strconv.Atoi(newUsr.Uid)
+	if err != nil {
+		return fmt.Errorf("convert owner %s uid %s failure...%v", config.Owner, newUsr.Uid, err)
+	}
+
+	gid, err := strconv.Atoi(newGrp.Gid)
+	if err != nil {
+		return fmt.Errorf("convert owner %s gid %s failure...%v", config.Owner, newGrp.Gid, err)
+	}
+
+	err = os.Chown(file, uid, gid)
+	if err != nil {
+		return fmt.Errorf("chown file %s failure...%v", file, err)
+	}
+
+	return nil
+}
+
+func (config *moduleConfig) changeMode(file string, tmpfile string) error {
+	modeUint, err := strconv.ParseUint(config.Mode, 8, 32)
+	if err != nil {
+		return fmt.Errorf("convert file mode %s failure...%v", config.Mode, err)
+	}
+
+	fileUID, fileGID, _, err := config.getFileInfo(file)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		fileUID = os.Getuid()
+		fileGID = os.Getgid()
+	}
+
+	err = os.Chmod(tmpfile, os.FileMode(modeUint))
+	if err != nil {
+		return fmt.Errorf("chmod file %s failure...%v", tmpfile, err)
+	}
+
+	err = os.Chown(tmpfile, fileUID, fileGID)
+	if err != nil {
+		return fmt.Errorf("chown file %s failure...%v", tmpfile, err)
+	}
+
+	return nil
 }
 
 func readModuleConfig(param ConfigParam) (cfg moduleConfig) {

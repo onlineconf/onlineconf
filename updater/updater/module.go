@@ -1,12 +1,9 @@
 package updater
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
-	"strconv"
 
 	"github.com/rs/zerolog/log"
 )
@@ -23,13 +20,7 @@ type moduleWriter interface {
 	close() error
 }
 
-func writeModule(
-	dir string,
-	module string,
-	params []moduleParam,
-	moduleConfig *moduleConfig,
-	mtime string,
-) error {
+func writeModule(dir string, module string, params []moduleParam, moduleConfig moduleConfig, mtime string) error {
 	wrapper := func(ext string, newWriter func(file string) moduleWriter) error {
 		file := filepath.Join(dir, module+"."+ext)
 		tmpfile := file + ".tmp"
@@ -52,13 +43,7 @@ func writeModule(
 	return confErr
 }
 
-func writeModuleFile(
-	writer moduleWriter,
-	file string,
-	tmpfile string,
-	params []moduleParam,
-	moduleConfig *moduleConfig,
-) error {
+func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []moduleParam, moduleConfig moduleConfig) error {
 	err := writer.write(params)
 	if err != nil {
 		os.Remove(tmpfile)
@@ -83,8 +68,12 @@ func writeModuleFile(
 		}
 	}
 
-	// owner or mode were set
-	if !moduleConfig.Empty() {
+	fileStatus, err := moduleConfig.getStatus(file)
+	if err != nil {
+		os.Remove(tmpfile)
+		return err
+	}
+	if fileStatus != FileNotChanged {
 		modified = true
 	}
 
@@ -99,10 +88,20 @@ func writeModuleFile(
 		return err
 	}
 
-	err = chownModuleFile(tmpfile, moduleConfig)
-	if err != nil {
-		os.Remove(tmpfile)
-		return err
+	if fileStatus&FileModeChanged == FileModeChanged {
+		err = moduleConfig.changeMode(file, tmpfile)
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
+	}
+
+	if fileStatus&FileOwnerChanged == FileOwnerChanged {
+		err = moduleConfig.changeOwner(tmpfile)
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
 	}
 
 	err = os.Rename(tmpfile, file)
@@ -111,42 +110,5 @@ func writeModuleFile(
 	}
 
 	log.Info().Str("file", file).Msg("file modified")
-	return nil
-}
-
-// change file owner and mode
-func chownModuleFile(file string, moduleConfig *moduleConfig) error {
-	if owner := moduleConfig.Owner; owner != "" {
-		user, err := user.Lookup(owner)
-		if err != nil {
-			return fmt.Errorf("get owner %s info failure...%v", owner, err)
-		}
-
-		uid, err := strconv.Atoi(user.Uid)
-		if err != nil {
-			return fmt.Errorf("convert owner %s uid %s failure...%v", owner, user.Uid, err)
-		}
-
-		gid, err := strconv.Atoi(user.Gid)
-		if err != nil {
-			return fmt.Errorf("convert owner %s gid %s failure...%v", owner, user.Gid, err)
-		}
-
-		err = os.Chown(file, uid, gid)
-		if err != nil {
-			return fmt.Errorf("chown file %s failure...%v", file, err)
-		}
-	}
-	if mode := moduleConfig.Mode; mode != "" {
-		modeUint, err := strconv.ParseUint(mode, 8, 32)
-		if err != nil {
-			return fmt.Errorf("convert file mode %s failure...%v", mode, err)
-		}
-
-		err = os.Chmod(file, os.FileMode(modeUint))
-		if err != nil {
-			return fmt.Errorf("chmod file %s failure...%v", file, err)
-		}
-	}
 	return nil
 }

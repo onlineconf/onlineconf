@@ -1,7 +1,6 @@
 package updater
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -73,7 +72,6 @@ func (u *Updater) Update() error {
 		return err
 	}
 	log.Info().Strs("modules", modulesNames(modules)).Msg("")
-	log.Info().Strs("modules config", modulesConfigs(moduleConfigs)).Msg("")
 	err = writeModules(u.config.DataDir, modules, moduleConfigs, respMtime)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write config files")
@@ -93,24 +91,10 @@ func modulesNames(m map[string][]moduleParam) []string {
 	return keys
 }
 
-func modulesConfigs(m map[string]*moduleConfig) []string {
-	list := []string{}
-	for k, v := range m {
-		list = append(list, fmt.Sprintf("%s: %+v", k, v))
-	}
-	sort.Strings(list)
-	return list
-}
-
-func writeModules(
-	dir string,
-	modules map[string][]moduleParam,
-	moduleConfigs map[string]*moduleConfig,
-	mtime string,
-) error {
+func writeModules(dir string, modules map[string][]moduleParam, moduleConfigs map[string]moduleConfig, mtime string) error {
 	var err error
 	for module, params := range modules {
-		moduleConfig := &moduleConfig{}
+		moduleConfig := moduleConfig{}
 		if v, ok := moduleConfigs[module]; ok {
 			moduleConfig = v
 		}
