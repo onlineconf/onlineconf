@@ -61,20 +61,22 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 		}
 	}
 	if !modified {
+
 		modified, err = writer.isModified(oldContent)
 		if err != nil {
 			os.Remove(tmpfile)
 			return err
 		}
-	}
 
-	fileStatus, err := moduleConfig.getStatus(file)
-	if err != nil {
-		os.Remove(tmpfile)
-		return err
-	}
-	if fileStatus != FileNotChanged {
-		modified = true
+		if !modified {
+
+			fileModified, err := moduleConfig.isFileModified(file)
+			if err != nil {
+				os.Remove(tmpfile)
+				return err
+			}
+			modified = fileModified
+		}
 	}
 
 	if !modified {
@@ -88,20 +90,16 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 		return err
 	}
 
-	if fileStatus&FileModeChanged == FileModeChanged {
-		err = moduleConfig.changeMode(file, tmpfile)
-		if err != nil {
-			os.Remove(tmpfile)
-			return err
-		}
+	err = moduleConfig.changeFileMode(tmpfile)
+	if err != nil {
+		os.Remove(tmpfile)
+		return err
 	}
 
-	if fileStatus&FileOwnerChanged == FileOwnerChanged {
-		err = moduleConfig.changeOwner(tmpfile)
-		if err != nil {
-			os.Remove(tmpfile)
-			return err
-		}
+	err = moduleConfig.changeFileOwner(tmpfile)
+	if err != nil {
+		os.Remove(tmpfile)
+		return err
 	}
 
 	err = os.Rename(tmpfile, file)

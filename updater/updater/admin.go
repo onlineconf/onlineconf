@@ -178,17 +178,7 @@ type moduleConfig struct {
 	Delimiter string
 	Owner     string
 	Mode      string
-	usr       *user.User
-	grp       *user.Group
 }
-
-type ModuleConfigStatus int
-
-const (
-	FileNotChanged ModuleConfigStatus = iota
-	FileModeChanged
-	FileOwnerChanged
-)
 
 func (config moduleConfig) getFileInfo(file string) (int, int, *syscall.Stat_t, error) {
 	fileInfo, err := os.Stat(file)
@@ -204,114 +194,86 @@ func (config moduleConfig) getFileInfo(file string) (int, int, *syscall.Stat_t, 
 	return int(stat.Uid), int(stat.Gid), stat, nil
 }
 
-func (config *moduleConfig) getStatus(file string) (ModuleConfigStatus, error) {
-	if config.Owner == "" && config.Mode == "" {
-		return FileNotChanged, nil
-	}
+func (config moduleConfig) isFileModified(file string) (bool, error) {
 
-	newUsr, newGrp, err := config.parseOwnerString()
+	newUID, newGID, err := config.parseOwnerString()
 	if err != nil {
-		return FileNotChanged, err
+		return false, err
 	}
 
 	fileUID, fileGID, fileInfo, err := config.getFileInfo(file)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return FileNotChanged, nil
-		}
-		return FileNotChanged, err
+		return false, err
 	}
 
-	fileUidStr := strconv.Itoa(fileUID)
-	fileGidStr := strconv.Itoa(fileGID)
-
-	status := FileNotChanged
-	if fileUidStr != newUsr.Uid || fileGidStr != newGrp.Gid {
-		status |= FileOwnerChanged
+	if fileUID != newUID || fileGID != newGID {
+		return true, nil
 	}
 
 	if mode := config.Mode; mode != "" {
 		modeUint, err := strconv.ParseUint(mode, 8, 32)
 		if err != nil {
-			return FileNotChanged, fmt.Errorf("convert file mode %s failure...%v", mode, err)
+			return false, fmt.Errorf("convert file mode %s failure...%v", mode, err)
 		}
 
 		if os.FileMode(modeUint) != os.FileMode(fileInfo.Mode) {
-			status |= FileModeChanged
+			return true, nil
 		}
 	}
 
-	return status, nil
+	return false, nil
 }
 
-func (config *moduleConfig) parseOwnerString() (*user.User, *user.Group, error) {
+func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
 
-	// return object if already init
-	if config.usr != nil && config.grp != nil {
-
-		return config.usr, config.grp, nil
+	uidStr, grpStr, found := strings.Cut(strings.TrimSpace(config.Owner), ":")
+	if !found {
+		return os.Getuid(), os.Getgid(), nil
 	}
 
-	list := strings.Split(config.Owner, ":")
-	if len(list) != 2 {
-		return nil, nil, fmt.Errorf("wrong owner format: '%s'", config.Owner)
+	if uidStr == "" || grpStr == "" {
+		return 0, 0, fmt.Errorf("wrong owner format: '%s'", config.Owner)
 	}
 
-	var err error
-	usrStr, grpStr := list[0], list[1]
+	if uid64, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
 
-	// init user object
-	var usr *user.User
-	if _, err = strconv.ParseInt(usrStr, 10, 64); err == nil {
-
-		usr, err = user.LookupId(usrStr)
-		if err != nil {
-			return nil, nil, err
-		}
+		uid = int(uid64)
 	} else {
 
-		usr, err = user.Lookup(usrStr)
+		usr, err := user.Lookup(uidStr)
 		if err != nil {
-			return nil, nil, err
+			return 0, 0, err
+		}
+
+		uid, err = strconv.Atoi(usr.Uid)
+		if err != nil {
+			return 0, 0, err
 		}
 	}
 
-	// init group object
-	var grp *user.Group
-	if _, err = strconv.ParseInt(grpStr, 10, 64); err == nil {
+	if gid64, err := strconv.ParseInt(grpStr, 10, 64); err == nil {
 
-		grp, err = user.LookupGroupId(grpStr)
-		if err != nil {
-			return nil, nil, err
-		}
+		gid = int(gid64)
 	} else {
 
-		grp, err = user.LookupGroup(grpStr)
+		grp, err := user.LookupGroup(grpStr)
 		if err != nil {
-			return nil, nil, err
+			return 0, 0, err
+		}
+
+		gid, err = strconv.Atoi(grp.Gid)
+		if err != nil {
+			return 0, 0, err
 		}
 	}
 
-	config.usr = usr
-	config.grp = grp
-
-	return usr, grp, nil
+	return uid, gid, nil
 }
 
-func (config *moduleConfig) changeOwner(file string) error {
-	newUsr, newGrp, err := config.parseOwnerString()
+func (config moduleConfig) changeFileOwner(file string) error {
+	uid, gid, err := config.parseOwnerString()
 	if err != nil {
 		return err
-	}
-
-	uid, err := strconv.Atoi(newUsr.Uid)
-	if err != nil {
-		return fmt.Errorf("convert owner %s uid %s failure...%v", config.Owner, newUsr.Uid, err)
-	}
-
-	gid, err := strconv.Atoi(newGrp.Gid)
-	if err != nil {
-		return fmt.Errorf("convert owner %s gid %s failure...%v", config.Owner, newGrp.Gid, err)
 	}
 
 	err = os.Chown(file, uid, gid)
@@ -322,29 +284,19 @@ func (config *moduleConfig) changeOwner(file string) error {
 	return nil
 }
 
-func (config *moduleConfig) changeMode(file string, tmpfile string) error {
+func (config moduleConfig) changeFileMode(file string) error {
+	if config.Mode == "" {
+		return nil
+	}
+
 	modeUint, err := strconv.ParseUint(config.Mode, 8, 32)
 	if err != nil {
 		return fmt.Errorf("convert file mode %s failure...%v", config.Mode, err)
 	}
 
-	fileUID, fileGID, _, err := config.getFileInfo(file)
+	err = os.Chmod(file, os.FileMode(modeUint))
 	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-		fileUID = os.Getuid()
-		fileGID = os.Getgid()
-	}
-
-	err = os.Chmod(tmpfile, os.FileMode(modeUint))
-	if err != nil {
-		return fmt.Errorf("chmod file %s failure...%v", tmpfile, err)
-	}
-
-	err = os.Chown(tmpfile, fileUID, fileGID)
-	if err != nil {
-		return fmt.Errorf("chown file %s failure...%v", tmpfile, err)
+		return fmt.Errorf("chmod file %s failure...%v", file, err)
 	}
 
 	return nil
