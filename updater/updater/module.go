@@ -60,8 +60,8 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 			return err
 		}
 	}
-	if !modified {
 
+	if !modified {
 		modified, err = writer.isModified(oldContent)
 		if err != nil {
 			os.Remove(tmpfile)
@@ -69,13 +69,14 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 		}
 
 		if !modified {
-
-			fileModified, err := moduleConfig.isFileModified(file)
+			newUID, newGID, newMode, err := moduleConfig.getNewFileAttrs(file)
 			if err != nil {
 				os.Remove(tmpfile)
 				return err
 			}
-			modified = fileModified
+			if newUID != -1 || newGID != -1 || newMode != -1 {
+				modified = true
+			}
 		}
 	}
 
@@ -90,16 +91,26 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 		return err
 	}
 
-	err = moduleConfig.changeFileMode(tmpfile)
+	newUID, newGID, newMode, err := moduleConfig.getNewFileAttrs(tmpfile)
 	if err != nil {
 		os.Remove(tmpfile)
 		return err
 	}
 
-	err = moduleConfig.changeFileOwner(tmpfile)
-	if err != nil {
-		os.Remove(tmpfile)
-		return err
+	if newUID != -1 && newGID != -1 {
+		err = os.Chown(tmpfile, newUID, newGID)
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
+	}
+
+	if newMode != -1 {
+		err = os.Chmod(tmpfile, os.FileMode(newMode))
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
 	}
 
 	err = os.Rename(tmpfile, file)

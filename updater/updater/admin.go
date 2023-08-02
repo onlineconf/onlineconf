@@ -180,71 +180,64 @@ type moduleConfig struct {
 	Mode      string
 }
 
-func (config moduleConfig) getFileInfo(file string) (int, int, *syscall.Stat_t, error) {
+func (config moduleConfig) getFileInfo(file string) (int, int, int, error) {
 	fileInfo, err := os.Stat(file)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, 0, 0, err
 	}
-
 	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
 	if !ok {
-		return 0, 0, nil, fmt.Errorf("can't fetch stat info for file %s", file)
+		return 0, 0, 0, fmt.Errorf("can't fetch stat info for file %w", file)
 	}
-
-	return int(stat.Uid), int(stat.Gid), stat, nil
+	return int(stat.Uid), int(stat.Gid), int(fileInfo.Mode()), nil
 }
 
-func (config moduleConfig) isFileModified(file string) (bool, error) {
-
+func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
 	newUID, newGID, err := config.parseOwnerString()
 	if err != nil {
-		return false, err
+		return -1, -1, -1, err
 	}
 
-	fileUID, fileGID, fileInfo, err := config.getFileInfo(file)
+	fileUID, fileGID, fileMode, err := config.getFileInfo(file)
 	if err != nil {
-		return false, err
+		return -1, -1, -1, err
 	}
 
-	if fileUID != newUID || fileGID != newGID {
-		return true, nil
+	if fileUID == newUID && fileGID == newGID {
+		newUID = -1
+		newGID = -1
 	}
 
+	newMode := -1
 	if mode := config.Mode; mode != "" {
 		modeUint, err := strconv.ParseUint(mode, 8, 32)
 		if err != nil {
-			return false, fmt.Errorf("convert file mode %s failure...%v", mode, err)
+			return -1, -1, -1, fmt.Errorf("convert file mode %w failure...%w", mode, err)
 		}
-
-		if os.FileMode(modeUint) != os.FileMode(fileInfo.Mode) {
-			return true, nil
+		if os.FileMode(modeUint) != os.FileMode(fileMode) {
+			newMode = int(modeUint)
 		}
 	}
 
-	return false, nil
+	return newUID, newGID, newMode, nil
 }
 
 func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
-
 	uidStr, grpStr, found := strings.Cut(strings.TrimSpace(config.Owner), ":")
 	if !found {
-		return os.Getuid(), os.Getgid(), nil
+		return -1, -1, nil
 	}
-
 	if uidStr == "" || grpStr == "" {
-		return 0, 0, fmt.Errorf("wrong owner format: '%s'", config.Owner)
+		return 0, 0, fmt.Errorf("wrong owner format: %w", config.Owner)
 	}
 
 	if uid64, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
-
 		uid = int(uid64)
 	} else {
-
 		usr, err := user.Lookup(uidStr)
 		if err != nil {
 			return 0, 0, err
 		}
-
 		uid, err = strconv.Atoi(usr.Uid)
 		if err != nil {
 			return 0, 0, err
@@ -252,15 +245,12 @@ func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
 	}
 
 	if gid64, err := strconv.ParseInt(grpStr, 10, 64); err == nil {
-
 		gid = int(gid64)
 	} else {
-
 		grp, err := user.LookupGroup(grpStr)
 		if err != nil {
 			return 0, 0, err
 		}
-
 		gid, err = strconv.Atoi(grp.Gid)
 		if err != nil {
 			return 0, 0, err
@@ -268,38 +258,6 @@ func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
 	}
 
 	return uid, gid, nil
-}
-
-func (config moduleConfig) changeFileOwner(file string) error {
-	uid, gid, err := config.parseOwnerString()
-	if err != nil {
-		return err
-	}
-
-	err = os.Chown(file, uid, gid)
-	if err != nil {
-		return fmt.Errorf("chown file %s failure...%v", file, err)
-	}
-
-	return nil
-}
-
-func (config moduleConfig) changeFileMode(file string) error {
-	if config.Mode == "" {
-		return nil
-	}
-
-	modeUint, err := strconv.ParseUint(config.Mode, 8, 32)
-	if err != nil {
-		return fmt.Errorf("convert file mode %s failure...%v", config.Mode, err)
-	}
-
-	err = os.Chmod(file, os.FileMode(modeUint))
-	if err != nil {
-		return fmt.Errorf("chmod file %s failure...%v", file, err)
-	}
-
-	return nil
 }
 
 func readModuleConfig(param ConfigParam) (cfg moduleConfig) {
