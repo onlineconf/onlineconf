@@ -178,6 +178,10 @@ type moduleConfig struct {
 	Delimiter string
 	Owner     string
 	Mode      string
+
+	ownerUid    int
+	ownerGid    int
+	ownerCached bool
 }
 
 func (config moduleConfig) getFileInfo(file string) (int, int, int, error) {
@@ -187,13 +191,13 @@ func (config moduleConfig) getFileInfo(file string) (int, int, int, error) {
 	}
 	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
 	if !ok {
-		return 0, 0, 0, fmt.Errorf("can't fetch stat info for file %w", file)
+		return 0, 0, 0, fmt.Errorf("can't fetch stat info for file %s", file)
 	}
 	return int(stat.Uid), int(stat.Gid), int(fileInfo.Mode()), nil
 }
 
 func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
-	newUID, newGID, err := config.parseOwnerString()
+	newUID, newGID, err := config.getOwnerCached()
 	if err != nil {
 		return -1, -1, -1, err
 	}
@@ -212,7 +216,7 @@ func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
 	if mode := config.Mode; mode != "" {
 		modeUint, err := strconv.ParseUint(mode, 8, 32)
 		if err != nil {
-			return -1, -1, -1, fmt.Errorf("convert file mode %w failure...%w", mode, err)
+			return -1, -1, -1, fmt.Errorf("convert file mode %s failure...%w", mode, err)
 		}
 		if os.FileMode(modeUint) != os.FileMode(fileMode) {
 			newMode = int(modeUint)
@@ -222,38 +226,74 @@ func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
 	return newUID, newGID, newMode, nil
 }
 
+func (config *moduleConfig) getOwnerCached() (uid int, gid int, err error) {
+	if config.ownerCached {
+		return config.ownerUid, config.ownerGid, nil
+	}
+
+	newUID, newGID, err := config.parseOwnerString()
+	if err != nil {
+		return -1, -1, err
+	}
+
+	config.ownerCached = true
+	config.ownerUid = newUID
+	config.ownerGid = newGID
+
+	return newUID, newGID, nil
+}
+
 func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
-	uidStr, grpStr, found := strings.Cut(strings.TrimSpace(config.Owner), ":")
+	ownerStr := strings.TrimSpace(config.Owner)
+	// available formats: "user:group", "user", "user:", ":group", ":"
+	uidStr, grpStr, found := strings.Cut(ownerStr, ":")
+
 	if !found {
-		return -1, -1, nil
-	}
-	if uidStr == "" || grpStr == "" {
-		return 0, 0, fmt.Errorf("wrong owner format: %w", config.Owner)
-	}
-
-	if uid64, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
-		uid = int(uid64)
-	} else {
-		usr, err := user.Lookup(uidStr)
-		if err != nil {
-			return 0, 0, err
+		if ownerStr == "" {
+			return -1, -1, nil
 		}
-		uid, err = strconv.Atoi(usr.Uid)
-		if err != nil {
-			return 0, 0, err
-		}
+		// format: "user"
+		uidStr = ownerStr
 	}
 
-	if gid64, err := strconv.ParseInt(grpStr, 10, 64); err == nil {
-		gid = int(gid64)
-	} else {
-		grp, err := user.LookupGroup(grpStr)
-		if err != nil {
-			return 0, 0, err
+	uid = -1
+	gid = -1
+	if uidStr != "" {
+		if uid64, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
+			uid = int(uid64)
+		} else {
+			usr, err := user.Lookup(uidStr)
+			if err != nil {
+				return 0, 0, err
+			}
+			uid, err = strconv.Atoi(usr.Uid)
+			if err != nil {
+				return 0, 0, err
+			}
+
+			// format: "user:"
+			if found && grpStr == "" {
+
+				gid, err = strconv.Atoi(usr.Gid)
+				if err != nil {
+					return 0, 0, err
+				}
+			}
 		}
-		gid, err = strconv.Atoi(grp.Gid)
-		if err != nil {
-			return 0, 0, err
+	}
+
+	if grpStr != "" {
+		if gid64, err := strconv.ParseInt(grpStr, 10, 64); err == nil {
+			gid = int(gid64)
+		} else {
+			grp, err := user.LookupGroup(grpStr)
+			if err != nil {
+				return 0, 0, err
+			}
+			gid, err = strconv.Atoi(grp.Gid)
+			if err != nil {
+				return 0, 0, err
+			}
 		}
 	}
 

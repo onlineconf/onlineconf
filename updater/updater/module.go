@@ -97,7 +97,7 @@ func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []
 		return err
 	}
 
-	if newUID != -1 && newGID != -1 {
+	if newUID != -1 || newGID != -1 {
 		err = os.Chown(tmpfile, newUID, newGID)
 		if err != nil {
 			os.Remove(tmpfile)
