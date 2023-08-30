@@ -216,7 +216,7 @@ func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
 	if mode := config.Mode; mode != "" {
 		modeUint, err := strconv.ParseUint(mode, 8, 32)
 		if err != nil {
-			return -1, -1, -1, fmt.Errorf("convert file mode %s failure...%w", mode, err)
+			return -1, -1, -1, fmt.Errorf("convert file mode %o failure...%w", mode, err)
 		}
 		if os.FileMode(modeUint) != os.FileMode(fileMode) {
 			newMode = int(modeUint)
@@ -245,16 +245,12 @@ func (config *moduleConfig) getOwnerCached() (uid int, gid int, err error) {
 
 func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
 	ownerStr := strings.TrimSpace(config.Owner)
+	if ownerStr == "" {
+		return -1, -1, nil
+	}
+
 	// available formats: "user:group", "user", "user:", ":group", ":"
 	uidStr, grpStr, found := strings.Cut(ownerStr, ":")
-
-	if !found {
-		if ownerStr == "" {
-			return -1, -1, nil
-		}
-		// format: "user"
-		uidStr = ownerStr
-	}
 
 	uid = -1
 	gid = -1
