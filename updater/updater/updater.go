@@ -94,10 +94,7 @@ func modulesNames(m map[string][]moduleParam) []string {
 func writeModules(dir string, modules map[string][]moduleParam, moduleConfigs map[string]moduleConfig, mtime string) error {
 	var err error
 	for module, params := range modules {
-		moduleConfig := moduleConfig{}
-		if v, ok := moduleConfigs[module]; ok {
-			moduleConfig = v
-		}
+		moduleConfig := moduleConfigs[module]
 		err1 := writeModule(dir, module, params, moduleConfig, mtime)
 		if err1 != nil && err == nil {
 			err = err1

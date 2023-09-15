@@ -88,7 +88,7 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		return data.Nodes[i].Path < data.Nodes[j].Path
 	})
 	defaultModuleConfig := moduleConfig{}
-	delimiter := defaultModuleConfig.Delimiter
+	delimiter := ""
 	for _, param := range data.Nodes {
 		if !strings.HasPrefix(param.Path, "/onlineconf/module/") {
 			switch param.Path {
@@ -112,12 +112,19 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 
 		if len(pc) == 4 {
 			moduleConfig := readModuleConfig(param)
-			delimiter = moduleConfig.Delimiter
+			if moduleConfig.Owner == "" {
+				moduleConfig.Owner = defaultModuleConfig.Owner
+			}
+			if moduleConfig.Mode == "" {
+				moduleConfig.Mode = defaultModuleConfig.Mode
+			}
+			if moduleConfig.Delimiter == "" {
+				moduleConfig.Delimiter = defaultModuleConfig.Delimiter
+			}
 			moduleConfigs[moduleName] = moduleConfig
+			delimiter = moduleConfig.Delimiter
 			if delimiter == "" {
-				if v := defaultModuleConfig.Delimiter; v != "" {
-					delimiter = v
-				} else if moduleName == "TREE" {
+				if moduleName == "TREE" {
 					delimiter = "/"
 				} else {
 					delimiter = "."
