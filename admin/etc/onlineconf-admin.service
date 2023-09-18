@@ -6,7 +6,8 @@ After=cronolog@%p.service
 [Service]
 Type=simple
 LimitCORE=infinity
-ExecStart=/usr/local/bin/onlineconf-admin
+EnvironmentFile=-/etc/sysconfig/onlineconf-admin
+ExecStart=/usr/local/bin/onlineconf-admin $OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGINT
 Restart=always

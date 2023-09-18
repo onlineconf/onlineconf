@@ -6,7 +6,8 @@ After=cronolog@%p.service
 [Service]
 Type=simple
 LimitCORE=infinity
-ExecStart=/usr/local/bin/onlineconf-updater
+EnvironmentFile=-/etc/sysconfig/onlineconf-updater
+ExecStart=/usr/local/bin/onlineconf-updater $OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGINT
 Restart=always

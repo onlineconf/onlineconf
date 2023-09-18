@@ -52,6 +52,7 @@ go build -mod vendor -o onlineconf-updater
 %{__mkdir_p} %{buildroot}%{_localetcdir}/onlineconf
 %{__mkdir_p} %{buildroot}%{_sysconfdir}/cron.d
 
+%{__install} -pD -m 644 etc/onlineconf.environment %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %if %{with systemd}
 %{__install} -pD -m 644 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
 %else
@@ -70,6 +71,8 @@ echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sy
 %files
 %defattr(-,root,root,-)
 %{_localbindir}/*
+
+%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 
 %if %{with systemd}
 %config %{_unitdir}/onlineconf.service
