@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
+	"os/user"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 )
@@ -29,13 +34,13 @@ func newAdminClient(config AdminConfig) *adminClient {
 	}
 }
 
-func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, error) {
+func (a *adminClient) getModules(hostname, datacenter, mtime string, vars map[string]string) (string, map[string][]moduleParam, map[string]moduleConfig, error) {
 	respMtime, data, err := a.getConfigData(hostname, datacenter, mtime)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
-	modules := prepareModules(data, vars)
-	return respMtime, modules, nil
+	modules, moduleConfigs := prepareModules(data, vars)
+	return respMtime, modules, moduleConfigs, nil
 }
 
 func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string, *ConfigData, error) {
@@ -73,7 +78,8 @@ func (a *adminClient) getConfigData(hostname, datacenter, mtime string) (string,
 	}
 }
 
-func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam) {
+func prepareModules(data *ConfigData, vars map[string]string) (modules map[string][]moduleParam, moduleConfigs map[string]moduleConfig) {
+	moduleConfigs = make(map[string]moduleConfig, len(data.Modules))
 	modules = make(map[string][]moduleParam, len(data.Modules))
 	for _, m := range data.Modules {
 		modules[m] = []moduleParam{}
@@ -81,14 +87,14 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 	sort.Slice(data.Nodes, func(i, j int) bool {
 		return data.Nodes[i].Path < data.Nodes[j].Path
 	})
-	defaultDelimiter := ""
-	delimiter := defaultDelimiter
+	defaultModuleConfig := moduleConfig{}
+	delimiter := ""
 	for _, param := range data.Nodes {
 		if !strings.HasPrefix(param.Path, "/onlineconf/module/") {
 			switch param.Path {
 			case "/", "/onlineconf":
 			case "/onlineconf/module":
-				defaultDelimiter = readModuleConfig(param).Delimiter
+				defaultModuleConfig = readModuleConfig(param)
 			default:
 				log.Warn().Str("path", param.Path).Msg("parameter is out of '/onlineconf/module/' subtree")
 			}
@@ -100,12 +106,25 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 		if modules[moduleName] == nil {
 			modules[moduleName] = []moduleParam{}
 		}
+		if _, ok := moduleConfigs[moduleName]; !ok {
+			moduleConfigs[moduleName] = defaultModuleConfig
+		}
+
 		if len(pc) == 4 {
-			delimiter = readModuleConfig(param).Delimiter
+			moduleConfig := readModuleConfig(param)
+			if moduleConfig.Owner == "" {
+				moduleConfig.Owner = defaultModuleConfig.Owner
+			}
+			if moduleConfig.Mode == "" {
+				moduleConfig.Mode = defaultModuleConfig.Mode
+			}
+			if moduleConfig.Delimiter == "" {
+				moduleConfig.Delimiter = defaultModuleConfig.Delimiter
+			}
+			moduleConfigs[moduleName] = moduleConfig
+			delimiter = moduleConfig.Delimiter
 			if delimiter == "" {
-				if defaultDelimiter != "" {
-					delimiter = defaultDelimiter
-				} else if moduleName == "TREE" {
+				if moduleName == "TREE" {
 					delimiter = "/"
 				} else {
 					delimiter = "."
@@ -164,6 +183,124 @@ func prepareModules(data *ConfigData, vars map[string]string) (modules map[strin
 
 type moduleConfig struct {
 	Delimiter string
+	Owner     string
+	Mode      string
+
+	ownerUid    int
+	ownerGid    int
+	ownerCached bool
+}
+
+func (config moduleConfig) getFileInfo(file string) (int, int, int, error) {
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, 0, 0, fmt.Errorf("can't fetch stat info for file %s", file)
+	}
+	return int(stat.Uid), int(stat.Gid), int(fileInfo.Mode()), nil
+}
+
+func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
+	newUID, newGID, err := config.getOwnerCached()
+	if err != nil {
+		return -1, -1, -1, err
+	}
+
+	fileUID, fileGID, fileMode, err := config.getFileInfo(file)
+	if err != nil {
+		return -1, -1, -1, err
+	}
+
+	if fileUID == newUID && fileGID == newGID {
+		newUID = -1
+		newGID = -1
+	}
+
+	newMode := -1
+	if mode := config.Mode; mode != "" {
+		modeUint, err := strconv.ParseUint(mode, 8, 32)
+		if err != nil {
+			return -1, -1, -1, fmt.Errorf("convert file mode %o failure...%w", mode, err)
+		}
+		if os.FileMode(modeUint) != os.FileMode(fileMode) {
+			newMode = int(modeUint)
+		}
+	}
+
+	return newUID, newGID, newMode, nil
+}
+
+func (config *moduleConfig) getOwnerCached() (uid int, gid int, err error) {
+	if config.ownerCached {
+		return config.ownerUid, config.ownerGid, nil
+	}
+
+	newUID, newGID, err := config.parseOwnerString()
+	if err != nil {
+		return -1, -1, err
+	}
+
+	config.ownerCached = true
+	config.ownerUid = newUID
+	config.ownerGid = newGID
+
+	return newUID, newGID, nil
+}
+
+func (config moduleConfig) parseOwnerString() (uid int, gid int, err error) {
+	ownerStr := strings.TrimSpace(config.Owner)
+	if ownerStr == "" {
+		return -1, -1, nil
+	}
+
+	// available formats: "user:group", "user", "user:", ":group", ":"
+	uidStr, grpStr, found := strings.Cut(ownerStr, ":")
+
+	uid = -1
+	gid = -1
+	if uidStr != "" {
+		if uid64, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
+			uid = int(uid64)
+		} else {
+			usr, err := user.Lookup(uidStr)
+			if err != nil {
+				return 0, 0, err
+			}
+			uid, err = strconv.Atoi(usr.Uid)
+			if err != nil {
+				return 0, 0, err
+			}
+
+			// format: "user:"
+			if found && grpStr == "" {
+
+				gid, err = strconv.Atoi(usr.Gid)
+				if err != nil {
+					return 0, 0, err
+				}
+			}
+		}
+	}
+
+	if grpStr != "" {
+		if gid64, err := strconv.ParseInt(grpStr, 10, 64); err == nil {
+			gid = int(gid64)
+		} else {
+			grp, err := user.LookupGroup(grpStr)
+			if err != nil {
+				return 0, 0, err
+			}
+			gid, err = strconv.Atoi(grp.Gid)
+			if err != nil {
+				return 0, 0, err
+			}
+		}
+	}
+
+	return uid, gid, nil
 }
 
 func readModuleConfig(param ConfigParam) (cfg moduleConfig) {

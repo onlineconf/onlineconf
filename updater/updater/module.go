@@ -20,12 +20,12 @@ type moduleWriter interface {
 	close() error
 }
 
-func writeModule(dir, module string, params []moduleParam, mtime string) error {
+func writeModule(dir string, module string, params []moduleParam, moduleConfig moduleConfig, mtime string) error {
 	wrapper := func(ext string, newWriter func(file string) moduleWriter) error {
 		file := filepath.Join(dir, module+"."+ext)
 		tmpfile := file + ".tmp"
 		w := newWriter(tmpfile)
-		err := writeModuleFile(w, file, tmpfile, params)
+		err := writeModuleFile(w, file, tmpfile, params, moduleConfig)
 		if err != nil {
 			log.Error().Err(err).Str("module", module).Msgf("failed to write .%s file", ext)
 		}
@@ -43,7 +43,7 @@ func writeModule(dir, module string, params []moduleParam, mtime string) error {
 	return confErr
 }
 
-func writeModuleFile(writer moduleWriter, file, tmpfile string, params []moduleParam) error {
+func writeModuleFile(writer moduleWriter, file string, tmpfile string, params []moduleParam, moduleConfig moduleConfig) error {
 	err := writer.write(params)
 	if err != nil {
 		os.Remove(tmpfile)
@@ -60,13 +60,26 @@ func writeModuleFile(writer moduleWriter, file, tmpfile string, params []moduleP
 			return err
 		}
 	}
+
 	if !modified {
 		modified, err = writer.isModified(oldContent)
 		if err != nil {
 			os.Remove(tmpfile)
 			return err
 		}
+
+		if !modified {
+			newUID, newGID, newMode, err := moduleConfig.getNewFileAttrs(file)
+			if err != nil {
+				os.Remove(tmpfile)
+				return err
+			}
+			if newUID != -1 || newGID != -1 || newMode != -1 {
+				modified = true
+			}
+		}
 	}
+
 	if !modified {
 		os.Remove(tmpfile)
 		return nil
@@ -76,6 +89,28 @@ func writeModuleFile(writer moduleWriter, file, tmpfile string, params []moduleP
 	if err != nil {
 		os.Remove(tmpfile)
 		return err
+	}
+
+	newUID, newGID, newMode, err := moduleConfig.getNewFileAttrs(tmpfile)
+	if err != nil {
+		os.Remove(tmpfile)
+		return err
+	}
+
+	if newUID != -1 || newGID != -1 {
+		err = os.Chown(tmpfile, newUID, newGID)
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
+	}
+
+	if newMode != -1 {
+		err = os.Chmod(tmpfile, os.FileMode(newMode))
+		if err != nil {
+			os.Remove(tmpfile)
+			return err
+		}
 	}
 
 	err = os.Rename(tmpfile, file)

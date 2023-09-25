@@ -64,7 +64,7 @@ func (u *Updater) Stop() {
 }
 
 func (u *Updater) Update() error {
-	respMtime, modules, err := u.adminClient.getModules(u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
+	respMtime, modules, moduleConfigs, err := u.adminClient.getModules(u.config.Hostname, u.config.Datacenter, u.mtime, u.config.Variables)
 	if err != nil {
 		if err != ErrNotModified {
 			log.Error().Err(err).Msg("failed to fetch config")
@@ -72,7 +72,7 @@ func (u *Updater) Update() error {
 		return err
 	}
 	log.Info().Strs("modules", modulesNames(modules)).Msg("")
-	err = writeModules(u.config.DataDir, modules, respMtime)
+	err = writeModules(u.config.DataDir, modules, moduleConfigs, respMtime)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write config files")
 		return err
@@ -91,10 +91,11 @@ func modulesNames(m map[string][]moduleParam) []string {
 	return keys
 }
 
-func writeModules(dir string, modules map[string][]moduleParam, mtime string) error {
+func writeModules(dir string, modules map[string][]moduleParam, moduleConfigs map[string]moduleConfig, mtime string) error {
 	var err error
 	for module, params := range modules {
-		err1 := writeModule(dir, module, params, mtime)
+		moduleConfig := moduleConfigs[module]
+		err1 := writeModule(dir, module, params, moduleConfig, mtime)
 		if err1 != nil && err == nil {
 			err = err1
 		}
