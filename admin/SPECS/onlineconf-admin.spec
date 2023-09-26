@@ -53,7 +53,6 @@ npm run build%{?with_green:-green}
 %{__install} -pD -m0755 go/%{name}  %{buildroot}/%{_localbindir}/%{name}
 %{__mkdir} -p %{buildroot}/%{_initrddir} %{buildroot}/%{_localetcdir} %{buildroot}/%{_sysconfdir}/{cron.d,nginx} %{buildroot}/usr/local/www/onlineconf
 %{__install} -m 644 etc/%{name}.yaml %{buildroot}/%{_localetcdir}/%{name}.yaml
-%{__install} -pD -m 644 etc/onlineconf.environment %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %if %{with systemd}
 %{__install} -pD -m 644 etc/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 %else
@@ -80,7 +79,6 @@ echo "@daily root %{_initrddir}/%{name} remove-old-logs" > %{buildroot}/%{_sysco
 %endif
 %config(noreplace) %{_localetcdir}/%{name}.yaml
 %config(noreplace) %{_sysconfdir}/nginx/*
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 /usr/local/www/onlineconf/*
 %if !%{with systemd}
 %{_sysconfdir}/cron.d/%{name}
