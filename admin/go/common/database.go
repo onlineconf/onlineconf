@@ -16,7 +16,11 @@ func MysqlInitConfig(config DatabaseConfig) *mysql.Config {
 	mysqlConfig.User = config.User
 	mysqlConfig.Passwd = config.Password
 	mysqlConfig.Net = "tcp"
-	mysqlConfig.Addr = net.JoinHostPort(config.Host, "3306")
+	port := config.Port
+	if port == "" {
+		port = "3306"
+	}
+	mysqlConfig.Addr = net.JoinHostPort(config.Host, port)
 	mysqlConfig.DBName = config.Base
 	mysqlConfig.Params = map[string]string{
 		"charset":   "utf8mb4",
