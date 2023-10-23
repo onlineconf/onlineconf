@@ -2,6 +2,7 @@ package common
 
 type DatabaseConfig struct {
 	Host        string
+	Port        string
 	User        string
 	Password    string
 	Base        string
