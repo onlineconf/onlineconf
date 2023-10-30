@@ -352,11 +352,12 @@ type UIConfig struct {
 }
 
 type Avatar struct {
-	URI      string            `json:"uri"`
-	Domain   string            `json:"domain"`
-	Gravatar bool              `json:"gravatar"`
-	Rename   map[string]string `json:"rename,omitempty"`
-	Link     *struct {
+	URI       string            `json:"uri"`
+	Domain    string            `json:"domain"`
+	Gravatar  bool              `json:"gravatar"`
+	Extension string            `json:"extension"`
+	Rename    map[string]string `json:"rename,omitempty"`
+	Link      *struct {
 		URI    string            `json:"uri"`
 		Rename map[string]string `json:"rename,omitempty"`
 	} `json:"link,omitempty"`
