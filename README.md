@@ -161,6 +161,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 * `uri` - an avatar URI base, `/` and a username will be appended to it to form a URI;
 * `domain` - a domain users belongs to, if present then it will be appended to usernames after `@`;
 * `gravatar` - if true then a username will be hashed using MD5 before appending to a base URI;
+* `extension` - a filename extension, if present then it will be appended to the URI after `.`;
 * `rename` - `map[string]string`, a dictionary of replacements of usernames to use in avatar URIs;
 * `link` - a configuration object of a link to a user profile:
   * `uri` - a user profile URI base, `/` and a username will be appended to it to form a URI;
