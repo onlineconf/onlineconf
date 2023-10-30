@@ -33,6 +33,9 @@ export default function Avatar(props: AvatarProps) {
 		if (config.gravatar) {
 			path = md5(path.toLowerCase()).toString();
 		}
+		if (config.extension) {
+			path += '.' + config.extension;
+		}
 		return `${config.uri}/${path}`;
 	}, [username, config]);
 	const letters = React.useMemo(() => {

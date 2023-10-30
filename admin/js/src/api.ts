@@ -264,6 +264,7 @@ export interface AvatarConfig {
 	uri: string;
 	domain?: string;
 	gravatar?: boolean;
+	extension?: boolean;
 	rename?: { [K: string]: string };
 	link?: {
 		uri: string;
