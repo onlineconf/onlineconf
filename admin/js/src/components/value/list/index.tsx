@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Theme, createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
+import { createStyles, WithStyles, withStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
 
 import { NonNullValueProps } from '../common';
 import ListValueEdit from './ListValueEdit';

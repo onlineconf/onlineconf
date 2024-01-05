@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { withStyles, createStyles, WithStyles, Theme } from '@material-ui/core/styles';
+import { withStyles, createStyles, WithStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
 		borderStyle: 'solid',
 		borderRadius: theme.shape.borderRadius,
 		borderWidth: 1,
-		borderColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
+		borderColor: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
 		margin: '3px 0 4px 0',
 		padding: 0,
 		minInlineSize: 'initial',

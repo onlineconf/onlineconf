@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 
 import { deleteParam } from '../api';
 import ParamDialogTitle from './ParamDialogTitle';

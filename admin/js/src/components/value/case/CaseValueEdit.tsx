@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, Theme, WithStyles, withStyles } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import MenuItem from '@material-ui/core/MenuItem';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import { Theme } from '@mui/material/styles';
+import { createStyles, WithStyles, withStyles } from '@mui/styles';
+import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import MenuItem from '@mui/material/MenuItem';
+import TextField, { TextFieldProps } from '@mui/material/TextField';
 
-import AddIcon from '@material-ui/icons/AddCircle';
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 import { getDictionary, dictionaryKeys } from '../../../cache';
 import { Case, CaseConditions, caseConditions } from './common';
@@ -26,7 +27,7 @@ const styles = (theme: Theme) => createStyles({
 	case: {
 		borderBottomWidth: 1,
 		borderBottomStyle: 'solid',
-		borderBottomColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
+		borderBottomColor: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
 		paddingBottom: theme.spacing(0.5),
 		marginBottom: theme.spacing(0.5),
 	},

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { History } from 'history';
 
-import { Theme, withStyles, WithStyles } from '@material-ui/core/styles';
+import { withStyles, WithStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
 
 import * as API from '../api';
 import { IParamNode } from './common';

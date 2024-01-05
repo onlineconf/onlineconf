@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { createStyles, WithStyles, withStyles, Theme } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
-import TextField from '@material-ui/core/TextField';
+import { createStyles, WithStyles, withStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
 
-import AddIcon from '@material-ui/icons/AddCircle';
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 import { EditNonnullValueProps } from '../common';
 import ValueOutline from '../ValueOutline';

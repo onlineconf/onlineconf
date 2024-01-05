@@ -1,28 +1,28 @@
 import * as CSS from 'csstype';
 import deepmerge from 'deepmerge';
-import { createMuiTheme, ThemeOptions } from '@material-ui/core/styles';
-import { indigo, orange, green } from '@material-ui/core/colors';
+import { ThemeOptions, createTheme as createMUITheme, adaptV4Theme } from '@mui/material/styles';
+import { indigo, orange, green } from '@mui/material/colors';
 
 interface OnlineConfPalette {
-	noAccess: CSS.Color;
-	null: CSS.Color;
-	symlink: CSS.Color;
-	caseKey: CSS.Color;
-	templateVariable: CSS.Color;
+	noAccess: CSS.Property.Color;
+	null: CSS.Property.Color;
+	symlink: CSS.Property.Color;
+	caseKey: CSS.Property.Color;
+	templateVariable: CSS.Property.Color;
 }
 
 interface CodeMirrorPalette {
-	atom: CSS.Color;      // yaml mapping key
-	comment: CSS.Color;
-	def: CSS.Color;       // yaml document start and end
-	keyword: CSS.Color;   // true, false, etc...
-	meta: CSS.Color;      // yaml -,{}[] and block literals
-	number: CSS.Color;
-	string: CSS.Color;    // quoted strings
-	variable2: CSS.Color; // yaml reference, template variable
+	atom: CSS.Property.Color;      // yaml mapping key
+	comment: CSS.Property.Color;
+	def: CSS.Property.Color;       // yaml document start and end
+	keyword: CSS.Property.Color;   // true, false, etc...
+	meta: CSS.Property.Color;      // yaml -,{}[] and block literals
+	number: CSS.Property.Color;
+	string: CSS.Property.Color;    // quoted strings
+	variable2: CSS.Property.Color; // yaml reference, template variable
 }
 
-declare module '@material-ui/core/styles/createPalette' {
+declare module '@mui/material/styles/createPalette' {
 	interface Palette {
 		onlineconf: OnlineConfPalette;
 		codemirror: CodeMirrorPalette;
@@ -90,18 +90,20 @@ const themeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 				variable2: '#9cdcfe',
 			},
 		},
-		overrides: {
+		components: {
 			// elevation overlay emulation
 			MuiPaper: {
-				elevation1: { backgroundColor: '#1d1d1d' },
-				elevation2: { backgroundColor: '#222222' },
-				elevation3: { backgroundColor: '#242424' },
-				elevation4: { backgroundColor: '#272727' },
-				elevation6: { backgroundColor: '#2c2c2c' },
-				elevation8: { backgroundColor: '#2e2e2e' },
-				elevation12: { backgroundColor: '#323232' },
-				elevation16: { backgroundColor: '#353535' },
-				elevation24: { backgroundColor: '#383838' },
+				styleOverrides: {
+					elevation1: { backgroundColor: '#1d1d1d' },
+					elevation2: { backgroundColor: '#222222' },
+					elevation3: { backgroundColor: '#242424' },
+					elevation4: { backgroundColor: '#272727' },
+					elevation6: { backgroundColor: '#2c2c2c' },
+					elevation8: { backgroundColor: '#2e2e2e' },
+					elevation12: { backgroundColor: '#323232' },
+					elevation16: { backgroundColor: '#353535' },
+					elevation24: { backgroundColor: '#383838' },
+				}
 			}
 		},
 	},
@@ -117,10 +119,12 @@ const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 			},
 			primary: { main: green[500] },
 		},
-		overrides: {
+		components: {
 			MuiAppBar: {
-				colorDefault: {
-					backgroundColor: green[100],
+				styleOverrides: {
+					colorDefault: {
+						backgroundColor: green[100],
+					},
 				},
 			},
 		},
@@ -133,30 +137,34 @@ const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 			},
 			primary: { main: green[200] },
 		},
-		overrides: {
+		components: {
 			MuiAppBar: {
-				colorDefault: {
-					backgroundColor: '#142e15',
+				styleOverrides: {
+					colorDefault: {
+						backgroundColor: '#142e15',
+					},
 				},
 			},
 			// elevation overlay emulation
 			MuiPaper: {
-				elevation1: { backgroundColor: '#172517' },
-				elevation2: { backgroundColor: '#1c291c' },
-				elevation3: { backgroundColor: '#1e2b1e' },
-				elevation4: { backgroundColor: '#212e21' },
-				elevation6: { backgroundColor: '#263226' },
-				elevation8: { backgroundColor: '#293529' },
-				elevation12: { backgroundColor: '#2d392d' },
-				elevation16: { backgroundColor: '#2f3b2f' },
-				elevation24: { backgroundColor: '#323e32' },
+				styleOverrides: {
+					elevation1: { backgroundColor: '#172517' },
+					elevation2: { backgroundColor: '#1c291c' },
+					elevation3: { backgroundColor: '#1e2b1e' },
+					elevation4: { backgroundColor: '#212e21' },
+					elevation6: { backgroundColor: '#263226' },
+					elevation8: { backgroundColor: '#293529' },
+					elevation12: { backgroundColor: '#2d392d' },
+					elevation16: { backgroundColor: '#2f3b2f' },
+					elevation24: { backgroundColor: '#323e32' },
+				}
 			}
 		},
 	},
 };
 
 export default function createTheme(options: ThemeOptions = {}) {
-	return createMuiTheme(
+	return createMUITheme(adaptV4Theme(
 		deepmerge.all([
 			{
 				typography: {
@@ -173,9 +181,9 @@ export default function createTheme(options: ThemeOptions = {}) {
 					},
 				},
 			},
-			themeOptions[options.palette?.type || 'light'],
-			process.env.REACT_APP_GREEN ? greenThemeOptions[options.palette?.type || 'light'] : {},
+			themeOptions[options.palette?.mode || 'light'],
+			process.env.REACT_APP_GREEN ? greenThemeOptions[options.palette?.mode || 'light'] : {},
 			options,
 		])
-	);
+	));
 }

@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig } from 'axios';
-import { Omit } from '@material-ui/types';
+import { DistributiveOmit } from '@mui/types';
 
 export type ParamType = 'application/x-null'
 	| 'text/plain'
@@ -138,7 +138,7 @@ export interface GlobalLogFilter {
 	all?: boolean;
 }
 
-interface GlobalLogParams extends Omit<GlobalLogFilter, 'all'>, LogPagination {
+interface GlobalLogParams extends DistributiveOmit<GlobalLogFilter, 'all'>, LogPagination {
 	all?: 1;
 }
 

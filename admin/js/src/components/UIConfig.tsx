@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { MuiThemeProvider } from '@material-ui/core/styles';
-import useMediaQuery from '@material-ui/core/useMediaQuery';
+import { ThemeProvider } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { UIConfig, AvatarConfig, getUIConfig } from '../api';
 import createTheme from '../theme';
@@ -29,15 +29,15 @@ export default function UIConfigProvider(props: UIConfigProviderProps) {
 	const themePaletteType = props.paletteType === 'system' ? systemPaletteType : props.paletteType;
 	const theme = React.useMemo(() => createTheme({
 		palette: {
-			type: themePaletteType,
+			mode: themePaletteType,
 		},
 	}), [themePaletteType]);
 
 	return (
-		<MuiThemeProvider theme={theme}>
+		<ThemeProvider theme={theme}>
 			<AvatarContext.Provider value={config?.avatar}>
 				{props.children}
 			</AvatarContext.Provider>
-		</MuiThemeProvider>
+		</ThemeProvider>
 	);
 }

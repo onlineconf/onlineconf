@@ -1,6 +1,7 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { withStyles, Theme, WithStyles, createStyles } from '@material-ui/core/styles';
+import { withStyles, WithStyles, createStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
 
 import { Case, caseConditions } from './common';
 import { NonNullValueProps } from '../common';

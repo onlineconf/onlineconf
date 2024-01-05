@@ -1,7 +1,7 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import { createStyles, withStyles, WithStyles } from '@mui/styles';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const styles = createStyles({
 	wrapper: {

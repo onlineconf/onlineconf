@@ -1,9 +1,10 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
+import { withStyles, WithStyles, createStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
+import IconButton from '@mui/material/IconButton';
 
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import IconButtonProgress from './IconButtonProgress';
 import { TreeNodeState } from './TreeNode';

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { Theme, createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogActions from '@material-ui/core/DialogActions';
-import Button from '@material-ui/core/Button';
-import Typography from '@material-ui/core/Typography';
-import withMobileDialog from '@material-ui/core/withMobileDialog';
+import { createStyles, withStyles, WithStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 
 import { IParamNode } from './common';
 import { ValueView } from './value';
@@ -60,4 +60,4 @@ const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof
 	</Dialog>
 );
 
-export default withStyles(styles)(withMobileDialog<ViewerProps>()(withTranslation()(Viewer)));
+export default withStyles(styles)(withTranslation()(Viewer));

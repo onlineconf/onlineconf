@@ -18,13 +18,13 @@
          * Kind of the constructor, called before any action
          * @param {Map} user options
          */
-        init: function(options) {               
-            var form = this;			
-            if (!form.data('jqv') || form.data('jqv') == null ) {		
-                options = methods._saveOptions(form, options);                  				
+        init: function(options) {
+            var form = this;
+            if (!form.data('jqv') || form.data('jqv') == null ) {
+                options = methods._saveOptions(form, options);
 				// bind all formError elements to close on click
 				$(".formError").live("click", function() {
-                  
+
 					$(this).fadeOut(150, function() {
 					 // remove prompt once invisible
 					   $(this).parent('.formErrorOuter').remove();
@@ -41,7 +41,7 @@
          * ie. jQuery("#formID1").validationEngine('attach', {promptPosition : "centerRight"});
          */
         attach: function(userOptions) {
-			
+
             var form = this;
             var options;
 
@@ -51,10 +51,10 @@
                 options = form.data('jqv');
 
 			var validateAttribute = (form.find("[data-validation-engine*=validate]")) ? "data-validation-engine" : "class";
-			
+
             if (!options.binded) {
 				if (options.bindMethod == "bind"){
-				
+
 					// bind fields
                     form.find("[class*=validate]").not("[type=checkbox]").not("[type=radio]").not(".datepicker").bind(options.validationEventTrigger, methods._onFieldEvent);
                     form.find("[class*=validate][type=checkbox],[class*=validate][type=radio]").bind("click", methods._onFieldEvent);
@@ -73,14 +73,14 @@
 				}
 
                	options.binded = true;
-	
+
 				if (options.autoPositionUpdate) {
 	    			$(window).bind("resize", {
-						"noAnimation": true, 
+						"noAnimation": true,
 						"formElem": form
 	    				}, methods.updatePromptsPosition);
 				}
-		
+
            }
            return this;
         },
@@ -98,16 +98,16 @@
 
                 // unbind form.submit
                 form.unbind("submit", methods.onAjaxFormComplete);
-                
+
                 // unbind live fields (kill)
                 form.find("[class*=validate]").not("[type=checkbox]").die(options.validationEventTrigger, methods._onFieldEvent);
                 form.find("[class*=validate][type=checkbox]").die("click", methods._onFieldEvent);
-                
+
 				// unbind form.submit
                 form.die("submit", methods.onAjaxFormComplete);
-                
+
                 form.removeData('jqv');
-		
+
 				if (options.autoPositionUpdate) {
 		    		$(window).unbind("resize", methods.updatePromptsPosition)
 				}
@@ -153,12 +153,12 @@
          *  Redraw prompts position, useful when you change the DOM state when validating
          */
         updatePromptsPosition: function(event) {
-	    
+
 			if (event && this == window)
 				var form = event.data.formElem, noAnimation = event.data.noAnimation;
 		    else
 				var form = $(this.closest('form'));
-            
+
 			var options = form.data('jqv');
 	        // No option, take default one
 		    form.find('[class*=validate]').not(':hidden').not(":disabled").each(function(){
@@ -246,7 +246,7 @@
 					options.onFailure();
 				}
 			}, (event.data) ? event.data.delay : 0);
-            
+
         },
         /**
          * Called when the form is submited, shows prompts accordingly
@@ -258,10 +258,10 @@
         _onSubmitEvent: function() {
             var form = $(this);
  			var options = form.data('jqv');
-   
+
 			// validate each field (- skip field ajax validation, no necessary since we will perform an ajax form validation)
             var r=methods._validateFields(form, true);
-		
+
             if (r && options.ajaxFormValidation) {
                 methods._validateFormWithAjax(form, options);
                 return false;
@@ -305,7 +305,7 @@
 
             // this variable is set to true if an error is found
             var errorFound = false;
-			
+
 			// Trigger hook, start validation
 			form.trigger("jqv.form.validating");
             // first, evaluate status of non ajax fields
@@ -316,16 +316,16 @@
 				field.focus();
                 if (options.doNotShowAllErrosOnSubmit)
                     return false;
-		    if (errorFound && first_err==null) first_err=field; 
+		    if (errorFound && first_err==null) first_err=field;
             });
             // second, check to see if all ajax calls completed ok
             // errorFound |= !methods._checkAjaxStatus(options);
-			
+
             // thrird, check status and scroll the container accordingly
 			form.trigger("jqv.form.result", [errorFound]);
-			
-		if (errorFound) {				
-      		if (options.scroll) {	
+
+		if (errorFound) {
+      		if (options.scroll) {
 				var destination=first_err.offset().top;
 				var fixleft = first_err.offset().left;
 
@@ -337,7 +337,7 @@
 					}
 				}
 
-				if (positionType!="bottomRight"&& 
+				if (positionType!="bottomRight"&&
 				    positionType!="bottomLeft") {
 					var prompt_err= methods._getPrompt(first_err);
 					destination=prompt_err.offset().top;
@@ -350,7 +350,7 @@
                                 if(!overflowDIV.length) return false;
     	                        var scrollContainerScroll = overflowDIV.scrollTop();
           	                  	var scrollContainerPos = -parseInt(overflowDIV.offset().top);
-    	
+
           	                  	destination += scrollContainerScroll + scrollContainerPos - 5;
                 	            var scrollContainer = $(options.overflownDIV + ":not(:animated)");
 
@@ -360,10 +360,10 @@
                                     scrollTop: destination,
                                     scrollLeft: fixleft
                                  }, 1100, function(){
-                                    if(options.focusFirstField) first_err.focus();      
+                                    if(options.focusFirstField) first_err.focus();
                                 });
                         }
-                 
+
 				} else if(options.focusFirstField)
 				 	first_err.focus();
                 return false;
@@ -406,13 +406,13 @@
                         var errorInForm=false;
                         for (var i = 0; i < json.length; i++) {
                             var value = json[i];
-						
+
                             var errorFieldId = value[0];
                             var errorField = $($("#" + errorFieldId)[0]);
-							
+
                             // make sure we found the element
                             if (errorField.length == 1) {
-								
+
                                 // promptText or selector
                                 var msg = value[2];
 								// if the field is valid
@@ -468,12 +468,12 @@
 
             var rulesParsing = field.attr('class');
             var getRules = /validate\[(.*)\]/.exec(rulesParsing);
-			
+
             if (!getRules)
                 return false;
             var str = getRules[1];
             var rules = str.split(/\[|,|\]/);
-	
+
             // true if we ran the ajax validation, tells the logic to stop messing with prompts
             var isAjaxValidator = false;
             var fieldName = field.attr("name");
@@ -500,7 +500,7 @@
 					case "groupRequired":
 						// Check is its the first of group, if not, reload validation with first field
 						// AND continue normal validation on present field
-						var classGroup = "[class*=" +rules[i + 1] +"]";	
+						var classGroup = "[class*=" +rules[i + 1] +"]";
 						var firstOfGroup = form.find(classGroup).eq(0);
 						if(firstOfGroup[0] != field[0]){
 							methods._validateField(firstOfGroup, options, skipAjaxValidation)
@@ -598,7 +598,7 @@
                 field = $(form.find("input[name='" + fieldName + "'][type!=hidden]:first"));
                 options.showArrow = false;
             }
-			
+
             if (fieldType == "text" && form.find("input[name='" + fieldName + "']").size() > 1) {
                 field = $(form.find("input[name='" + fieldName + "'][type!=hidden]:first"));
                 options.showArrow = false;
@@ -609,7 +609,7 @@
             }else{
                 if (!isAjaxValidator) methods._closePrompt(field);
             }
-	    
+
             if (!isAjaxValidator) {
               field.trigger("jqv.field.result", [field, options.isError, promptText]);
             }
@@ -689,7 +689,7 @@
 					return false;
 				}
 			})
-			
+
 			if(!isValid) return options.allrules[rules[i]].alertText;
         },
         /**
@@ -709,7 +709,7 @@
 				alert("jqv:custom rule not found "+customRule);
 				return;
 			}
-			
+
 			var ex=rule.regex;
 			if(!ex) {
 				alert("jqv:custom regex not found "+customRule);
@@ -1008,21 +1008,21 @@
         _creditCard: function(field, rules, i, options) {
             //spaces and dashes may be valid characters, but must be stripped to calculate the checksum.
             var valid = false, cardNumber = field.val().replace(/ +/g, '').replace(/-+/g, '');
-        
+
             var numDigits = cardNumber.length;
             if (numDigits >= 14 && numDigits <= 16 && parseInt(cardNumber) > 0) {
-        
+
                 var sum = 0, i = numDigits - 1, pos = 1, digit, luhn = new String();
                 do {
                     digit = parseInt(cardNumber.charAt(i));
                     luhn += (pos++ % 2 == 0) ? digit * 2 : digit;
                 } while (--i >= 0)
-        
+
                 for (i = 0; i < luhn.length; i++) {
                     sum += parseInt(luhn.charAt(i));
                 }
                 valid = sum % 10 == 0;
-            } 
+            }
             if (!valid) return options.allrules.creditCard.alertText;
         },
         /**
@@ -1036,7 +1036,7 @@
          * @return nothing! the ajax validator handles the prompts itself
          */
         _ajax: function(field, rules, i, options) {
-			
+
             var errorSelector = rules[i + 1];
             var rule = options.allrules[errorSelector];
             var extraData = rule.extraData;
@@ -1058,9 +1058,9 @@
               }
               extraDataDynamic = tmpData.join("&");
             } else {
-              extraDataDynamic = "";              
+              extraDataDynamic = "";
             }
-                                
+
             if (!options.isError) {
                 $.ajax({
                     type: "GET",
@@ -1082,7 +1082,7 @@
                         methods._ajaxError(data, transport);
                     },
                     success: function(json) {
-						
+
                         // asynchronously called on success, data is the json answer from the server
                         var errorFieldId = json[0];
                         var errorField = $($("#" + errorFieldId)[0]);
@@ -1106,7 +1106,7 @@
 								}
 								else
                                     msg = rule.alertText;
-                                
+
 								methods._showPrompt(errorField, msg, "", true, options);
                             } else {
                                 if (options.ajaxValidCache[errorFieldId] !== undefined)
@@ -1121,7 +1121,7 @@
 							        }
 								}
 								else
-							       	msg = rule.alertTextOk;                                
+							       	msg = rule.alertTextOk;
 
 								// see if we should display a green prompt
                                 if (msg)
@@ -1197,7 +1197,7 @@
          * @param {Map} options user options
          */
         _buildPrompt: function(field, promptText, type, ajaxed, options) {
-			
+
             // create the prompt
             var prompt = $('<div>');
             prompt.addClass(methods._getClassName(field.attr("id")) + "formError");
@@ -1234,7 +1234,7 @@
 					};
 				};
 
-				
+
                 switch (positionType) {
                     case "bottomLeft":
                     case "bottomRight":
@@ -1261,32 +1261,32 @@
                 	field.before(prompt);
                 } else {
                    $("body").append(prompt);
-    	    }          
+    	    }
             var pos = methods._calculatePosition(field, prompt, options);
             prompt.css({
                 "top": pos.callerTopPosition,
                 "left": pos.callerleftPosition,
                 "marginTop": pos.marginTopSize,
                 "opacity": 0
-            }).data("callerField", field);  
+            }).data("callerField", field);
 
-			if (options.autoHidePrompt) {   
-                setTimeout(function(){ 
+			if (options.autoHidePrompt) {
+                setTimeout(function(){
                     prompt.animate({
                        "opacity": 0
                     },function(){
                         prompt.closest('.formErrorOuter').remove();
                         prompt.remove();
-                    }) 
-                }, options.autoHideDelay)                			
+                    })
+                }, options.autoHideDelay)
                 return prompt.animate({
 				   "opacity": 0.87
 				})
 			} else {
 				return prompt.animate({
 				   "opacity": 0.87
-				});			      
-            }				
+				});
+            }
         },
         /**
          * Updates the prompt text field - the field for which the prompt
@@ -1297,7 +1297,7 @@
          * @param {Map} options user options
          */
         _updatePrompt: function(field, prompt, promptText, type, ajaxed, options, noAnimation) {
-			
+
             if (prompt) {
 				if (typeof type !== "undefined") {
 	            	if (type == "pass")
@@ -1314,14 +1314,14 @@
 				    prompt.addClass("ajaxed");
 				else
 				    prompt.removeClass("ajaxed");
-		
+
                 prompt.find(".formErrorContent").html(promptText);
 
                 var pos = methods._calculatePosition(field, prompt, options);
 				css = {"top": pos.callerTopPosition,
 		               "left": pos.callerleftPosition,
 		               "marginTop": pos.marginTopSize};
-		
+
 				if (noAnimation)
 				 	prompt.css(css);
 				else
@@ -1364,7 +1364,7 @@
          *
          * @param {selector}
          *            className
-         */		
+         */
 		  _escapeExpression: function (selector) {
 		    return selector.replace(/([#;&,\.\+\*\~':"\!\^$\[\]\(\)=>\|])/g, "\\$1");
 		  },
@@ -1416,10 +1416,10 @@
                 marginTopSize = 0;
             }
 
-			//prompt positioning adjustment support 
+			//prompt positioning adjustment support
 			//now you can adjust prompt position
 			//usage: positionType:Xshift,Yshift
-			//for example: 
+			//for example:
 			//   bottomLeft:+20 means bottomLeft position shifted by 20 pixels right horizontally
 			//   topRight:20, -15 means topRight position shifted by 20 pixels to right and 15 pixels to top
 			//You can use +pixels, - pixels. If no sign is provided than + is default.
@@ -1436,7 +1436,7 @@
 
 					//if any advanced positioning will be needed (percents or something else) - parser should be added here
 					//for now we use simple parseInt()
-					
+
 					//do we have second parameter?
 					if (shift1.indexOf(",")!=-1) {
 						shift2=shift1.substring(shift1.indexOf(",")+1);
@@ -1444,10 +1444,10 @@
 						shiftY=parseInt(shift2);
 						if (isNaN(shiftY)) {shiftY=0;};
 					};
-					
+
 					shiftX=parseInt(shift1);
 					if (isNaN(shift1)) {shift1=0;};
-					
+
 				};
 			};
 
@@ -1558,7 +1558,7 @@
 			// --- Internals DO NOT TOUCH or OVERLOAD ---
 			// validation rules and i18
 			$.validationEngine.defaults.allrules = allRules;
-			
+
             var userOptions = $.extend(true,{},$.validationEngine.defaults,options);
 			jim = userOptions;
             // Needed to be retro compatible
@@ -1568,7 +1568,7 @@
             form.data('jqv', userOptions);
             return userOptions;
         },
-        
+
         /**
          * Removes forbidden characters from class name
          * @param {String} className
@@ -1576,7 +1576,7 @@
         _getClassName: function(className) {
         	if(className) {
                 return className.replace(/:/g, "_").replace(/\./g, "_");
-            }    
+            }
         }
     };
 
@@ -1593,16 +1593,16 @@
 
         var form = $(this);
 		if(!form[0]) return false;  // stop here if the form does not exist
-		  
+
         if (typeof(method) == 'string' && method.charAt(0) != '_' && methods[method]) {
 
             // make sure init is called once
-            if(method != "showPrompt" && method != "hidePrompt" && method != "hide" && method != "hideAll") 
+            if(method != "showPrompt" && method != "hidePrompt" && method != "hide" && method != "hideAll")
             	methods.init.apply(form);
 
             return methods[method].apply(form, Array.prototype.slice.call(arguments, 1));
         } else if (typeof method == 'object' || !method) {
-	
+
             // default constructor with or without arguments
 			methods.init.apply(form, arguments);
             return methods.attach.apply(form);
@@ -1645,7 +1645,7 @@
         // Used when the form is displayed within a scrolling DIV
         isOverflown: false,
         overflownDIV: "",
-		
+
 		// Used when you have a form fields too close and the errors messages are on top of other disturbing viewing messages
         doNotShowAllErrosOnSubmit: false,
 

@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { Omit } from '@material-ui/types';
+import { DistributiveOmit } from '@mui/types';
 
 import { getParam } from '../api';
 import Autocomplete, { AutocompleteProps, AutocompleteOption } from './Autocomplete';
 
-type PathFieldProps = Omit<AutocompleteProps, 'loadOptions'> & {
+type PathFieldProps = DistributiveOmit<AutocompleteProps, 'loadOptions'> & {
 	symlink?: 'resolve' | 'follow';
 }
 

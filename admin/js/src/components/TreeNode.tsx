@@ -1,8 +1,9 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
-import Collapse from '@material-ui/core/Collapse';
+import { withStyles, WithStyles, createStyles } from '@mui/styles';
+import { Theme } from '@mui/material/styles';
+import Collapse from '@mui/material/Collapse';
 
 import Tree from './Tree';
 import TreeNodeArrow from './TreeNodeArrow';
