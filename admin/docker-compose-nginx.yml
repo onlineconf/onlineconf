@@ -1,4 +1,4 @@
-version: '3'
+version: '3.4'
 services:
   onlineconf-admin:
     build: .
@@ -7,15 +7,15 @@ services:
     depends_on:
       onlineconf-database:
         condition: service_healthy
-    ports:
-      - "80:80"
-      - "443:443"
     environment:
       ONLINECONF_DATABASE_HOST: onlineconf-database
       ONLINECONF_DATABASE_BASE: onlineconf
       ONLINECONF_DATABASE_USER: onlineconf
       ONLINECONF_DATABASE_PASSWORD: onlineconf
+      ONLINECONF_AUTH_HEADER: X-Forwarded-User
     restart: always
+    volumes:
+      - staticshare:/var/www/onlineconf-admin
   onlineconf-database:
     image: mysql:8.0
     volumes:
@@ -23,9 +23,10 @@ services:
       - ./etc/charset.cnf:/etc/mysql/conf.d/charset.cnf
       - ./etc/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
       - ./etc/notification.sql:/docker-entrypoint-initdb.d/2-notification.sql
-      - ./etc/auth.sql:/docker-entrypoint-initdb.d/3-auth.sql
-      - ./etc/example-auth.sql:/docker-entrypoint-initdb.d/4-example-auth.sql
-      - ./etc/example.sql:/docker-entrypoint-initdb.d/5-example.sql
+#      - ./etc/auth.sql:/docker-entrypoint-initdb.d/3-auth.sql
+#      - ./etc/example-auth.sql:/docker-entrypoint-initdb.d/4-example-auth.sql
+      - ./etc/empty.sql:/docker-entrypoint-initdb.d/5-empty.sql
+#      - ./etc/example.sql:/docker-entrypoint-initdb.d/5-example.sql
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: 1
       MYSQL_DATABASE: onlineconf
@@ -36,5 +37,20 @@ services:
       timeout: 10s
       interval: 1s
       retries: 60
+  onlineconf-nginx:
+    image: nginx:stable
+    volumes:
+      - ./etc/nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - staticshare:/usr/local/www/onlineconf
+    ports:
+      - "80:80"
+    environment:
+      - NGINX_PORT=80
+      - NGINX_ADMIN_HOST=onlineconf-admin
+      - NGINX_PROXY_USER=admin
+    depends_on:
+      - onlineconf-admin
 volumes:
   data: {}
+  staticshare:
+    driver: local

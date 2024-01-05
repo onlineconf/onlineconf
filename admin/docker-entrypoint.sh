@@ -8,6 +8,7 @@ http:
     key: ${ONLINECONF_TLS_KEY}
     redirect_from_http: }':80'
   static_root: /var/www/onlineconf-admin
+  ${ONLINECONF_AUTH_HEADER:+behind_reverse_proxy: true}
 database:
   host: ${ONLINECONF_DATABASE_HOST}
   base: ${ONLINECONF_DATABASE_BASE:-onlineconf}
@@ -15,6 +16,8 @@ database:
   password: ${ONLINECONF_DATABASE_PASSWORD}
   timeout: 2
 auth:
+  method: ${ONLINECONF_AUTH_HEADER:+'header'
+  header: ${ONLINECONF_AUTH_HEADER}}
   host: ${ONLINECONF_AUTH_HOST:-${ONLINECONF_DATABASE_HOST}}
   base: ${ONLINECONF_AUTH_BASE:-${ONLINECONF_DATABASE_BASE:-onlineconf}}
   user: ${ONLINECONF_AUTH_USER:-${ONLINECONF_DATABASE_USER:-onlineconf}}

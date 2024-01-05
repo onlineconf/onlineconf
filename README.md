@@ -103,7 +103,7 @@ Right now two authentication methods are supported:
 
 * `mysql` - credentials are stored in MySQL table. Table structure and password hashing method are inherited and compatible with module `mod_auth_mysql` of Apache httpd.
 
-* `header` - authentication is performed by a reverse proxy deployed in front of *onlineconf-admin*. In case of success it adds additional HTTP header with username (and signature, optionally).
+* `header` - authentication is performed by a reverse proxy deployed in front of *onlineconf-admin*. In case of success it adds additional HTTP header with username for example `X-Forwarded-Preferred-Username`(like oauth2-proxy), and signature `X-Username-Sign`, optionally (MD5 hashed string a concatenation of `x_username`, `remote_addr` and config onlineconf-admin param `secret`). Name of header may be configured.This type authentication requires behind_reverse_proxy config params.
 
 ## Authorization
 
