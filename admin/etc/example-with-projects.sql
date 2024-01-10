@@ -170,6 +170,7 @@ INSERT INTO `my_config_tree_log` VALUES (64,63,1,'/squirrel/nut','application/x-
 INSERT INTO `my_config_tree_log` VALUES (65,50,2,'${/infrastructure/graphite/host}:${/infrastructure/graphite/port/carbide}','application/x-template','admin','2019-08-05 18:30:28','Fix misprint',0);
 INSERT INTO `my_config_tree_log` VALUES (66,64,1,'{\n  \"BELKA5\": {\n    \"action\": \"discount\",\n    \"percent\": 5,\n    \"from\": \"2019-09-01\",\n    \"till\": \"2019-12-01\"\n  },\n  \"BELKA15\": {\n    \"premiumCard\": true,\n    \"action\": \"discount\",\n    \"percent\": 15,\n    \"from\": \"2019-09-01\",\n    \"till\": \"2019-12-01\"\n  },\n  \"STRELKA200\": {\n    \"action\": \"bonus\",\n    \"value\": 200,\n    \"from\": \"2019-01-01\",\n    \"till\": \"2020-01-01\"\n  }\n}','application/json','admin','2019-09-16 16:23:11','json example',0);
 INSERT INTO `my_config_tree_log` VALUES (67,65,1,'/squirrel/promocode','application/x-symlink','admin','2019-09-16 16:26:42','json example',0);
+INSERT INTO `my_config_tree_log` VALUES (68,66,1,'172.0.0.0/8','text/plain','admin','2022-10-24 18:15:21','',0);
 
 --
 -- Dumping data for table `my_config_user_group`

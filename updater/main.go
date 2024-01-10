@@ -16,6 +16,7 @@ var once = flag.Bool("once", false, "fetch configuration once and exit")
 
 func main() {
 	flag.Parse()
+log.Info().Str("config", *configFile).Msg("bla")
 	config := readConfigFile(*configFile)
 	u := updater.NewUpdater(*config)
 

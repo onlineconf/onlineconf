@@ -6,12 +6,12 @@ services:
     volumes:
       - ./data:/usr/local/etc/onlineconf
     environment:
-      ONLINECONF_ADMIN_HOST: onlineconf-admin
+      ONLINECONF_ADMIN_HOST: oc.localhost
       ONLINECONF_ADMIN_PORT: 80
-      ONLINECONF_UPDATER_USER: gopher
-      ONLINECONF_UPDATER_PASSWORD: gopher
+      ONLINECONF_UPDATER_USER: new
+      ONLINECONF_UPDATER_PASSWORD: pass
     restart: always
 networks:
-  default:
-    external:
-      name: admin_default
+  bridge:
+    external: true
+#      name: admin_default

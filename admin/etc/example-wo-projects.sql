@@ -37,6 +37,9 @@ INSERT INTO `my_config_tree_log` VALUES (4,4,1,NULL,'application/x-null','online
 INSERT INTO `my_config_tree_log` VALUES (5,5,1,NULL,'application/x-null','admin','2019-08-05 17:17:50','Initialize chroot',0);
 INSERT INTO `my_config_tree_log` VALUES (6,6,1,NULL,'application/x-null','admin','2019-08-05 17:24:45','Init infra',0);
 INSERT INTO `my_config_tree_log` VALUES (7,7,1,NULL,'application/x-null','admin','2019-08-05 18:05:39','Init infra',0);
+INSERT INTO `my_config_tree_log` VALUES (8,8,1,'172.0.0.0/8','text/plain','admin','2022-10-24 18:15:21','',0);
+INSERT INTO `my_config_tree_log` VALUES (9,9,1,NULL,'application/x-null','admin','2022-10-24 18:16:21','',0);
+INSERT INTO `my_config_tree_log` VALUES (10,10,1,NULL,'application/x-null','admin','2022-10-24 18:17:21','',0);
 
 --
 -- Dumping data for table `my_config_user_group`

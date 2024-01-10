@@ -25,7 +25,8 @@ services:
       - ./etc/notification.sql:/docker-entrypoint-initdb.d/2-notification.sql
       - ./etc/auth.sql:/docker-entrypoint-initdb.d/3-auth.sql
       - ./etc/example-auth.sql:/docker-entrypoint-initdb.d/4-example-auth.sql
-      - ./etc/example.sql:/docker-entrypoint-initdb.d/5-example.sql
+      - ./etc/example-with-projects.sql:/docker-entrypoint-initdb.d/5-example.sql
+      #- ./etc/example-wo-projects.sql:/docker-entrypoint-initdb.d/5-example.sql
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: 1
       MYSQL_DATABASE: onlineconf
