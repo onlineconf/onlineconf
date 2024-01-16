@@ -33,7 +33,7 @@ cd admin
 docker-compose up
 ```
 
-The database will be initialized with the demo config, the control panel and the API will be accessible at `http://localhost`.
+The database will be initialized with the demo config, the control panel and the API will be accessible at [localhost](http://localhost).
 
 The demo shows a relatively complex case when one installation of OnlineConf is used to control multiple unrelated projects (for just one project a structure can be simpler): *gopher* and *squirrel*. Every project is deployed on its own cluster and has its own user groups.
 
@@ -83,7 +83,7 @@ The daemon runs on every server configured by OnlineConf. It updates local confi
 
 Format *conf* is historical and used from the very first versions of OnlineConf. It can be recommended for small configurations only. This format is a plain text where each line is a key-value pair.
 
-The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on the site of its author: http://cr.yp.to/cdb.html
+The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on the site of its [author](http://cr.yp.to/cdb.html)
 
 The daemon is written in Go, has no dependencies and easily deployed on any system.
 
@@ -104,8 +104,7 @@ Right now two authentication methods are supported:
 
 * `mysql` - credentials are stored in MySQL table. Table structure and password hashing method are inherited and compatible with module `mod_auth_mysql` of Apache httpd.
 
-* `header` - authentication is performed by a reverse proxy deployed in front of onlineconf-admin. This type authentication requires `behind_reverse_proxy` config param and one optional config param `header` that set name of header with `username`. For example is you use `oauth2-proxy` the name of header with username is `X-Forwarded-Preferred-Username`.
-How it works. In case of success reverse proxy adds additional one required HTTP header with username and one optional HTTP header with signing. By default name of header with username is `X-Username`. Header that contains signing use the same name but with postfix `-Sign` (by default `X-Username-Sign`). The signing calculate as MD5 hashed string a concatenation of required header value ( by default `X-Username`), `remote_addr` and config onlineconf-admin param secret.
+* `header` - authentication is performed by a reverse proxy deployed in front of `onlineconf-admin`. In the header parameter you can specify the name of the `HTTP header` that the reverse proxy will use to pass the username (by default `X-Username`, for `oauth2-proxy`, for example, you should use `X-Forwarded-Preferred-Username`). If you specify a signature salt in the `secret` parameter, then `onlineconf-admin` in the `HTTP header` with the name `header + "-Sign"` (that is, `X-Username-Sign` by default) will expect a signature calculated as MD5 from the concatenation of the username, the user IP and the salt. When using a reverse proxy, you also need to set the `behind_reverse_proxy` configuration parameter in the http section to true.
 
 ## Authorization
 
@@ -161,6 +160,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 ### /onlineconf/ui/avatar
 
 `/onlineconf/ui/avatar` contains a configuration of avatars displayed in the OnlineConf UI in JSON or YAML format with the following schema:
+
 * `uri` - an avatar URI base, `/` and a username will be appended to it to form a URI;
 * `domain` - a domain users belongs to, if present then it will be appended to usernames after `@`;
 * `gravatar` - if true then a username will be hashed using MD5 before appending to a base URI;

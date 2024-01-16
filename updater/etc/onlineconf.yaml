@@ -1,7 +1,7 @@
 admin:
-  uri: http://localhost
-  username: new
-  password: pass
+  uri: http://xxx:80
+  username: onlineconf.updater
+  password: xxx
 data_dir: /usr/local/etc/onlineconf/
 reload_local: 10
 update_interval: 60
