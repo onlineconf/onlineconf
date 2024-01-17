@@ -455,7 +455,7 @@ $(function() {
         var $parent = $('#create-dialog').data('parent');
         var parent_path = $parent.data('node').path;
         $('#create-dialog').dialog('option', 'title', 'Создать ' + (parent_path == '/' ? '' : parent_path) + '/' + $(this).val());
-    });
+    }); 
     $('#create-name-novalidate').click(function () {
         $('#create-name').toggleClass('validate[custom[nodeName]]', !$(this).is(':checked'));
     });
