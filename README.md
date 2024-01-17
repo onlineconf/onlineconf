@@ -83,7 +83,7 @@ The daemon runs on every server configured by OnlineConf. It updates local confi
 
 Format *conf* is historical and used from the very first versions of OnlineConf. It can be recommended for small configurations only. This format is a plain text where each line is a key-value pair.
 
-The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on the site of its [author](http://cr.yp.to/cdb.html)
+The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on [the site of its author](http://cr.yp.to/cdb.html)
 
 The daemon is written in Go, has no dependencies and easily deployed on any system.
 
@@ -104,7 +104,7 @@ Right now two authentication methods are supported:
 
 * `mysql` - credentials are stored in MySQL table. Table structure and password hashing method are inherited and compatible with module `mod_auth_mysql` of Apache httpd.
 
-* `header` - authentication is performed by a reverse proxy deployed in front of `onlineconf-admin`. In the header parameter you can specify the name of the `HTTP header` that the reverse proxy will use to pass the username (by default `X-Username`, for `oauth2-proxy`, for example, you should use `X-Forwarded-Preferred-Username`). If you specify a signature salt in the `secret` parameter, then `onlineconf-admin` in the `HTTP header` with the name `header + "-Sign"` (that is, `X-Username-Sign` by default) will expect a signature calculated as MD5 from the concatenation of the username, the user IP and the salt. When using a reverse proxy, you also need to set the `behind_reverse_proxy` configuration parameter in the http section to true.
+* `header` - authentication is performed by a reverse proxy deployed in front of `onlineconf-admin`. In the header parameter you can specify the name of the HTTP header that the reverse proxy will use to pass the username (by default `X-Username`, for `oauth2-proxy`, for example, you should use `X-Forwarded-Preferred-Username`). If you specify a signature salt in the `secret` parameter, then `onlineconf-admin` in the HTTP header with the name `header + "-Sign"` (that is, `X-Username-Sign` by default) will expect a signature calculated as MD5 from the concatenation of the username, the user IP and the salt. When using a reverse proxy, you also need to set the `behind_reverse_proxy` configuration parameter in the http section to true.
 
 ## Authorization
 
