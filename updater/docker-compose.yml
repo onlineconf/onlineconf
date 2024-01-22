@@ -11,7 +11,8 @@ services:
       ONLINECONF_UPDATER_USER: gopher
       ONLINECONF_UPDATER_PASSWORD: gopher
     restart: always
+    networks:
+      - admin_default
 networks:
-  default:
-    external:
-      name: admin_default
+  admin_default:
+    external: true

@@ -33,11 +33,12 @@ cd admin
 docker-compose up
 ```
 
-The database will be initialized with the demo config, the control panel and the API will be accessible at http://localhost.
+The database will be initialized with the demo config, the control panel and the API will be accessible at [localhost](http://localhost).
 
 The demo shows a relatively complex case when one installation of OnlineConf is used to control multiple unrelated projects (for just one project a structure can be simpler): *gopher* and *squirrel*. Every project is deployed on its own cluster and has its own user groups.
 
 For demonstration purposes following users are created (passwords match usernames):
+
 * `admin` - a user with the full access (group `root`);
 * `hedgehog` - a system administrator (group `sysadmin`);
 * `meerkat` - a developer of the gopher project (group `gopher-developer`);
@@ -82,7 +83,7 @@ The daemon runs on every server configured by OnlineConf. It updates local confi
 
 Format *conf* is historical and used from the very first versions of OnlineConf. It can be recommended for small configurations only. This format is a plain text where each line is a key-value pair.
 
-The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on the site of its author: http://cr.yp.to/cdb.html
+The recommended format is *cdb*. Its support was added when it became plain what reading a configuration from plain text files requires a lot of CPU time. CDB is documented on [the site of its author](http://cr.yp.to/cdb.html)
 
 The daemon is written in Go, has no dependencies and easily deployed on any system.
 
@@ -103,7 +104,7 @@ Right now two authentication methods are supported:
 
 * `mysql` - credentials are stored in MySQL table. Table structure and password hashing method are inherited and compatible with module `mod_auth_mysql` of Apache httpd.
 
-* `header` - authentication is performed by a reverse proxy deployed in front of *onlineconf-admin*. In case of success it adds additional HTTP header with username (and signature, optionally).
+* `header` - authentication is performed by a reverse proxy deployed in front of `onlineconf-admin`. In the header parameter you can specify the name of the HTTP header that the reverse proxy will use to pass the username (by default `X-Username`, for `oauth2-proxy`, for example, you should use `X-Forwarded-Preferred-Username`). If you specify a signature salt in the `secret` parameter, then `onlineconf-admin` in the HTTP header with the name `header + "-Sign"` (that is, `X-Username-Sign` by default) will expect a signature calculated as MD5 from the concatenation of the username, the user IP and the salt. When using a reverse proxy, you also need to set the `behind_reverse_proxy` configuration parameter in the http section to true.
 
 ## Authorization
 
@@ -127,6 +128,7 @@ If several services are run on one managed server and they must have their own c
 
 Values of parameters `/onlineconf/module` and `/onlineconf/module/${modulename}` are used by *onlineconf-updater* to customize a generation of configuration files. `/onlineconf/module` is used to configure a default behavior used for all modules whereas `/onlineconf/module/${modulename}` for a `${modulename}` only. The value must be of YAML or JSON type and contain a map of parameters.
 Right now supported parameters are: `delimiter`, `owner`, `mode`.
+
 * `delimiter` is used to configure a delimiter used in names of configuration parameters. For new installations of OnlineConf it is highly recommended to configure it explicitly (in `/onlineconf/module`), in the other case the compatibility mode will be used in which the delimiter `/` will be used for the module `TREE` and the delimiter `.` for other modules.
 * `owner` is used to set the owner of the config file on the target server.
 * `mode` is used to set the permissions of the config file on the target server.
@@ -139,7 +141,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 
 ### /onlineconf/group
 
-`/onlineconf/group` groups managed servers and services by name. The name of a parameter is the name of a group, the value is a *glob* (similar to glob used in `bash`) of hostnames belonging to this group or service names with `service:` prefix (for example, `service:gopher/alpha`). Syntax of the used glob flavor is described here: https://github.com/bmatcuk/doublestar#patterns. For example, `{alpha*.{example.com,i},service:gopher/alpha}` contains servers `alpha*.example.com` and `alpha*.i` (where `*` is any symbol except `.`) and service `gopher/alpha`.
+`/onlineconf/group` groups managed servers and services by name. The name of a parameter is the name of a group, the value is a *glob* (similar to glob used in `bash`) of hostnames belonging to this group or service names with `service:` prefix (for example, `service:gopher/alpha`). Syntax of the used glob flavor is described [here](https://github.com/bmatcuk/doublestar#patterns). For example, `{alpha*.{example.com,i},service:gopher/alpha}` contains servers `alpha*.example.com` and `alpha*.i` (where `*` is any symbol except `.`) and service `gopher/alpha`.
 
 `/onlineconf/group/priority` - a list of the groups in descending order. By default the groups are sorted alphabetically. All explicitly unspecified groups are appended to the end of the list or instead of `*` placeholder if presented. Priorities are useful in the case when one server belongs to several groups for which a parameter has different values.
 
@@ -158,6 +160,7 @@ A username of a nested service is a path without `/onlineconf/service/` prefix, 
 ### /onlineconf/ui/avatar
 
 `/onlineconf/ui/avatar` contains a configuration of avatars displayed in the OnlineConf UI in JSON or YAML format with the following schema:
+
 * `uri` - an avatar URI base, `/` and a username will be appended to it to form a URI;
 * `domain` - a domain users belongs to, if present then it will be appended to usernames after `@`;
 * `gravatar` - if true then a username will be hashed using MD5 before appending to a base URI;

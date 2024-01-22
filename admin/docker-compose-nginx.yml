@@ -7,15 +7,15 @@ services:
     depends_on:
       onlineconf-database:
         condition: service_healthy
-    ports:
-      - "80:80"
-      - "443:443"
     environment:
       ONLINECONF_DATABASE_HOST: onlineconf-database
       ONLINECONF_DATABASE_BASE: onlineconf
       ONLINECONF_DATABASE_USER: onlineconf
       ONLINECONF_DATABASE_PASSWORD: onlineconf
+      ONLINECONF_AUTH_HEADER: ${AUTH_HEADER_NAME:-X-Username}
     restart: always
+    volumes:
+      - staticshare:/var/www/onlineconf-admin
   onlineconf-database:
     image: mysql:8.0
     volumes:
@@ -37,5 +37,21 @@ services:
       timeout: 10s
       interval: 1s
       retries: 60
+  onlineconf-nginx:
+    image: nginx:stable
+    volumes:
+      - ./etc/nginx.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./etc/nginx.htpasswd:/usr/share/nginx/.htpasswd:ro # docker run --rm --entrypoint htpasswd registry:2.7.0 -Bbn admin admin > etc/nginx.htpasswd
+      - staticshare:/usr/local/www/onlineconf
+    ports:
+      - "80:80"
+    environment:
+      - NGINX_PORT=80
+      - NGINX_ADMIN_HOST=onlineconf-admin
+      - NGINX_AUTH_HEADER_NAME=${AUTH_HEADER_NAME:-X-Username}
+    depends_on:
+      - onlineconf-admin
 volumes:
   data: {}
+  staticshare:
+    driver: local
