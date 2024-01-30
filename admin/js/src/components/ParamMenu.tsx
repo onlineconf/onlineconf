@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { makeStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import Menu, { MenuProps } from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';

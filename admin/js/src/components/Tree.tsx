@@ -1,7 +1,8 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { Theme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+
+import makeStyles from '@mui/styles/makeStyles';
 
 const useStyles = makeStyles((theme: Theme) => ({
 	root: {

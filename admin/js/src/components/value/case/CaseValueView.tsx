@@ -1,7 +1,10 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { withStyles, WithStyles, createStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
 
 import { Case, caseConditions } from './common';
 import { NonNullValueProps } from '../common';

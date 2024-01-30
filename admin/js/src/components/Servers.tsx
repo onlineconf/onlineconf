@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { withStyles, WithStyles, createStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -173,7 +175,10 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 									<TableCell>{server.host}</TableCell>
 									<TableCell padding="none">
 										{server.online_alert && this.context.userIsRoot && (
-											<IconButton onClick={() => this.deleteServer(server)} className={classes.delete}><RemoveIcon/></IconButton>
+											<IconButton
+												onClick={() => this.deleteServer(server)}
+												className={classes.delete}
+												size="large"><RemoveIcon/></IconButton>
 										)}
 									</TableCell>
 									<TableCell className={server.mtime_alert ? classes.alert : undefined}>{server.mtime}</TableCell>

@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
 import { Theme } from '@mui/material/styles';
-import { createStyles, WithStyles, withStyles } from '@mui/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import MenuItem from '@mui/material/MenuItem';
@@ -207,14 +209,21 @@ export default withStyles(styles)(withTranslation()(
 						};
 						switch (caseType) {
 							case 'server': {
-								caseKey = <TextField label={t('param.case.server')} value={c.server} {...commonProps}/>;
+								caseKey = <TextField
+									label={t('param.case.server')}
+									value={c.server}
+									{...commonProps} />;
 								break;
 							}
 							case 'group': {
 								const { groups, loading } = this.state;
 								if (groups) {
 									caseKey = (
-										<TextField select label={t('param.case.group')} value={c.group} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.group')}
+											value={c.group}
+											{...commonProps}>
 											{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
 										</TextField>
 									);
@@ -227,7 +236,11 @@ export default withStyles(styles)(withTranslation()(
 								const { datacenters, loading } = this.state;
 								if (datacenters) {
 									caseKey = (
-										<TextField select label={t('param.case.datacenter')} value={c.datacenter} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.datacenter')}
+											value={c.datacenter}
+											{...commonProps}>
 											{Object.keys(datacenters).map(key => <MenuItem key={key} value={key}>{datacenters[key]}</MenuItem>)}
 										</TextField>)
 									;
@@ -240,7 +253,11 @@ export default withStyles(styles)(withTranslation()(
 								const { services, loading } = this.state;
 								if (services) {
 									caseKey = (
-										<TextField select label={t('param.case.service')} value={c.service} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.service')}
+											value={c.service}
+											{...commonProps}>
 											{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
 										</TextField>
 									);
@@ -254,7 +271,10 @@ export default withStyles(styles)(withTranslation()(
 						return (
 							<div key={i} className={classes.case}>
 								<div className={classes.caseKey}>
-									<IconButton className={classes.remove} onClick={this.createRemoveCaseHandler(i)}>
+									<IconButton
+										className={classes.remove}
+										onClick={this.createRemoveCaseHandler(i)}
+										size="large">
 										<RemoveIcon/>
 									</IconButton>
 									<TextField
@@ -281,7 +301,7 @@ export default withStyles(styles)(withTranslation()(
 						);
 					})}
 					<div className={classes.add}>
-						<IconButton onClick={this.handleAddCase}>
+						<IconButton onClick={this.handleAddCase} size="large">
 							<AddIcon/>
 						</IconButton>
 					</div>

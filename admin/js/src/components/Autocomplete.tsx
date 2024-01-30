@@ -2,7 +2,9 @@ import * as React from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
 import { DistributiveOmit } from '@mui/types';
 import { Theme } from '@mui/material/styles';
-import { withStyles, WithStyles, createStyles } from '@mui/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import Popper from '@mui/material/Popper';
@@ -151,11 +153,11 @@ class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof
 		return (
 			<React.Fragment>
 				<TextField
+					variant="standard"
 					{...props}
 					onChange={this.handleChange}
 					inputRef={this.inputRef}
-					onKeyDown={this.handleInputKeyDown}
-				/>
+					onKeyDown={this.handleInputKeyDown} />
 				<Popper
 					open={this.state.options.length > 0}
 					anchorEl={this.inputRef.current}

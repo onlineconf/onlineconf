@@ -1,6 +1,6 @@
 import * as CSS from 'csstype';
 import deepmerge from 'deepmerge';
-import { ThemeOptions, createTheme as createMUITheme, adaptV4Theme } from '@mui/material/styles';
+import { DeprecatedThemeOptions, adaptV4Theme, createTheme as createMuiTheme } from '@mui/material/styles';
 import { indigo, orange, green } from '@mui/material/colors';
 
 interface OnlineConfPalette {
@@ -34,7 +34,7 @@ declare module '@mui/material/styles/createPalette' {
 	}
 }
 
-const themeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
+const themeOptions: { [K in 'light' | 'dark']: DeprecatedThemeOptions } = {
 	light: {
 		palette: {
 			background: {
@@ -90,27 +90,25 @@ const themeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 				variable2: '#9cdcfe',
 			},
 		},
-		components: {
+		overrides: {
 			// elevation overlay emulation
 			MuiPaper: {
-				styleOverrides: {
-					elevation1: { backgroundColor: '#1d1d1d' },
-					elevation2: { backgroundColor: '#222222' },
-					elevation3: { backgroundColor: '#242424' },
-					elevation4: { backgroundColor: '#272727' },
-					elevation6: { backgroundColor: '#2c2c2c' },
-					elevation8: { backgroundColor: '#2e2e2e' },
-					elevation12: { backgroundColor: '#323232' },
-					elevation16: { backgroundColor: '#353535' },
-					elevation24: { backgroundColor: '#383838' },
-				}
+				elevation1: { backgroundColor: '#1d1d1d' },
+				elevation2: { backgroundColor: '#222222' },
+				elevation3: { backgroundColor: '#242424' },
+				elevation4: { backgroundColor: '#272727' },
+				elevation6: { backgroundColor: '#2c2c2c' },
+				elevation8: { backgroundColor: '#2e2e2e' },
+				elevation12: { backgroundColor: '#323232' },
+				elevation16: { backgroundColor: '#353535' },
+				elevation24: { backgroundColor: '#383838' },
 			}
 		},
 	},
 };
 
 // used to distinguish between production (default) and development (green) instances
-const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
+const greenThemeOptions: { [K in 'light' | 'dark']: DeprecatedThemeOptions } = {
 	light: {
 		palette: {
 			background: {
@@ -119,12 +117,10 @@ const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 			},
 			primary: { main: green[500] },
 		},
-		components: {
+		overrides: {
 			MuiAppBar: {
-				styleOverrides: {
-					colorDefault: {
-						backgroundColor: green[100],
-					},
+				colorDefault: {
+					backgroundColor: green[100],
 				},
 			},
 		},
@@ -137,35 +133,31 @@ const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 			},
 			primary: { main: green[200] },
 		},
-		components: {
+		overrides: {
 			MuiAppBar: {
-				styleOverrides: {
-					colorDefault: {
-						backgroundColor: '#142e15',
-					},
+				colorDefault: {
+					backgroundColor: '#142e15',
 				},
 			},
 			// elevation overlay emulation
 			MuiPaper: {
-				styleOverrides: {
-					elevation1: { backgroundColor: '#172517' },
-					elevation2: { backgroundColor: '#1c291c' },
-					elevation3: { backgroundColor: '#1e2b1e' },
-					elevation4: { backgroundColor: '#212e21' },
-					elevation6: { backgroundColor: '#263226' },
-					elevation8: { backgroundColor: '#293529' },
-					elevation12: { backgroundColor: '#2d392d' },
-					elevation16: { backgroundColor: '#2f3b2f' },
-					elevation24: { backgroundColor: '#323e32' },
-				}
+				elevation1: { backgroundColor: '#172517' },
+				elevation2: { backgroundColor: '#1c291c' },
+				elevation3: { backgroundColor: '#1e2b1e' },
+				elevation4: { backgroundColor: '#212e21' },
+				elevation6: { backgroundColor: '#263226' },
+				elevation8: { backgroundColor: '#293529' },
+				elevation12: { backgroundColor: '#2d392d' },
+				elevation16: { backgroundColor: '#2f3b2f' },
+				elevation24: { backgroundColor: '#323e32' },
 			}
 		},
 	},
 };
 
-export default function createTheme(options: ThemeOptions = {}) {
-	return createMUITheme(adaptV4Theme(
-		deepmerge.all([
+export default function createTheme(options: DeprecatedThemeOptions = {}) {
+	return createMuiTheme(
+		adaptV4Theme(deepmerge.all([
 			{
 				typography: {
 					useNextVariants: true,
@@ -184,6 +176,6 @@ export default function createTheme(options: ThemeOptions = {}) {
 			themeOptions[options.palette?.mode || 'light'],
 			process.env.REACT_APP_GREEN ? greenThemeOptions[options.palette?.mode || 'light'] : {},
 			options,
-		])
-	));
+		]))
+	);
 }

@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { createStyles, WithStyles, withStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import IconButton from '@mui/material/IconButton';
 import TextField from '@mui/material/TextField';
 
@@ -49,12 +51,18 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 				<ul className={this.props.classes.list}>
 					{list.map((item, i) => (
 						<li key={i} className={this.props.classes.item}>
-							<IconButton onClick={this.createRemoveItemHandler(i)}><RemoveIcon/></IconButton>
-							<TextField margin="dense" fullWidth value={item} onChange={this.createChangeItemHandler(i)} autoFocus={item === ''}/>
+							<IconButton onClick={this.createRemoveItemHandler(i)} size="large"><RemoveIcon/></IconButton>
+							<TextField
+								variant="standard"
+								margin="dense"
+								fullWidth
+								value={item}
+								onChange={this.createChangeItemHandler(i)}
+								autoFocus={item === ''} />
 						</li>
 					))}
 					<li className={this.props.classes.item}>
-						<IconButton onClick={this.handleAddItem}><AddIcon /></IconButton>
+						<IconButton onClick={this.handleAddItem} size="large"><AddIcon /></IconButton>
 					</li>
 				</ul>
 			</ValueOutline>

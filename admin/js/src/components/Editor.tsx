@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, withStyles, WithStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -10,6 +12,7 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import Typography from '@mui/material/Typography';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 import { ValueProps } from './common';
 import { Notification, postParam, IParam, ParamModify } from '../api';
@@ -46,9 +49,9 @@ export interface EditorProps extends Partial<ValueProps> {
 	version?: number;
 	create?: boolean;
 	summary?: string;
+	fullScreen?: boolean;
 	description?: string;
 	notification?: Notification;
-	fullScreen?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
 	onError: (error: unknown) => void;
@@ -147,10 +150,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 			<Dialog
 				open={this.state.open}
 				onClose={this.handleClose}
-				TransitionProps={{ onExited: this.props.onClose}}
 				maxWidth={false}
 				classes={this.props.fullScreen ? undefined : { paper: this.props.classes.paper }}
-			>
+				TransitionProps={{
+					onExited: this.props.onClose
+				}}>
 				{this.props.create ? <DialogTitle>{t('param.menu.create')}</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
@@ -207,4 +211,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 
 }
 
-export default withStyles(styles)(withTranslation()(Editor));
+/* eslint-disable react/display-name */
+const withMobileDialog = () => <P extends EditorProps >(WrappedComponent: React.ComponentType<P>) => (props: any) => {
+	const theme = useTheme();
+	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return <WrappedComponent {...props} width="lg" fullScreen={fullScreen} />;
+};
+
+export default withStyles(styles)(withTranslation()(withMobileDialog()(Editor)));

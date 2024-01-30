@@ -1,8 +1,8 @@
 import * as React from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { makeStyles } from '@mui/styles';
 import { Theme, useTheme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -30,7 +30,7 @@ export default function ParamLog(props: ParamLogProps) {
 	const { t } = useTranslation();
 
 	const theme = useTheme();
-	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
 	const [ open, setOpen ] = React.useState(false);
 	const [ lastID, setLastID ] = React.useState<number>();
@@ -92,10 +92,11 @@ export default function ParamLog(props: ParamLogProps) {
 		<Dialog
 			open={open}
 			onClose={handleClose}
-			TransitionProps={{ onExited: props.onClose}}
 			maxWidth="md"
 			fullScreen={fullScreen}
-		>
+			TransitionProps={{
+				onExited: props.onClose
+			}}>
 			<ParamDialogTitle path={path}>{t('param.menu.history')}</ParamDialogTitle>
 			<DialogContent onScroll={handleScroll}>
 				<LogList data={data} onChange={handleChange}/>

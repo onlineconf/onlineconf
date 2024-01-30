@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { makeStyles } from '@mui/styles';
 import { Theme, useTheme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -49,6 +49,7 @@ class SearchBase extends React.Component<SearchProps & WithTranslation, SearchSt
 		return (
 			<form onSubmit={this.handleSubmit}>
 				<TextField
+					variant="standard"
 					placeholder={this.props.t('search')}
 					type="search"
 					margin="none"
@@ -59,14 +60,13 @@ class SearchBase extends React.Component<SearchProps & WithTranslation, SearchSt
 						endAdornment: (
 							<InputAdornment position="end">
 								<IconButtonProgress loading={this.props.searching}>
-									<IconButton type="submit">
+									<IconButton type="submit" size="large">
 										<SearchIcon />
 									</IconButton>
 								</IconButtonProgress>
 							</InputAdornment>
 						)
-					}}
-				/>
+					}} />
 			</form>
 		);
 	}
@@ -109,7 +109,11 @@ export default function TopBar(props: TopBarProps) {
 	return (
 		<AppBar position="sticky" color="default" className={classes.root}>
 			<Toolbar>
-				<IconButton color="inherit" className={classes.menuButton} onClick={props.onMenu}>
+				<IconButton
+					color="inherit"
+					className={classes.menuButton}
+					onClick={props.onMenu}
+					size="large">
 					<MenuIcon/>
 				</IconButton>
 				<Typography variant="h6" color="inherit" className={classes.title}>

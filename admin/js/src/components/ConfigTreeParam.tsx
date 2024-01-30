@@ -1,9 +1,10 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { CSSProperties } from '@mui/material/styles/createTypography';
+import * as CSS from 'csstype';
 import { DistributiveOmit } from '@mui/types';
 import { Theme } from '@mui/material/styles';
-import { makeStyles, createStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import createStyles from '@mui/styles/createStyles';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -136,19 +137,27 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 					)}
 				</div>
 				{param.notification_modified && (
-					<IconButton onClick={onNotification} disabled={param.rw !== true} className={clsx(classes.iconButton, classes.extraButtons)}><Notifications/></IconButton>
+					<IconButton
+						onClick={onNotification}
+						disabled={param.rw !== true}
+						className={clsx(classes.iconButton, classes.extraButtons)}
+						size="large"><Notifications/></IconButton>
 				)}
 				{param.access_modified && (
 					<IconButtonProgress size={buttonSize} loading={param.accessLoading} className={classes.extraButtons}>
-						<IconButton onClick={onAccess} disabled={param.rw !== true && !userIsRoot} className={classes.iconButton}><LockOpen/></IconButton>
+						<IconButton
+							onClick={onAccess}
+							disabled={param.rw !== true && !userIsRoot}
+							className={classes.iconButton}
+							size="large"><LockOpen/></IconButton>
 					</IconButtonProgress>
 				)}
 				<ButtonProgress loading={param.logLoading} className={classes.logButtons}>
-					<Button onClick={onLog} classes={{ root: clsx(classes.button, classes.version) }}>{param.version}</Button>
-					<Button onClick={onLog} classes={{ root: clsx(classes.button, classes.mtime) }}>{param.mtime}</Button>
+					<Button onClick={onLog} classes={{ root: classes.button}}>{param.version}</Button>
+					<Button onClick={onLog} classes={{ root: classes.button}}>{param.mtime}</Button>
 				</ButtonProgress>
 			</div>
-			<IconButton onClick={onViewOpen} className={classes.iconButton}><MoreHoriz/></IconButton>
+			<IconButton onClick={onViewOpen} className={classes.iconButton} size="large"><MoreHoriz/></IconButton>
 		</Typography>
 	);
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -66,14 +66,17 @@ function AccessList(props: AccessListProps) {
 							/>
 						))}
 						{userIsRoot && (
-							<IconButton className={classes.add} onClick={() => props.onAddUser(group)}><AddIcon/></IconButton>
+							<IconButton
+								className={classes.add}
+								onClick={() => props.onAddUser(group)}
+								size="large"><AddIcon/></IconButton>
 						)}
 					</ListItem>
 				);
 			})}
 			{userIsRoot && (
 				<ListItem className={classes.group}>
-					<IconButton className={classes.add} onClick={props.onCreateGroup}><AddIcon/></IconButton>
+					<IconButton className={classes.add} onClick={props.onCreateGroup} size="large"><AddIcon/></IconButton>
 				</ListItem>
 			)}
 		</List>

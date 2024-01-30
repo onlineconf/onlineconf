@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Link, LinkProps, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Theme, useTheme, alpha } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import Drawer from '@mui/material/Drawer';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import { InputBaseComponentProps } from '@mui/material/InputBase';
 import TextField from '@mui/material/TextField';
 

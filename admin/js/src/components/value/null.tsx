@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Theme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+
+import makeStyles from '@mui/styles/makeStyles';
 
 import { NullValueProps } from './common';
 

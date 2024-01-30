@@ -2,7 +2,7 @@ import * as React from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import TextField from '@mui/material/TextField';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';

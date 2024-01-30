@@ -2,7 +2,7 @@ import * as React from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
 import { Theme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 import ErrorContext from './components/ErrorContext';

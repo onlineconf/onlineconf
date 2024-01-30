@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { AxiosError } from 'axios';
-import { createStyles, withStyles, WithStyles } from '@mui/styles';
+import { AxiosError, AxiosResponse } from 'axios';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import Snackbar from '@mui/material/Snackbar';
 
 const styles = (theme: Theme) => createStyles({
@@ -70,15 +72,20 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 		const { error } = this.state;
 		let message: React.ReactNode | undefined;
 		if (error !== undefined) {
-			if (error instanceof AxiosError) {
-				const response = error.response;
-				if (response !== undefined && typeof response.data === 'object' && response.data !== null && response.data.message) {
-					message = (
-						<div>
-							<div>{error.message}</div>
-							<div>{response.data.message}</div>
-						</div>
-					);
+			if (error instanceof Error) {
+				const response = (error as AxiosError).response;
+				if (response !== undefined) {
+					const data = (response as AxiosResponse).data;
+					if (data !== undefined && typeof response.data === 'object' && data.message) {
+						message = (
+							<div>
+								<div>{error.message}</div>
+								<div>{data.message}</div>
+							</div>
+						);
+					} else {
+						message = <span>{error.message}</span>;
+					}
 				} else {
 					message = <span>{error.message}</span>;
 				}
@@ -91,9 +98,10 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 				open={this.state.open}
 				message={message}
 				onClose={this.handleClose}
-				TransitionProps={{ onExited: this.handleExited}}
 				ContentProps={{ className: this.props.classes.content }}
-			/>
+				TransitionProps={{
+					onExited: this.handleExited
+				}} />
 		);
 	}
 

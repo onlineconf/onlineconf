@@ -1,8 +1,10 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, withStyles, WithStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -12,6 +14,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 import ParamDialogTitle from './ParamDialogTitle';
 
@@ -207,4 +210,11 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 
 }
 
-export default withStyles(styles)(withTranslation()(ParamAccess));
+/* eslint-disable react/display-name */
+const withMobileDialog = () => <P extends ParamDialogProps >(WrappedComponent: React.ComponentType<P>) => (props: any) => {
+	const theme = useTheme();
+	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return <WrappedComponent {...props} width="lg" fullScreen={fullScreen} />;
+};
+
+export default withStyles(styles)(withMobileDialog()(withTranslation()(ParamAccess)));

@@ -1,7 +1,9 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { withStyles, WithStyles, createStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
 import IconButton from '@mui/material/IconButton';
 
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -50,7 +52,7 @@ const TreeNodeArrow = (props: TreeNodeArrowProps & WithStyles<typeof arrowStyles
 			<IconButton
 				onClick={state === 'open' ? onClose : state === 'closed' ? onOpen : undefined}
 				className={classes.button}
-			>
+				size="large">
 				<ChevronRightIcon className={iconClassName}/>
 			</IconButton>
 		</IconButtonProgress>

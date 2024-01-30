@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { WithStyles, createStyles, withStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 
 const styles = (theme: Theme) => createStyles({
 	root: {

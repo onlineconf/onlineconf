@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { makeStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
@@ -163,7 +163,7 @@ function LogItem(props: LogItemProps) {
 				}
 				avatar={<Avatar username={props.author}/>}
 				action={
-					<IconButton onClick={handleExpand}>
+					<IconButton onClick={handleExpand} size="large">
 						{expanded ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
 					</IconButton>
 				}

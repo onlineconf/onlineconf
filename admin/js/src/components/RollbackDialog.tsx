@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Theme, useTheme } from '@mui/material/styles';
-import { makeStyles } from '@mui/styles';
+import makeStyles from '@mui/styles/makeStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
@@ -51,7 +51,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 	const { t } = useTranslation();
 
 	const theme = useTheme();
-	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
 	const genericOnError = React.useContext(ErrorContext);
 	const [ current, setCurrent ] = React.useState<API.IParam | null>();
@@ -133,7 +133,9 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 							<div className={classes.text}>{t('log.rollback.current', { version: current.version})}</div>
 							{handleEdit && (
 								<div className={classes.edit}>
-									<IconButton onClick={() => handleEdit({ path: current.path, type: current.mime, value: current.data })}>
+									<IconButton
+										onClick={() => handleEdit({ path: current.path, type: current.mime, value: current.data })}
+										size="large">
 										<EditIcon/>
 									</IconButton>
 								</div>
@@ -150,7 +152,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 							<div className={classes.textBlock}>
 								<div className={classes.text}>{t('log.rollback.confirmation', { param: props.path, version: props.version })}</div>
 								{handleEdit && (
-									<div className={classes.edit}><IconButton onClick={() => handleEdit(props)}><EditIcon/></IconButton></div>
+									<div className={classes.edit}><IconButton onClick={() => handleEdit(props)} size="large"><EditIcon/></IconButton></div>
 								)}
 							</div>
 							<ValueView type={props.type} value={props.value}/>

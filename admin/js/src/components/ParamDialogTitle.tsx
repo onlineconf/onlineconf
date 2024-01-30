@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { createStyles, withStyles, WithStyles } from '@mui/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 

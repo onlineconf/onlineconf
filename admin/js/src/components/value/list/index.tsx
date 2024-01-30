@@ -1,6 +1,9 @@
 import * as React from 'react';
-import { createStyles, WithStyles, withStyles } from '@mui/styles';
 import { Theme } from '@mui/material/styles';
+
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
 
 import { NonNullValueProps } from '../common';
 import ListValueEdit from './ListValueEdit';
