@@ -1,15 +1,10 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-<<<<<<< HEAD
-import { withStyles, createStyles, WithStyles } from '@mui/styles';
-import { Theme } from '@mui/material/styles';
-=======
 import { Theme } from '@mui/material/styles';
 
 import { WithStyles } from '@mui/styles';
 import withStyles from '@mui/styles/withStyles';
 import createStyles from '@mui/styles/createStyles';
->>>>>>> update-dep-v2
 
 const styles = (theme: Theme) => createStyles({
 	root: {

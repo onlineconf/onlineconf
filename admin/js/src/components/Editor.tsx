@@ -151,6 +151,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 				open={this.state.open}
 				onClose={this.handleClose}
 				maxWidth={false}
+				fullScreen={this.props.fullScreen}
 				classes={this.props.fullScreen ? undefined : { paper: this.props.classes.paper }}
 				TransitionProps={{
 					onExited: this.props.onClose

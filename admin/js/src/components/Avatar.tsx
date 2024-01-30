@@ -13,7 +13,7 @@ const useStyles = makeStyles({
 	}
 });
 
-type AvatarProps = DistributiveOmit<MUIAvatarProps, 'children' | 'src'> & {
+type AvatarProps = Omit<MUIAvatarProps, 'children' | 'src'> & {
 	username: string;
 	disableTooltip?: boolean;
 };

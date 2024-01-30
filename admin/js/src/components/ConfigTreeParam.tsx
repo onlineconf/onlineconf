@@ -27,7 +27,7 @@ export const buttonSize = 24;
 export const iconButtonPadding = (buttonSize - 24) / 2;
 
 const usePreviewStyles = makeStyles((theme: Theme) => {
-	const overflow: CSSProperties = {
+	const overflow: CSS.Properties = {
 		overflow: 'hidden',
 		textOverflow: 'ellipsis',
 		whiteSpace: 'nowrap',
