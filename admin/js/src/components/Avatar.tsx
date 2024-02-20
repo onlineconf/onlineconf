@@ -1,9 +1,9 @@
 
 import * as React from 'react';
 import md5 from 'crypto-js/md5';
-import { makeStyles } from '@material-ui/core/styles';
-import MUIAvatar, { AvatarProps as MUIAvatarProps } from '@material-ui/core/Avatar';
-import Tooltip from '@material-ui/core/Tooltip';
+import makeStyles from '@mui/styles/makeStyles';
+import MUIAvatar, { AvatarProps as MUIAvatarProps } from '@mui/material/Avatar';
+import Tooltip from '@mui/material/Tooltip';
 
 import { AvatarContext } from './UIConfig';
 

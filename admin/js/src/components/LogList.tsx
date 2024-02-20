@@ -1,21 +1,22 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { makeStyles, Theme } from '@material-ui/core/styles';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import Collapse from '@material-ui/core/Collapse';
-import Fade from '@material-ui/core/Fade';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import Typography from '@material-ui/core/Typography';
+import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import Collapse from '@mui/material/Collapse';
+import Fade from '@mui/material/Fade';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
 
-import CommentIcon from '@material-ui/icons/Comment';
-import ExpandLessIcon from '@material-ui/icons/ExpandLess';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import UndoIcon from '@material-ui/icons/Undo';
+import CommentIcon from '@mui/icons-material/Comment';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import UndoIcon from '@mui/icons-material/Undo';
 
 import * as API from '../api';
 import { ValuePreview, ValueView } from './value';
@@ -162,7 +163,7 @@ function LogItem(props: LogItemProps) {
 				}
 				avatar={<Avatar username={props.author}/>}
 				action={
-					<IconButton onClick={handleExpand}>
+					<IconButton onClick={handleExpand} size="large">
 						{expanded ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
 					</IconButton>
 				}

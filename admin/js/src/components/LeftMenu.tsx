@@ -1,30 +1,31 @@
 import * as React from 'react';
 import { Link, LinkProps, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Theme, useTheme, makeStyles, fade } from '@material-ui/core/styles';
-import Drawer from '@material-ui/core/Drawer';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemText from '@material-ui/core/ListItemText';
-import Divider from '@material-ui/core/Divider';
-import Typography from '@material-ui/core/Typography';
-import useMediaQuery from '@material-ui/core/useMediaQuery';
-import { SvgIconProps } from '@material-ui/core/SvgIcon';
-import ButtonGroup from '@material-ui/core/ButtonGroup';
-import Button, { ButtonProps } from '@material-ui/core/Button';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import InputAdornment from '@material-ui/core/InputAdornment';
+import { Theme, useTheme, alpha } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { SvgIconProps } from '@mui/material/SvgIcon';
+import ButtonGroup from '@mui/material/ButtonGroup';
+import Button, { ButtonProps } from '@mui/material/Button';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputAdornment from '@mui/material/InputAdornment';
 
-import SettingsIcon from '@material-ui/icons/Settings';
-import HistoryIcon from '@material-ui/icons/History';
-import GroupIcon from '@material-ui/icons/Group';
-import StorageIcon from '@material-ui/icons/Storage';
-import LanguageIcon from '@material-ui/icons/Translate';
-import LightModeIcon from '@material-ui/icons/Brightness7';
-import DarkModeIcon from '@material-ui/icons/Brightness4';
-import SystemModeIcon from '@material-ui/icons/SettingsBrightness';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HistoryIcon from '@mui/icons-material/History';
+import GroupIcon from '@mui/icons-material/Group';
+import StorageIcon from '@mui/icons-material/Storage';
+import LanguageIcon from '@mui/icons-material/Translate';
+import LightModeIcon from '@mui/icons-material/Brightness7';
+import DarkModeIcon from '@mui/icons-material/Brightness4';
+import SystemModeIcon from '@mui/icons-material/SettingsBrightness';
 
 import { PaletteType } from './UIConfig';
 
@@ -85,7 +86,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 	selected: {
 		backgroundColor: theme.palette.action.selected,
 		'&:hover': {
-			backgroundColor: fade(theme.palette.action.selected, theme.palette.action.selectedOpacity + theme.palette.action.hoverOpacity),
+			backgroundColor: alpha(theme.palette.action.selected, theme.palette.action.selectedOpacity + theme.palette.action.hoverOpacity),
 		}
 	},
 }), { name: 'LeftMenu' });

@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
-import TextField from '@material-ui/core/TextField';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import TextField from '@mui/material/TextField';
 
 // Workaround for bug in outlined dense multiline TextField
 const styles = createStyles({

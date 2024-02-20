@@ -2,7 +2,9 @@ import * as React from 'react';
 import clsx from 'clsx';
 import { defineMIME } from 'codemirror';
 import { Controlled, IControlledCodeMirror } from 'react-codemirror2';
-import { makeStyles, Theme } from '@material-ui/core/styles';
+import { Theme } from '@mui/material/styles';
+
+import makeStyles from '@mui/styles/makeStyles';
 
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/javascript/javascript.js';

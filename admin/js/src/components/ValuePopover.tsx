@@ -1,6 +1,9 @@
 import * as React from 'react';
-import Popover from '@material-ui/core/Popover';
-import { Theme, WithStyles, withStyles } from '@material-ui/core/styles';
+import Popover from '@mui/material/Popover';
+import { Theme } from '@mui/material/styles';
+
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
 
 import { ValueProps } from './common';
 import { ValueView } from './value';

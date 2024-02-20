@@ -1,11 +1,14 @@
 import * as React from 'react';
-import { createStyles, WithStyles, withStyles, Theme } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
-import TextField from '@material-ui/core/TextField';
-import InputAdornment from '@material-ui/core/InputAdornment';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 
-import AddIcon from '@material-ui/icons/AddCircle';
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 import { EditNonnullValueProps } from './common';
 import ValueOutline from './ValueOutline';
@@ -108,21 +111,45 @@ export default withStyles(styles)(
 					<div className={this.props.classes.list}>
 						{list.map((item, i) => (
 							<React.Fragment key={i}>
-								<IconButton onClick={this.createRemoveHostHandler(i)} className={this.props.classes.action}><RemoveIcon/></IconButton>
-								<TextField fullWidth margin="none" value={item.host} onChange={this.createChangeHostHandler(i)} autoFocus={item.host === ''} className={this.props.classes.host}/>
+								<IconButton
+									onClick={this.createRemoveHostHandler(i)}
+									className={this.props.classes.action}
+									size="large"><RemoveIcon/></IconButton>
+								<TextField
+									variant="standard"
+									fullWidth
+									margin="none"
+									value={item.host}
+									onChange={this.createChangeHostHandler(i)}
+									autoFocus={item.host === ''}
+									className={this.props.classes.host} />
 								{item.ports.map((port, j) => (
 									<React.Fragment key={j}>
-										<TextField fullWidth margin="none" value={port} onChange={this.createChangePortHandler(i, j)} autoFocus={port === '' && item.host !== ''}
+										<TextField
+											variant="standard"
+											fullWidth
+											margin="none"
+											value={port}
+											onChange={this.createChangePortHandler(i, j)}
+											autoFocus={port === '' && item.host !== ''}
 											className={this.props.classes.port}
-											InputProps={{ startAdornment: <InputAdornment position="start">:</InputAdornment> }}
-										/>
-										<IconButton className={this.props.classes.portAction} onClick={this.createRemovePortHandler(i, j)}><RemoveIcon/></IconButton>
+											InputProps={{ startAdornment: <InputAdornment position="start">:</InputAdornment> }} />
+										<IconButton
+											className={this.props.classes.portAction}
+											onClick={this.createRemovePortHandler(i, j)}
+											size="large"><RemoveIcon/></IconButton>
 									</React.Fragment>
 								))}
-								<IconButton className={this.props.classes.portAction} onClick={this.createAddPortHandler(i)}><AddIcon /></IconButton>
+								<IconButton
+									className={this.props.classes.portAction}
+									onClick={this.createAddPortHandler(i)}
+									size="large"><AddIcon /></IconButton>
 							</React.Fragment>
 						))}
-						<IconButton className={this.props.classes.action} onClick={this.handleAddHost}><AddIcon /></IconButton>
+						<IconButton
+							className={this.props.classes.action}
+							onClick={this.handleAddHost}
+							size="large"><AddIcon /></IconButton>
 					</div>
 				</ValueOutline>
 			);

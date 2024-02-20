@@ -1,17 +1,20 @@
 import * as React from 'react';
 import axios, { CancelTokenSource } from 'axios';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, Theme, withStyles, WithStyles } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
-import Button from '@material-ui/core/Button';
-import Checkbox from '@material-ui/core/Checkbox';
-import withMobileDialog from '@material-ui/core/withMobileDialog';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 import ParamDialogTitle from './ParamDialogTitle';
 
@@ -207,4 +210,11 @@ class ParamAccess extends React.Component<ParamDialogProps & WithStyles<typeof s
 
 }
 
-export default withStyles(styles)(withMobileDialog<ParamDialogProps>()(withTranslation()(ParamAccess)));
+/* eslint-disable react/display-name */
+const withMobileDialog = () => <P extends ParamDialogProps >(WrappedComponent: React.ComponentType<P>) => (props: any) => {
+	const theme = useTheme();
+	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return <WrappedComponent {...props} width="lg" fullScreen={fullScreen} />;
+};
+
+export default withStyles(styles)(withMobileDialog()(withTranslation()(ParamAccess)));

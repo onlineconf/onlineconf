@@ -1,18 +1,19 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { makeStyles, Theme } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import Chip from '@material-ui/core/Chip';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import IconButton from '@material-ui/core/IconButton';
+import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Chip from '@mui/material/Chip';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import IconButton from '@mui/material/IconButton';
 
-import AddIcon from '@material-ui/icons/AddCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
 
 import * as api from '../api';
 import Avatar from './Avatar';
@@ -65,14 +66,17 @@ function AccessList(props: AccessListProps) {
 							/>
 						))}
 						{userIsRoot && (
-							<IconButton className={classes.add} onClick={() => props.onAddUser(group)}><AddIcon/></IconButton>
+							<IconButton
+								className={classes.add}
+								onClick={() => props.onAddUser(group)}
+								size="large"><AddIcon/></IconButton>
 						)}
 					</ListItem>
 				);
 			})}
 			{userIsRoot && (
 				<ListItem className={classes.group}>
-					<IconButton className={classes.add} onClick={props.onCreateGroup}><AddIcon/></IconButton>
+					<IconButton className={classes.add} onClick={props.onCreateGroup} size="large"><AddIcon/></IconButton>
 				</ListItem>
 			)}
 		</List>
@@ -89,7 +93,7 @@ function CreateGroupDialog(props: CreateGroupDialogProps) {
 	const [ open, setOpen ] = React.useState(true);
 	const [ group, setGroup ] = React.useState('');
 	return (
-		<Dialog open={open} onClose={() => setOpen(false)} onExited={props.onClosed}>
+		<Dialog open={open} onClose={() => setOpen(false)} TransitionProps={{ onExited: props.onClosed }}>
 			<DialogTitle>{t('access.createGroup')}</DialogTitle>
 			<DialogContent>
 				<TextField placeholder={t('access.group')} value={group} onChange={event => setGroup(event.target.value)} autoFocus variant="outlined" margin="dense" fullWidth/>
@@ -113,7 +117,7 @@ function AddUserDialog(props: AddUserDialogProps) {
 	const [ open, setOpen ] = React.useState(true);
 	const [ user, setUser ] = React.useState('');
 	return (
-		<Dialog open={open} onClose={() => setOpen(false)} onExited={props.onClosed}>
+		<Dialog open={open} onClose={() => setOpen(false)} TransitionProps={{ onExited: props.onClosed}}>
 			<DialogTitle>{t('access.addUser', { group: props.group })}</DialogTitle>
 			<DialogContent>
 				<UserField placeholder={t('access.user')} value={user} onChange={setUser} autoFocus variant="outlined" margin="dense" fullWidth/>

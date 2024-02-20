@@ -1,12 +1,13 @@
 import * as React from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { Theme, makeStyles } from '@material-ui/core/styles';
-import TextField from '@material-ui/core/TextField';
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Button from '@material-ui/core/Button';
-import LinearProgress from '@material-ui/core/LinearProgress';
+import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import TextField from '@mui/material/TextField';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Button from '@mui/material/Button';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import * as API from '../api';
 import UserField from './UserField';

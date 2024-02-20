@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { SvgIconProps } from '@material-ui/core/SvgIcon';
+import { SvgIconProps } from '@mui/material/SvgIcon';
 
-import DefaultIcon from '@material-ui/icons/Settings';
-import RootIcon from '@material-ui/icons/Language';
-import TopLevelIcon from '@material-ui/icons/Domain';
-import NullIcon from '@material-ui/icons/Block';
-import FolderIcon from '@material-ui/icons/FolderOpen';
-import TextIcon from '@material-ui/icons/Subject';
-import StructIcon from '@material-ui/icons/DeviceHub';
-import SymlinkIcon from '@material-ui/icons/Launch';
-import CaseIcon from '@material-ui/icons/Help';
-import TemplateIcon from '@material-ui/icons/LocalAtm';
-import ListIcon from '@material-ui/icons/List';
+import DefaultIcon from '@mui/icons-material/Settings';
+import RootIcon from '@mui/icons-material/Language';
+import TopLevelIcon from '@mui/icons-material/Domain';
+import NullIcon from '@mui/icons-material/Block';
+import FolderIcon from '@mui/icons-material/FolderOpen';
+import TextIcon from '@mui/icons-material/Subject';
+import StructIcon from '@mui/icons-material/DeviceHub';
+import SymlinkIcon from '@mui/icons-material/Launch';
+import CaseIcon from '@mui/icons-material/Help';
+import TemplateIcon from '@mui/icons-material/LocalAtm';
+import ListIcon from '@mui/icons-material/List';
 
 import { ParamType } from '../api';
 

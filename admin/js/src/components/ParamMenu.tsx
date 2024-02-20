@@ -1,21 +1,22 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Theme, makeStyles } from '@material-ui/core/styles';
-import Menu, { MenuProps } from '@material-ui/core/Menu';
-import MenuItem from '@material-ui/core/MenuItem';
-import ListItemIcon from '@material-ui/core/ListItemIcon';
-import ListItemText from '@material-ui/core/ListItemText';
+import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import Menu, { MenuProps } from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 
-import NotesIcon from '@material-ui/icons/Notes';
-import EditIcon from '@material-ui/icons/Edit';
-import HistoryIcon from '@material-ui/icons/History';
-import LockOpenIcon from '@material-ui/icons/LockOpen';
-import NotificationsIcon from '@material-ui/icons/Notifications';
-import PlaylistAddIcon from '@material-ui/icons/PlaylistAdd';
-import RefreshIcon from '@material-ui/icons/Refresh';
-import DeleteIcon from '@material-ui/icons/Delete';
-import LowPriorityIcon from '@material-ui/icons/LowPriority';
-import InsertCommentIcon from '@material-ui/icons/InsertComment';
+import NotesIcon from '@mui/icons-material/Notes';
+import EditIcon from '@mui/icons-material/Edit';
+import HistoryIcon from '@mui/icons-material/History';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LowPriorityIcon from '@mui/icons-material/LowPriority';
+import InsertCommentIcon from '@mui/icons-material/InsertComment';
 
 import { IParamNode } from './common';
 import WhoAmIContext from './WhoAmIContext';

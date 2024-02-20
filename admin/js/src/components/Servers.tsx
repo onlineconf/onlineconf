@@ -1,25 +1,28 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { withStyles, WithStyles, createStyles, Theme } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogActions from '@material-ui/core/DialogActions';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import Table from '@material-ui/core/Table';
-import TableHead from '@material-ui/core/TableHead';
-import TableBody from '@material-ui/core/TableBody';
-import TableRow from '@material-ui/core/TableRow';
-import TableCell from '@material-ui/core/TableCell';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableSortLabel from '@mui/material/TableSortLabel';
 
 import * as API from '../api';
 import { smartCompare } from './common';
 import WhoAmIContext from './WhoAmIContext';
 
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 const styles = (theme: Theme) => createStyles({
 	root: {
@@ -172,7 +175,10 @@ class Servers extends React.Component<ServersProps & WithStyles<typeof styles> &
 									<TableCell>{server.host}</TableCell>
 									<TableCell padding="none">
 										{server.online_alert && this.context.userIsRoot && (
-											<IconButton onClick={() => this.deleteServer(server)} className={classes.delete}><RemoveIcon/></IconButton>
+											<IconButton
+												onClick={() => this.deleteServer(server)}
+												className={classes.delete}
+												size="large"><RemoveIcon/></IconButton>
 										)}
 									</TableCell>
 									<TableCell className={server.mtime_alert ? classes.alert : undefined}>{server.mtime}</TableCell>

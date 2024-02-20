@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Omit } from '@material-ui/types';
-import ListItemAvatar from '@material-ui/core/ListItemAvatar';
-import ListItemText from '@material-ui/core/ListItemText';
+import { DistributiveOmit } from '@mui/types';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import ListItemText from '@mui/material/ListItemText';
 
 import { getUsers } from '../api';
 import Autocomplete, { AutocompleteProps, AutocompleteOption, AutocompleteItemProps } from './Autocomplete';
@@ -18,7 +18,7 @@ function UserFieldItem(props: AutocompleteItemProps) {
 	);
 }
 
-export default class UserField extends React.Component<Omit<AutocompleteProps, 'loadOptions'>> {
+export default class UserField extends React.Component<DistributiveOmit<AutocompleteProps, 'loadOptions'>> {
 
 	cache: { [K: string]: AutocompleteOption[] } = {};
 

@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Theme, makeStyles } from '@material-ui/core/styles';
+import { Theme } from '@mui/material/styles';
+
+import makeStyles from '@mui/styles/makeStyles';
 
 import { NonNullValueProps } from './common';
 import TextValueView from './text/TextValueView';

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { BrowserRouter, Route } from 'react-router-dom';
-import { makeStyles, Theme } from '@material-ui/core/styles';
-import CssBaseline from '@material-ui/core/CssBaseline';
+import { Theme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 import ErrorContext from './components/ErrorContext';
 import { WhoAmIProvider } from './components/WhoAmIContext';
@@ -14,6 +15,7 @@ import Servers from './components/Servers';
 import Access from './components/Access';
 import ErrorSnackbar from './components/ErrorSnackbar';
 import GlobalLog from './components/GlobalLog';
+
 
 const useStyles = makeStyles((theme: Theme) => ({
 	root: {

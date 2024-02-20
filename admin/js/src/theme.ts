@@ -1,28 +1,28 @@
 import * as CSS from 'csstype';
 import deepmerge from 'deepmerge';
-import { createMuiTheme, ThemeOptions } from '@material-ui/core/styles';
-import { indigo, orange, green } from '@material-ui/core/colors';
+import { DeprecatedThemeOptions, adaptV4Theme, createTheme as createMuiTheme } from '@mui/material/styles';
+import { indigo, orange, green } from '@mui/material/colors';
 
 interface OnlineConfPalette {
-	noAccess: CSS.Color;
-	null: CSS.Color;
-	symlink: CSS.Color;
-	caseKey: CSS.Color;
-	templateVariable: CSS.Color;
+	noAccess: CSS.Property.Color;
+	null: CSS.Property.Color;
+	symlink: CSS.Property.Color;
+	caseKey: CSS.Property.Color;
+	templateVariable: CSS.Property.Color;
 }
 
 interface CodeMirrorPalette {
-	atom: CSS.Color;      // yaml mapping key
-	comment: CSS.Color;
-	def: CSS.Color;       // yaml document start and end
-	keyword: CSS.Color;   // true, false, etc...
-	meta: CSS.Color;      // yaml -,{}[] and block literals
-	number: CSS.Color;
-	string: CSS.Color;    // quoted strings
-	variable2: CSS.Color; // yaml reference, template variable
+	atom: CSS.Property.Color;      // yaml mapping key
+	comment: CSS.Property.Color;
+	def: CSS.Property.Color;       // yaml document start and end
+	keyword: CSS.Property.Color;   // true, false, etc...
+	meta: CSS.Property.Color;      // yaml -,{}[] and block literals
+	number: CSS.Property.Color;
+	string: CSS.Property.Color;    // quoted strings
+	variable2: CSS.Property.Color; // yaml reference, template variable
 }
 
-declare module '@material-ui/core/styles/createPalette' {
+declare module '@mui/material/styles/createPalette' {
 	interface Palette {
 		onlineconf: OnlineConfPalette;
 		codemirror: CodeMirrorPalette;
@@ -34,7 +34,7 @@ declare module '@material-ui/core/styles/createPalette' {
 	}
 }
 
-const themeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
+const themeOptions: { [K in 'light' | 'dark']: DeprecatedThemeOptions } = {
 	light: {
 		palette: {
 			background: {
@@ -108,7 +108,7 @@ const themeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 };
 
 // used to distinguish between production (default) and development (green) instances
-const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
+const greenThemeOptions: { [K in 'light' | 'dark']: DeprecatedThemeOptions } = {
 	light: {
 		palette: {
 			background: {
@@ -155,9 +155,9 @@ const greenThemeOptions: { [K in 'light' | 'dark']: ThemeOptions } = {
 	},
 };
 
-export default function createTheme(options: ThemeOptions = {}) {
+export default function createTheme(options: DeprecatedThemeOptions = {}) {
 	return createMuiTheme(
-		deepmerge.all([
+		adaptV4Theme(deepmerge.all([
 			{
 				typography: {
 					useNextVariants: true,
@@ -173,9 +173,9 @@ export default function createTheme(options: ThemeOptions = {}) {
 					},
 				},
 			},
-			themeOptions[options.palette?.type || 'light'],
-			process.env.REACT_APP_GREEN ? greenThemeOptions[options.palette?.type || 'light'] : {},
+			themeOptions[options.palette?.mode || 'light'],
+			process.env.REACT_APP_GREEN ? greenThemeOptions[options.palette?.mode || 'light'] : {},
 			options,
-		])
+		]))
 	);
 }

@@ -1,15 +1,18 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, withStyles, WithStyles, Theme } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Typography from '@material-ui/core/Typography';
-import withMobileDialog from '@material-ui/core/withMobileDialog';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import Typography from '@mui/material/Typography';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 import { ValueProps } from './common';
 import { Notification, postParam, IParam, ParamModify } from '../api';
@@ -19,7 +22,7 @@ import SummaryDescriptionFields from './SummaryDescriptionFields';
 
 const styles = (theme: Theme) => createStyles({
 	paper: {
-		minWidth: theme.breakpoints.width('sm'),
+		minWidth: theme.breakpoints.values.sm,
 	},
 	content: {
 		display: 'flex',
@@ -46,9 +49,9 @@ export interface EditorProps extends Partial<ValueProps> {
 	version?: number;
 	create?: boolean;
 	summary?: string;
+	fullScreen?: boolean;
 	description?: string;
 	notification?: Notification;
-	fullScreen?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
 	onError: (error: unknown) => void;
@@ -147,11 +150,12 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 			<Dialog
 				open={this.state.open}
 				onClose={this.handleClose}
-				onExited={this.props.onClose}
 				maxWidth={false}
 				fullScreen={this.props.fullScreen}
 				classes={this.props.fullScreen ? undefined : { paper: this.props.classes.paper }}
-			>
+				TransitionProps={{
+					onExited: this.props.onClose
+				}}>
 				{this.props.create ? <DialogTitle>{t('param.menu.create')}</DialogTitle> : (
 					<DialogTitle>
 						{this.props.path}
@@ -208,4 +212,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 
 }
 
-export default withStyles(styles)(withMobileDialog<EditorProps>()(withTranslation()(Editor)));
+/* eslint-disable react/display-name */
+const withMobileDialog = () => <P extends EditorProps >(WrappedComponent: React.ComponentType<P>) => (props: any) => {
+	const theme = useTheme();
+	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return <WrappedComponent {...props} width="lg" fullScreen={fullScreen} />;
+};
+
+export default withStyles(styles)(withTranslation()(withMobileDialog()(Editor)));

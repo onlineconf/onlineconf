@@ -1,9 +1,12 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import { withStyles, WithStyles, Theme, createStyles } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
+import IconButton from '@mui/material/IconButton';
 
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import IconButtonProgress from './IconButtonProgress';
 import { TreeNodeState } from './TreeNode';
@@ -49,7 +52,7 @@ const TreeNodeArrow = (props: TreeNodeArrowProps & WithStyles<typeof arrowStyles
 			<IconButton
 				onClick={state === 'open' ? onClose : state === 'closed' ? onOpen : undefined}
 				className={classes.button}
-			>
+				size="large">
 				<ChevronRightIcon className={iconClassName}/>
 			</IconButton>
 		</IconButtonProgress>

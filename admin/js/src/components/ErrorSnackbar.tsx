@@ -1,7 +1,10 @@
 import * as React from 'react';
-import { AxiosError } from 'axios';
-import { createStyles, Theme, withStyles, WithStyles } from '@material-ui/core/styles';
-import Snackbar from '@material-ui/core/Snackbar';
+import { AxiosError, AxiosResponse } from 'axios';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import Snackbar from '@mui/material/Snackbar';
 
 const styles = (theme: Theme) => createStyles({
 	content: {
@@ -71,13 +74,18 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 		if (error !== undefined) {
 			if (error instanceof Error) {
 				const response = (error as AxiosError).response;
-				if (response !== undefined && typeof response.data === 'object' && response.data.message) {
-					message = (
-						<div>
-							<div>{error.message}</div>
-							<div>{response.data.message}</div>
-						</div>
-					);
+				if (response !== undefined) {
+					const data = (response as AxiosResponse).data;
+					if (data !== undefined && typeof response.data === 'object' && data.message) {
+						message = (
+							<div>
+								<div>{error.message}</div>
+								<div>{data.message}</div>
+							</div>
+						);
+					} else {
+						message = <span>{error.message}</span>;
+					}
 				} else {
 					message = <span>{error.message}</span>;
 				}
@@ -90,9 +98,10 @@ class ErrorSnackbar extends React.Component<ErrorSnackbarProps & WithStyles<type
 				open={this.state.open}
 				message={message}
 				onClose={this.handleClose}
-				onExited={this.handleExited}
 				ContentProps={{ className: this.props.classes.content }}
-			/>
+				TransitionProps={{
+					onExited: this.handleExited
+				}} />
 		);
 	}
 

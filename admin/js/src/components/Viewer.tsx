@@ -1,13 +1,16 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { Theme, createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
-import Dialog from '@material-ui/core/Dialog';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogActions from '@material-ui/core/DialogActions';
-import Button from '@material-ui/core/Button';
-import Typography from '@material-ui/core/Typography';
-import withMobileDialog from '@material-ui/core/withMobileDialog';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import { useTheme, useMediaQuery } from '@mui/material';
 
 import { IParamNode } from './common';
 import { ValueView } from './value';
@@ -60,4 +63,11 @@ const Viewer = ({ param, classes, t, ...props }: ViewerProps & WithStyles<typeof
 	</Dialog>
 );
 
-export default withStyles(styles)(withMobileDialog<ViewerProps>()(withTranslation()(Viewer)));
+/* eslint-disable react/display-name */
+const withMobileDialog = () => <P extends ViewerProps >(WrappedComponent: React.ComponentType<P>) => (props: any) => {
+	const theme = useTheme();
+	const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+	return <WrappedComponent {...props} width="lg" fullScreen={fullScreen} />;
+};
+
+export default withStyles(styles)(withMobileDialog()(withTranslation()(Viewer)));

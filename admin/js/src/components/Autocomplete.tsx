@@ -1,13 +1,16 @@
 import * as React from 'react';
 import scrollIntoView from 'scroll-into-view-if-needed';
-import { Omit } from '@material-ui/types';
-import { Theme, withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
-import MenuList from '@material-ui/core/MenuList';
-import MenuItem from '@material-ui/core/MenuItem';
-import Popper from '@material-ui/core/Popper';
-import Paper from '@material-ui/core/Paper';
-import ClickAwayListener from '@material-ui/core/ClickAwayListener';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import { DistributiveOmit } from '@mui/types';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import withStyles from '@mui/styles/withStyles';
+import createStyles from '@mui/styles/createStyles';
+import MenuList from '@mui/material/MenuList';
+import MenuItem from '@mui/material/MenuItem';
+import Popper from '@mui/material/Popper';
+import Paper from '@mui/material/Paper';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import TextField, { TextFieldProps } from '@mui/material/TextField';
 
 export interface AutocompleteItemProps {
 	children: string;
@@ -33,7 +36,7 @@ export interface AutocompleteOption {
 	value: string;
 }
 
-export type AutocompleteProps = Omit<TextFieldProps, 'classes' | 'onChange' | 'onError'> & {
+export type AutocompleteProps = DistributiveOmit<TextFieldProps, 'classes' | 'onChange' | 'onError'> & {
 	value: string;
 	onChange: (value: string) => void;
 	loadOptions: (value: string) => Promise<AutocompleteOption[]>;
@@ -150,11 +153,11 @@ class Autocomplete extends React.Component<AutocompleteProps & WithStyles<typeof
 		return (
 			<React.Fragment>
 				<TextField
+					variant="standard"
 					{...props}
 					onChange={this.handleChange}
 					inputRef={this.inputRef}
-					onKeyDown={this.handleInputKeyDown}
-				/>
+					onKeyDown={this.handleInputKeyDown} />
 				<Popper
 					open={this.state.options.length > 0}
 					anchorEl={this.inputRef.current}

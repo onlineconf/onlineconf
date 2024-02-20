@@ -1,6 +1,6 @@
 import { TreeNodeState } from './TreeNode';
 import { ParamType, IParam } from '../api';
-import { Omit } from '@material-ui/types';
+import { DistributiveOmit } from '@mui/types';
 
 export interface ValueProps {
 	type: ParamType;
@@ -12,7 +12,7 @@ export interface EditValueProps extends ValueProps {
 	onError: (error: unknown) => void;
 }
 
-export interface IParamNode extends Omit<IParam, 'children'> {
+export interface IParamNode extends DistributiveOmit<IParam, 'children'> {
 	children?: { [name: string]: IParamNode };
 	state: TreeNodeState;
 	selected?: boolean;

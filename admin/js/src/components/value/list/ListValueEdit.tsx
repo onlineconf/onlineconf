@@ -1,10 +1,13 @@
 import * as React from 'react';
-import { createStyles, WithStyles, withStyles, Theme } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
-import TextField from '@material-ui/core/TextField';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
 
-import AddIcon from '@material-ui/icons/AddCircle';
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 import { EditNonnullValueProps } from '../common';
 import ValueOutline from '../ValueOutline';
@@ -48,12 +51,18 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 				<ul className={this.props.classes.list}>
 					{list.map((item, i) => (
 						<li key={i} className={this.props.classes.item}>
-							<IconButton onClick={this.createRemoveItemHandler(i)}><RemoveIcon/></IconButton>
-							<TextField margin="dense" fullWidth value={item} onChange={this.createChangeItemHandler(i)} autoFocus={item === ''}/>
+							<IconButton onClick={this.createRemoveItemHandler(i)} size="large"><RemoveIcon/></IconButton>
+							<TextField
+								variant="standard"
+								margin="dense"
+								fullWidth
+								value={item}
+								onChange={this.createChangeItemHandler(i)}
+								autoFocus={item === ''} />
 						</li>
 					))}
 					<li className={this.props.classes.item}>
-						<IconButton onClick={this.handleAddItem}><AddIcon /></IconButton>
+						<IconButton onClick={this.handleAddItem} size="large"><AddIcon /></IconButton>
 					</li>
 				</ul>
 			</ValueOutline>

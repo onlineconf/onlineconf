@@ -1,13 +1,16 @@
 import * as React from 'react';
 import { withTranslation, WithTranslation } from 'react-i18next';
-import { createStyles, Theme, WithStyles, withStyles } from '@material-ui/core/styles';
-import IconButton from '@material-ui/core/IconButton';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import MenuItem from '@material-ui/core/MenuItem';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
+import { Theme } from '@mui/material/styles';
+import { WithStyles } from '@mui/styles';
+import createStyles from '@mui/styles/createStyles';
+import withStyles from '@mui/styles/withStyles';
+import IconButton from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import MenuItem from '@mui/material/MenuItem';
+import TextField, { TextFieldProps } from '@mui/material/TextField';
 
-import AddIcon from '@material-ui/icons/AddCircle';
-import RemoveIcon from '@material-ui/icons/RemoveCircle';
+import AddIcon from '@mui/icons-material/AddCircle';
+import RemoveIcon from '@mui/icons-material/RemoveCircle';
 
 import { getDictionary, dictionaryKeys } from '../../../cache';
 import { Case, CaseConditions, caseConditions } from './common';
@@ -26,7 +29,7 @@ const styles = (theme: Theme) => createStyles({
 	case: {
 		borderBottomWidth: 1,
 		borderBottomStyle: 'solid',
-		borderBottomColor: theme.palette.type === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
+		borderBottomColor: theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(255, 255, 255, 0.23)',
 		paddingBottom: theme.spacing(0.5),
 		marginBottom: theme.spacing(0.5),
 	},
@@ -206,14 +209,21 @@ export default withStyles(styles)(withTranslation()(
 						};
 						switch (caseType) {
 							case 'server': {
-								caseKey = <TextField label={t('param.case.server')} value={c.server} {...commonProps}/>;
+								caseKey = <TextField
+									label={t('param.case.server')}
+									value={c.server}
+									{...commonProps} />;
 								break;
 							}
 							case 'group': {
 								const { groups, loading } = this.state;
 								if (groups) {
 									caseKey = (
-										<TextField select label={t('param.case.group')} value={c.group} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.group')}
+											value={c.group}
+											{...commonProps}>
 											{Object.keys(groups).map(key => <MenuItem key={key} value={key}>{groups[key]}</MenuItem>)}
 										</TextField>
 									);
@@ -226,7 +236,11 @@ export default withStyles(styles)(withTranslation()(
 								const { datacenters, loading } = this.state;
 								if (datacenters) {
 									caseKey = (
-										<TextField select label={t('param.case.datacenter')} value={c.datacenter} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.datacenter')}
+											value={c.datacenter}
+											{...commonProps}>
 											{Object.keys(datacenters).map(key => <MenuItem key={key} value={key}>{datacenters[key]}</MenuItem>)}
 										</TextField>)
 									;
@@ -239,7 +253,11 @@ export default withStyles(styles)(withTranslation()(
 								const { services, loading } = this.state;
 								if (services) {
 									caseKey = (
-										<TextField select label={t('param.case.service')} value={c.service} {...commonProps}>
+										<TextField
+											select
+											label={t('param.case.service')}
+											value={c.service}
+											{...commonProps}>
 											{Object.keys(services).map(key => <MenuItem key={key} value={key}>{services[key]}</MenuItem>)}
 										</TextField>
 									);
@@ -253,7 +271,10 @@ export default withStyles(styles)(withTranslation()(
 						return (
 							<div key={i} className={classes.case}>
 								<div className={classes.caseKey}>
-									<IconButton className={classes.remove} onClick={this.createRemoveCaseHandler(i)}>
+									<IconButton
+										className={classes.remove}
+										onClick={this.createRemoveCaseHandler(i)}
+										size="large">
 										<RemoveIcon/>
 									</IconButton>
 									<TextField
@@ -280,7 +301,7 @@ export default withStyles(styles)(withTranslation()(
 						);
 					})}
 					<div className={classes.add}>
-						<IconButton onClick={this.handleAddCase}>
+						<IconButton onClick={this.handleAddCase} size="large">
 							<AddIcon/>
 						</IconButton>
 					</div>
