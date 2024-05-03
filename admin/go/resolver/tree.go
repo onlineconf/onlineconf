@@ -62,6 +62,17 @@ func (node *Param) Strings() ([]string, error) {
 	}
 }
 
+func (node *Param) GetStruct(ptr interface{}) error {
+	switch node.ContentType {
+	case "application/x-yaml":
+		return yaml.Unmarshal([]byte(node.Value.String), ptr)
+	case "application/json":
+		return json.Unmarshal([]byte(node.Value.String), ptr)
+	default: // ignore any other type
+		return nil
+	}
+}
+
 func (node *Param) deepMarkCommon(ctx context.Context) {
 	ok := true
 	for _, childPtr := range node.Children {

@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	"github.com/ugorji/go/codec"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
@@ -52,7 +53,7 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 	}
 
 	if tree := modules["TREE"]; tree != nil && tree.Path == "/" && compat {
-		ser.writeParam("/", tree)
+		ser.writeParam("/", tree, true)
 		return &ser
 	}
 
@@ -62,18 +63,39 @@ func newSerializer(ctx context.Context, sg *serverGraph, compat bool) *serialize
 		}
 	}
 	for name, module := range modules {
-		ser.writeParam("/onlineconf/module/"+name, module)
+		ser.writeParam("/onlineconf/module/"+name, module, getModuleCompat(ctx, compat, module))
 	}
 
 	return &ser
 }
 
-func (ser *serializer) writeParam(path string, param *Param) {
+type moduleConfig struct {
+	ChildLists bool `json:"child_lists" yaml:"child_lists"`
+}
+
+// getModuleCompat returns true if the request is received from perl updater, or if
+// "child_lists" json/yaml module parameter (see [updater.moduleConfig]) isn't set (i.e. is missing or false)
+func getModuleCompat(ctx context.Context, compat bool, module *Param) bool {
+	if compat {
+		return true
+	}
+
+	var modCfg moduleConfig
+
+	if err := module.GetStruct(&modCfg); err != nil {
+		log.Ctx(ctx).Err(err).Str("module", module.Path).Msg("error decoding module config")
+		return true
+	}
+
+	return !modCfg.ChildLists
+}
+
+func (ser *serializer) writeParam(path string, param *Param, compat bool) {
 	if param == nil {
 		return
 	}
 
-	if ser.compat && path != "/" && strings.HasSuffix(path, "/") {
+	if compat && path != "/" && strings.HasSuffix(path, "/") {
 		return // skip child lists for legacy perl updater
 	}
 
@@ -90,7 +112,7 @@ func (ser *serializer) writeParam(path string, param *Param) {
 
 		for _, childPtr := range param.Children {
 			if *childPtr != nil {
-				ser.writeParam((*childPtr).Path, *childPtr)
+				ser.writeParam((*childPtr).Path, *childPtr, compat)
 			}
 		}
 	} else {
@@ -104,7 +126,7 @@ func (ser *serializer) writeParam(path string, param *Param) {
 			path := base + "/" + name
 
 			if *childPtr != nil {
-				ser.writeParam(path, *childPtr)
+				ser.writeParam(path, *childPtr, compat)
 			}
 		}
 	}

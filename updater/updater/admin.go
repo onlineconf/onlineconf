@@ -223,7 +223,7 @@ func (config moduleConfig) getNewFileAttrs(file string) (int, int, int, error) {
 	if mode := config.Mode; mode != "" {
 		modeUint, err := strconv.ParseUint(mode, 8, 32)
 		if err != nil {
-			return -1, -1, -1, fmt.Errorf("convert file mode %o failure...%w", mode, err)
+			return -1, -1, -1, fmt.Errorf("convert file mode %o failure...%w", modeUint, err)
 		}
 		if os.FileMode(modeUint) != os.FileMode(fileMode) {
 			newMode = int(modeUint)
