@@ -127,11 +127,12 @@ For example, the parameter can contain a *case* value which depending on a group
 If several services are run on one managed server and they must have their own configuration files then `/onlineconf/module` can contain several children one for each service.
 
 Values of parameters `/onlineconf/module` and `/onlineconf/module/${modulename}` are used by *onlineconf-updater* to customize a generation of configuration files. `/onlineconf/module` is used to configure a default behavior used for all modules whereas `/onlineconf/module/${modulename}` for a `${modulename}` only. The value must be of YAML or JSON type and contain a map of parameters.
-Right now supported parameters are: `delimiter`, `owner`, `mode`.
+Right now supported parameters are: `delimiter`, `owner`, `mode` and `child_lists`.
 
 * `delimiter` is used to configure a delimiter used in names of configuration parameters. For new installations of OnlineConf it is highly recommended to configure it explicitly (in `/onlineconf/module`), in the other case the compatibility mode will be used in which the delimiter `/` will be used for the module `TREE` and the delimiter `.` for other modules.
 * `owner` is used to set the owner of the config file on the target server.
 * `mode` is used to set the permissions of the config file on the target server.
+* `child_lists` (bool) instructs the OnlineConf server (not an updater) to send an additional parameter for every non-empty branch. The name of this parameter is the name of a branch suffixed with the `delimiter`, and the value is a JSON array containing names of child elements of the branch. If `child_lists` is missing or `false`, child lists aren't generated and sent.
 
 ### /onlineconf/service
 

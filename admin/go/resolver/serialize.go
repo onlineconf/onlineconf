@@ -74,7 +74,7 @@ type moduleConfig struct {
 }
 
 // getModuleCompat returns true if the request is received from perl updater, or if
-// "child_lists" json/yaml module parameter (see [updater.moduleConfig]) is missing/false.
+// "child_lists" json/yaml module parameter (see [updater.moduleConfig]) isn't set (i.e. is missing or false)
 func getModuleCompat(ctx context.Context, compat bool, module *Param) bool {
 	if compat {
 		return true
