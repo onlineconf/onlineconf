@@ -104,6 +104,9 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 		name := match[2 : len(match)-1]
 		if strings.HasPrefix(name, "/") {
 			if target := g.get(ctx, name); target != nil {
+				if target.ContentType == "application/x-template" {
+					expanded = false
+				}
 				return target.Value.String
 			} else {
 				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Str("var", name).Msg("failed to expand variable")
