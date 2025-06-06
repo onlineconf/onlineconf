@@ -22,6 +22,9 @@ BuildRequires:  mr-rpm-macros
 BuildRequires:  golang
 BuildRequires:  golang-bin
 BuildRequires:  nodejs
+%if 0%{?rhel} >= 9
+BuildRequires:  npm
+%endif
 %if %{with systemd}
 BuildRequires:  systemd-devel, systemd-units
 Requires:       mailru-systemd-units
@@ -41,10 +44,24 @@ sed -i 's/\(<link href="[^"]*\.css\|<script src="[^"]*\.js\)"/\1?%{version}"/' s
 
 
 %build
+%if 0%{!?goproxy:1} == 0
+export GOPROXY='%{goproxy}'
+export GONOSUMDB='*/*'
+echo "Set GOPROXY to %{goproxy}, GONOSUMDB to */*"
+%else
+echo "Set GOPROXY to proxy.golang.org because it is not defined"
+export GOPROXY="proxy.golang.org"
+%endif
 cd go
+go mod vendor
 go build -mod=vendor -o %{name} ./
 
+%if 0%{!?npm_registry:1} == 0
+echo "Set npm registry in userconfig to %{npm_registry}"
+npm userconfig registry=%{npm_registry}
+%endif
 cd ../js
+npm install
 npm run build%{?with_green:-green}
 
 
@@ -122,6 +139,11 @@ fi
 
 
 %changelog
+* Fri Jun 06 2025 Sergei Fedosov <s.fedosov@corp.mail.ru>
+- Add support for C9/A9
+- Add support for goproxy
+- Add support for custom npm registry
+
 * Wed Jan 26 2022 Sergei Fedosov <s.fedosov@corp.mail.ru>
 - Add C7 systemd unit
 
