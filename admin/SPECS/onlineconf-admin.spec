@@ -16,6 +16,7 @@ Release:	%{__release}%{?dist}
 Summary:	onlineconf-admin application server
 License:	BSD
 Group:		MAILRU
+URL:		https://github.com/onlineconf/onlineconf
 
 Source:		https://github.com/onlineconf/onlineconf/archive/%{__revision}/onlineconf-%{__version}.tar.gz
 
