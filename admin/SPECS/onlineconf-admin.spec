@@ -61,7 +61,7 @@ go build -mod=vendor -ldflags="-s -w" -a -gcflags=all=-l -trimpath -o %{name} ./
 
 %if 0%{!?npm_registry:1} == 0
 echo "Set npm registry in userconfig to %{npm_registry}"
-npm userconfig registry=%{npm_registry}
+npm set registry=%{npm_registry}
 %endif
 cd ../js
 npm install
