@@ -51,10 +51,9 @@ echo "Set GOPROXY to %{goproxy}, GONOSUMDB to */*"
 echo "Set GOPROXY to proxy.golang.org because it is not defined"
 export GOPROXY="proxy.golang.org"
 %endif
-go mod vendor
 # Set proper version of app
 %{__sed} -i 's|const version = ".*"|const version = "%{version}"|' updater/version.go
-go build -mod vendor -ldflags='-s -w' -a -gcflags=all=-l -trimpath -o %{name} ./
+go build -ldflags='-s -w' -a -gcflags=all=-l -trimpath -o %{name} ./
 
 
 %install

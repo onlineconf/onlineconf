@@ -57,8 +57,7 @@ echo "Set GOPROXY to proxy.golang.org because it is not defined"
 export GOPROXY="proxy.golang.org"
 %endif
 cd go
-go mod vendor
-go build -mod=vendor -ldflags="-s -w" -a -gcflags=all=-l -trimpath -o %{name} ./
+go build -ldflags="-s -w" -a -gcflags=all=-l -trimpath -o %{name} ./
 
 %if 0%{!?npm_registry:1} == 0
 echo "Set npm registry in userconfig to %{npm_registry}"
