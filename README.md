@@ -178,6 +178,15 @@ A value of the parameter will be implicitly readable by all users through `/ui-c
 
 Direct children of `/onlineconf/botapi/bot` are users of the server-server API of OnlineConf. Names of children parameters are usernames, values are SHA256-encrypted passwords (MUST contain random 16+ characters long strings). User parameters can contain subparameter `scopes` (`/onlineconf/botapi/bot/*/scopes`) of type List which is used to allow these users access to various parts of the API.
 
+### /onlineconf/disable-deleted-key-symlinks-check
+
+When the parameter is being deleted by the user, a symlink/template consistency check is performed. If some symlink or template refers to this parameter (including symlinks/templates inside a **case** value),
+the deletion is aborted with an error message describing referring symlinks/templates. This is a non-exhaustive check (e.g., no more than 5 nested symlinks are checked, nested **case** values aren't
+supported) and should be treated as a foolproof only and not as a formal consistency guarantee. In some rare cases, like nested symlinks to the parent subtree, a noticeable delay may occur when
+some parameter is deleted.
+
+To disable this foolproof, you can set `/onlineconf/disable-deleted-key-symlinks-check` to any non-empty text value other than `0`.
+
 ## Reading a configuration from an application
 
 Several languages already have libraries to work with configuration files: [Go](https://github.com/onlineconf/onlineconf-go), [Swift](https://github.com/onlineconf/onlineconf-swift), [Perl](https://github.com/onlineconf/onlineconf-perl), [Python](https://github.com/onlineconf/onlineconf-python) and [Node.js](https://github.com/onlineconf/onlineconf-nodejs).
