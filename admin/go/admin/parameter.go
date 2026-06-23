@@ -6,17 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
-	"gopkg.in/yaml.v3"
-
 	. "github.com/onlineconf/onlineconf/admin/go/common"
+	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	maxPathLen      = 512 // defined in admin/etc/schema.sql
-	maxSymlinkDepth = 5   // recursion limit for checkDeletedParamSymlinks
+	maxPathLen             = 512 // defined in admin/etc/schema.sql
+	defaultMaxSymlinkDepth = 5   // recursion limit for checkDeletedParamSymlinks
 )
 
 var (
@@ -724,7 +725,7 @@ func checkDeletedParamSymlinks(ctx context.Context, tx *sql.Tx, param *Parameter
 		return nil
 	}
 
-	return checkDeletedParamSymlinksRecursive(ctx, tx, param.Path, isSymlink(param), 0)
+	return checkDeletedParamSymlinksRecursive(ctx, tx, param.Path, isSymlink(param), 0, getMaxSymlinkDepth(ctx))
 }
 
 func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
@@ -738,6 +739,26 @@ func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
 	}
 
 	return param.Value.String != "" && param.Value.String != "0", nil
+}
+
+func getMaxSymlinkDepth(ctx context.Context) int {
+	param, err := SelectParameterResolvingSymlink(ctx, "/onlineconf/max-checked-symlinks-depth")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to read /onlineconf/max-checked-symlinks-depth, using the default")
+		return defaultMaxSymlinkDepth
+	}
+
+	if param == nil || param.ContentType != "text/plain" || !param.Value.Valid || param.Value.String == "" {
+		return defaultMaxSymlinkDepth
+	}
+
+	ret, err := strconv.Atoi(param.Value.String)
+	if err != nil {
+		log.Error().Err(err).Str("val", param.Value.String).Msg("/onlineconf/max-checked-symlinks-depth must be an integer")
+		return defaultMaxSymlinkDepth
+	}
+
+	return ret
 }
 
 func isSymlink(param *Parameter) bool {
@@ -763,7 +784,7 @@ func isSymlink(param *Parameter) bool {
 	return false
 }
 
-func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTarget string, isSymlink bool, depth int) error {
+func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTarget string, isSymlink bool, depth, maxDepth int) error {
 	// isSymlink means "is path being deleted a symlink", so it must be set to false when this func is called recursively
 	query, targets := formatSymlinkCheckQuery(linkTarget, isSymlink)
 
@@ -810,7 +831,7 @@ func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTar
 	// check parentLinks recursively
 
 	depth++
-	if depth >= maxSymlinkDepth {
+	if depth >= maxDepth {
 		return nil
 	}
 
@@ -822,7 +843,7 @@ func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTar
 			continue
 		}
 
-		if err = checkDeletedParamSymlinksRecursive(ctx, tx, recursiveLink, false, depth); err != nil {
+		if err = checkDeletedParamSymlinksRecursive(ctx, tx, recursiveLink, false, depth, maxDepth); err != nil {
 			return err
 		}
 	}
