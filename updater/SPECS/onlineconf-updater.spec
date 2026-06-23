@@ -8,80 +8,71 @@
 # do not create debuginfo packages
 %define _enable_debug_packages 0
 %define debug_package %{nil}
+%define __strip /bin/true
 
-Name:           onlineconf-updater
-Version:        %{__version}
-Release:        %{__release}%{?dist}
-Summary:        GoLang flavour of onlineconf-updater
-License:        BSD
-Group:          MAILRU
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildRequires:  ca-certificates
-# we have incomplete git 2.14.1 in c7 repo, so we have to pin previous version here
-%if 0%{?rhel} == 7
-BuildRequires:  git = 2.12.2
-%else
-BuildRequires:  git
-%endif
-BuildRequires:  golang
-BuildRequires:  mr-rpm-macros
+Name:		onlineconf-updater
+Version:	%{__version}
+Release:	%{__release}%{?dist}
+Summary:	GoLang flavour of onlineconf-updater
+License:	BSD
+Group:		MAILRU
+URL:		https://github.com/onlineconf/onlineconf
+
+Source:		https://github.com/onlineconf/onlineconf/archive/%{__revision}/onlineconf-%{version}.tar.gz
+
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
+BuildRequires:	ca-certificates
+BuildRequires:	golang
+BuildRequires:	git
+BuildRequires:	mr-rpm-macros
 %if %{with systemd}
-BuildRequires:  systemd-devel, systemd-units
+BuildRequires:	systemd-devel, systemd-units
 %endif
 
 %if %{with systemd}
-Requires:       mailru-systemd-units
+Requires:	mailru-systemd-units
 %else
-Requires:       mailru-initd-functions >= 1.11
+Requires:	mailru-initd-functions >= 1.11
 %endif
-Conflicts:      perl-MR-Onlineconf < 20120328.1753
+Conflicts:	perl-MR-Onlineconf < 20120328.1753
 
 %description
 GoLang flavour of onlineconf-updater. Built from revision %{__revision}.
 
 %prep
-%setup -q -c -n %{name}-%{version}
-%setup -T -D -n %{name}-%{version}/onlineconf/updater
+%setup -q -n onlineconf-%{__revision}/updater
 
 %build
+%if 0%{!?goproxy:1} == 0
+export GOPROXY='%{goproxy}'
+export GONOSUMDB='*/*'
+echo "Set GOPROXY to %{goproxy}, GONOSUMDB to */*"
+%else
+echo "Set GOPROXY to proxy.golang.org because it is not defined"
+export GOPROXY="proxy.golang.org"
+%endif
 # Set proper version of app
 %{__sed} -i 's|const version = ".*"|const version = "%{version}"|' updater/version.go
-go build -mod vendor -o onlineconf-updater
+go build -ldflags='-s -w' -a -gcflags=all=-l -trimpath -o %{name} ./
+
 
 %install
-%{__mkdir_p} %{buildroot}%{_localetcdir}/onlineconf
-%{__mkdir_p} %{buildroot}%{_sysconfdir}/cron.d
+%{__mkdir_p}                                  %{buildroot}%{_localetcdir}/onlineconf
 
 %if %{with systemd}
-%{__install} -pD -m 644 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
+%{__install} -Dpm 0644 etc/onlineconf.service %{buildroot}%{_unitdir}/onlineconf.service
 %else
-%{__install} -pD -m 755 etc/onlineconf.init %{buildroot}%{_initrddir}/onlineconf
+%{__install} -Dpm 0755 etc/onlineconf.init    %{buildroot}%{_initrddir}/onlineconf
 %endif
 
-%{__install} -pD -m 755 onlineconf-updater %{buildroot}%{_localbindir}/onlineconf-updater
+%{__install} -Dpm 0755 onlineconf-updater     %{buildroot}%{_localbindir}/%{name}
 
 %if !%{with systemd}
+%{__mkdir_p}                                  %{buildroot}%{_sysconfdir}/cron.d
 echo "@daily root %{_initrddir}/onlineconf remove-old-logs" > %{buildroot}/%{_sysconfdir}/cron.d/%{name}
 %endif
 
-%_fixperms %{buildroot}/*
 
-
-%files
-%defattr(-,root,root,-)
-%{_localbindir}/*
-
-%if %{with systemd}
-%config %{_unitdir}/onlineconf.service
-%else
-%{_initrddir}/onlineconf
-%endif
-
-%dir %attr(755,root,mail) %{_localetcdir}/onlineconf
-
-%if !%{with systemd}
-%{_sysconfdir}/cron.d/%{name}
-%endif
 
 %post
 %if %{with systemd}
@@ -96,6 +87,7 @@ echo "Executing System V post-install tasks"
 /sbin/chkconfig --add onlineconf
 /sbin/chkconfig onlineconf on
 %endif
+
 
 %preun
 %if %{with systemd}
@@ -117,7 +109,29 @@ if [ $1 -eq 0 ] ; then
 fi
 %endif
 
+
+%files
+%defattr(-,root,root,-)
+%{_localbindir}/*
+
+%if %{with systemd}
+%config %{_unitdir}/onlineconf.service
+%else
+%{_initrddir}/onlineconf
+%endif
+
+%dir %attr(755,root,mail) %{_localetcdir}/onlineconf
+
+%if !%{with systemd}
+%{_sysconfdir}/cron.d/%{name}
+%endif
+
+
 %changelog
+* Wed Jun 11 2025 Sergei Fedosov <s.fedosov@corp.mail.ru>
+- Introduce support for Almalinux-9
+- Cleanup and fixup specfile
+
 * Wed Apr 24 2019 Sergei Fedosov <s.fedosov@corp.mail.ru>
 - Revamp spec to build onlineconf-updater-go
 
