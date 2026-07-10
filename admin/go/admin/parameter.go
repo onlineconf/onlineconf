@@ -14,10 +14,7 @@ import (
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
-const (
-	maxPathLen      = 512 // defined in admin/etc/schema.sql
-	maxSymlinkDepth = 5   // recursion limit for checkDeletedParamSymlinks
-)
+const maxPathLen = 512 // defined in admin/etc/schema.sql
 
 var (
 	ErrAccessDenied    = errors.New("Access denied")
@@ -31,6 +28,7 @@ var (
 	ErrParentNotFound  = errors.New("Parent not found")
 	ErrDeletedSymlink  = errors.New("Parameter being deleted is symlinked")
 	ErrDeletedTmpl     = errors.New("Parameter being deleted is referred from template(s)")
+	ErrDepsNotReady    = errors.New("Parameter dependency data is initializing, retry later")
 )
 
 const selectFields string = `
@@ -455,13 +453,24 @@ func CreateParameter(ctx context.Context, path, contentType, value string, optSu
 		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET "+fields+"Version = Version + 1, MTime = now(), Deleted = false WHERE Path = ?", bind...)
 	}
 	if err == nil {
+		err = updateParameterDepsByPath(ctx, tx, path, contentType, nullValue)
+	}
+	if err == nil {
+		// referrers written while this path was missing carry no edges to it
+		err = healReferrersMentioning(ctx, tx, path)
+	}
+	if err == nil {
 		err = LogLastVersion(ctx, tx, path, comment)
 	}
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	return commitAndNotify(ctx, tx, sink)
+	if err := commitAndNotify(ctx, tx, sink); err != nil {
+		return err
+	}
+	reconcileDepthIfChanged(ctx, path)
+	return nil
 }
 
 func SetParameter(ctx context.Context, path string, version int, contentType string, value string, comment string) error {
@@ -492,13 +501,27 @@ func SetParameter(ctx context.Context, path string, version int, contentType str
 	}
 	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Value = ?, Version = Version + 1, MTime = now() WHERE Path = ?", contentType, nullValue, path)
 	if err == nil {
+		err = updateNodeDeps(ctx, tx, p.ID, contentType, nullValue)
+	}
+	if err == nil && depsRedirectChanged(p.ContentType, contentType) {
+		// the change may redirect referrers resolving through this node
+		var dependents []int
+		if dependents, err = selectDependentIDs(ctx, tx, []int{p.ID}); err == nil {
+			err = recomputeDeps(ctx, tx, dependents)
+		}
+	}
+	if err == nil {
 		err = LogLastVersion(ctx, tx, path, comment)
 	}
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	return commitAndNotify(ctx, tx, sink)
+	if err := commitAndNotify(ctx, tx, sink); err != nil {
+		return err
+	}
+	reconcileDepthIfChanged(ctx, path)
+	return nil
 }
 
 func MoveParameter(ctx context.Context, path string, newPath string, symlink bool, version int, comment string) error {
@@ -530,6 +553,16 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 	if p.Version != version {
 		tx.Rollback()
 		return ErrVersionNotMatch
+	}
+
+	if !symlink {
+		// without a symlink left behind, the old paths cease to exist and any
+		// referrer resolving through the moved subtree would dangle — refuse,
+		// just as deleting the node would be refused
+		if err = checkMovedSubtreeReferrers(ctx, tx, path); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	if err = freeDeletedPath(ctx, tx, newPath); err != nil {
@@ -566,15 +599,34 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Value, Notification) VALUES (?, ?, ?, ?, ?)",
 			p.ParentID, p.Name, "application/x-symlink", newPath, nullNotification)
 		if err == nil {
+			var linkTarget NullString
+			linkTarget.Valid = true
+			linkTarget.String = newPath
+			err = updateParameterDepsByPath(ctx, tx, path, "application/x-symlink", linkTarget)
+		}
+		if err == nil {
 			err = LogLastVersion(ctx, tx, path, fmt.Sprintf("Moved to %s. %s", newPath, comment))
 		}
+	}
+
+	if err == nil {
+		// referrers resolving through the moved nodes may now dangle or land
+		// elsewhere; referrers mentioning the new location may start to resolve
+		err = recomputeMovedDependents(ctx, tx, newPath)
+	}
+	if err == nil {
+		err = healReferrersMentioning(ctx, tx, newPath)
 	}
 
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	return commitAndNotify(ctx, tx, sink)
+	if err := commitAndNotify(ctx, tx, sink); err != nil {
+		return err
+	}
+	reconcileDepthIfChanged(ctx, path, newPath)
+	return nil
 }
 
 // freeDeletedPath frees up a Path occupied by a soft-deleted row so it can be
@@ -686,12 +738,20 @@ func DeleteParameter(ctx context.Context, path string, version int, comment stri
 		return ErrNotEmpty
 	}
 
-	if err = checkDeletedParamSymlinks(ctx, tx, p); err != nil {
+	if err = checkParameterReferrers(ctx, tx, p); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET Deleted = true, Version = Version + 1, MTime = now() WHERE Path = ?", path)
+	if err == nil {
+		// a deleted parameter refers to nothing; its own incoming edges are
+		// guaranteed empty by checkParameterReferrers above
+		_, err = tx.ExecContext(ctx, "DELETE FROM my_config_tree_dep WHERE ReferrerID = ?", p.ID)
+	}
+	if err == nil {
+		_, err = tx.ExecContext(ctx, "DELETE FROM my_config_tree_dep_dangling WHERE ReferrerID = ?", p.ID)
+	}
 	if err == nil {
 		err = ClearAccess(ctx, tx, p.ID)
 	}
@@ -702,29 +762,11 @@ func DeleteParameter(ctx context.Context, path string, version int, comment stri
 		tx.Rollback()
 		return err
 	}
-	return commitAndNotify(ctx, tx, sink)
-}
-
-type symlink struct {
-	from string // my_config_tree.Path
-	to   string // my_config_tree.Value
-}
-
-func checkDeletedParamSymlinks(ctx context.Context, tx *sql.Tx, param *Parameter) error {
-	if param.Path == "/" {
-		return nil
-	}
-
-	isDisabled, err := isDeletedParamSymlinksCheckDisabled(ctx)
-	if err != nil {
+	if err := commitAndNotify(ctx, tx, sink); err != nil {
 		return err
 	}
-
-	if isDisabled {
-		return nil
-	}
-
-	return checkDeletedParamSymlinksRecursive(ctx, tx, param.Path, isSymlink(param), 0)
+	reconcileDepthIfChanged(ctx, path)
+	return nil
 }
 
 func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
@@ -738,174 +780,6 @@ func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
 	}
 
 	return param.Value.String != "" && param.Value.String != "0", nil
-}
-
-func isSymlink(param *Parameter) bool {
-	switch param.ContentType {
-	case "application/x-symlink":
-		return true
-	case "application/x-case":
-		var caseType []struct {
-			Type string `json:"mime"`
-		}
-
-		if err := json.Unmarshal([]byte(param.Value.String), &caseType); err != nil {
-			return false
-		}
-
-		for _, ct := range caseType {
-			if ct.Type == "application/x-symlink" {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTarget string, isSymlink bool, depth int) error {
-	// isSymlink means "is path being deleted a symlink", so it must be set to false when this func is called recursively
-	query, targets := formatSymlinkCheckQuery(linkTarget, isSymlink)
-
-	rows, err := tx.QueryContext(ctx, query, targets...)
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	parentLinks := make([]symlink, 0, len(targets)/2) // symlinks to one of parent subdirs
-	symlinked := make([]string, 0, len(targets)/2)    // symlinks to the target's exact path
-	expanded := make([]string, 0, len(targets)/2)     // expanded in a template
-
-	for rows.Next() {
-		var link symlink
-
-		if err = rows.Scan(&link.from, &link.to); err != nil {
-			return err
-		}
-
-		if link.to == "" { // template (see sqlSymlinksCheck)
-			expanded = append(expanded, link.from)
-		} else if link.to == linkTarget || len(link.to) > len(linkTarget) { // exact symlink match, or the nested symlink is used (sqlSymlinksCheck1s/sqlSymlinksCheck2s)
-			symlinked = append(symlinked, link.from)
-		} else { // symlink to a parent folder
-			parentLinks = append(parentLinks, link)
-		}
-	}
-
-	// symlinked and expanded alices contain unique strings because of UNION
-	if len(symlinked) != 0 {
-		return fmt.Errorf("%w: %s", ErrDeletedSymlink, strings.Join(symlinked, ", "))
-	}
-
-	if len(expanded) != 0 {
-		return fmt.Errorf("%w: %s", ErrDeletedTmpl, strings.Join(expanded, ", "))
-	}
-
-	if len(parentLinks) == 0 {
-		return nil
-	}
-
-	// check parentLinks recursively
-
-	depth++
-	if depth >= maxSymlinkDepth {
-		return nil
-	}
-
-	rows.Close() // rows from the tx should be closed when calling this func recursively
-
-	for _, link := range parentLinks {
-		recursiveLink := link.from + linkTarget[len(link.to):]
-		if len(recursiveLink) > maxPathLen {
-			continue
-		}
-
-		if err = checkDeletedParamSymlinksRecursive(ctx, tx, recursiveLink, false, depth); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// we can use Value == ” for a template since symlink's Values are always non-empty because of IN conditions
-const sqlSymlinksCheck1 = `
-    SELECT Path, Value
-      FROM my_config_tree
-     WHERE ContentType = 'application/x-symlink'
-       AND NOT Deleted
-       AND (Value IN (`
-
-// sqlSymlinksCheck1s and sqlCheckSymlinks2s are used when the value being deleted is a symlink itself
-const sqlSymlinksCheck1s = `) OR Value LIKE ?`
-
-const sqlSymlinksCheck2 = `)
-    UNION
-    SELECT t.Path, j.value
-      FROM my_config_tree AS t
-      JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
-       AND NOT t.Deleted
-       AND j.mime='application/x-symlink'
-       AND (j.value IN (`
-
-const sqlSymlinksCheck2s = `) OR j.value LIKE ?`
-
-const sqlSymlinksCheck3 = `)
-    UNION
-    SELECT Path, ''
-      FROM my_config_tree
-     WHERE ContentType = 'application/x-template'
-       AND NOT Deleted
-       AND Value LIKE ?
-    UNION
-    SELECT t.Path, ''
-      FROM my_config_tree AS t
-      JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
-       AND NOT t.Deleted
-       AND j.mime='application/x-template'
-       AND j.value LIKE ?
-`
-
-func formatSymlinkCheckQuery(target string, isSymlink bool) (query string, params []any) {
-	targetSl := strings.Split(target, "/")
-	targets := make([]any, 0, 2*len(targetSl)+2) // len(targetSl) == target components + an empty str
-	parent := &strings.Builder{}
-	placeholders := &strings.Builder{}
-
-	for _, t := range targetSl {
-		if t == "" {
-			continue
-		}
-
-		parent.WriteRune('/')
-		parent.WriteString(t)
-		targets = append(targets, parent.String())
-
-		if placeholders.Len() == 0 {
-			placeholders.WriteRune('?')
-		} else {
-			placeholders.WriteString(",?")
-		}
-	}
-
-	if isSymlink {
-		targets = append(targets, target+"/%")
-	}
-
-	likeTmpl := "%${" + target + "}%"
-	targets = append(targets, targets...)         // x-symlink and x-case parameters
-	targets = append(targets, likeTmpl, likeTmpl) // x-template and x-case parameters
-	pl := placeholders.String()
-
-	if isSymlink {
-		return sqlSymlinksCheck1 + pl + sqlSymlinksCheck1s + sqlSymlinksCheck2 + pl + sqlSymlinksCheck2s + sqlSymlinksCheck3, targets
-	}
-
-	return sqlSymlinksCheck1 + pl + ")" + sqlSymlinksCheck2 + pl + ")" + sqlSymlinksCheck3, targets
 }
 
 func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Parameter, error) {

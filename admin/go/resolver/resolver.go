@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 var treeI tree
@@ -18,9 +20,14 @@ func Initialize() {
 	go func() {
 		c := time.Tick(5 * time.Second)
 		for range c {
-			if err := treeI.update(ctx); err != nil {
-				log.Ctx(ctx).Error().Err(err).Msg("failed to update tree")
-			}
+			// recover per tick so a panic in one update is logged but the
+			// periodic sync keeps running (and never crashes the server)
+			func() {
+				defer RecoverPanic("resolver tree sync")
+				if err := treeI.update(ctx); err != nil {
+					log.Ctx(ctx).Error().Err(err).Msg("failed to update tree")
+				}
+			}()
 		}
 	}()
 }

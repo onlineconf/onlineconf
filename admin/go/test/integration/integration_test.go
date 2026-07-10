@@ -208,6 +208,17 @@ func moveParam(t *testing.T, from, to, comment string) {
 	})
 }
 
+// moveParamSymlink moves a parameter leaving a symlink behind at the old path.
+func moveParamSymlink(t *testing.T, from, to, comment string) {
+	t.Helper()
+	adminReqOK(t, "POST", "/config"+from, url.Values{
+		"version": {strconv.Itoa(paramVersion(t, from))},
+		"path":    {to},
+		"symlink": {"1"},
+		"comment": {comment},
+	})
+}
+
 func deleteParam(t *testing.T, path, comment string) {
 	t.Helper()
 	adminReqOK(t, "DELETE", "/config"+path, url.Values{

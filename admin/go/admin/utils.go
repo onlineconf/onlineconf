@@ -19,6 +19,7 @@ func Initialize(config AdminConfig) {
 	if config.NotificationDatabase.Host != "" || config.NotificationDatabase.Base != "" {
 		notifyDB = OpenDatabase(config.NotificationDatabase)
 	}
+	initializeDeps()
 }
 
 var pathRe = regexp.MustCompile(`^(.*)/([^/]+)$`)

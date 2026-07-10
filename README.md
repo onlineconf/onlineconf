@@ -180,12 +180,16 @@ Direct children of `/onlineconf/botapi/bot` are users of the server-server API o
 
 ### /onlineconf/disable-deleted-key-symlinks-check
 
-When the parameter is being deleted by the user, a symlink/template consistency check is performed. If some symlink or template refers to this parameter (including symlinks/templates inside a **case** value),
-the deletion is aborted with an error message describing referring symlinks/templates. This is a non-exhaustive check (e.g., no more than 5 nested symlinks are checked, nested **case** values aren't
-supported) and should be treated as a foolproof only and not as a formal consistency guarantee. In some rare cases, like nested symlinks to the parent subtree, a noticeable delay may occur when
-some parameter is deleted.
+OnlineConf tracks, for every symlink and template, which parameters it depends on — every node its resolution passes through and the node it ultimately resolves to. This includes symlinks and templates nested inside **case** values (at any nesting), and chains of symlinks resolved through one another. The dependencies are recorded once when a symlink/template is created, edited or moved, so the integrity checks below are a single indexed lookup and add no noticeable delay even on complex trees.
 
-To disable this foolproof, you can set `/onlineconf/disable-deleted-key-symlinks-check` to any non-empty text value other than `0`.
+Two operations on a parameter that other symlinks/templates still depend on are refused, with an error message listing the referring symlinks/templates:
+
+* **Deletion** — deleting the parameter would leave those symlinks/templates dangling.
+* **Move without leaving a symlink** — moving the parameter (or a subtree containing a referenced parameter) to another path makes the old paths stop resolving, breaking the referrers the same way a deletion would. Moving *with* a symlink left behind at the old path is allowed: the symlink keeps the old paths resolving, and the move and the symlink creation are performed atomically.
+
+Symlinks pointing at one of their own parents (including the root) are handled correctly and never block their own deletion. Dependency chains are followed up to a configurable depth (default 10); a parameter referenced only through a chain longer than that depth is not protected. The depth is set by `/onlineconf/deleted-key-symlinks-check-depth` (a plain-text integer); raising it rebuilds the dependency information in the background and takes effect without restarting the server.
+
+To disable these checks entirely, set `/onlineconf/disable-deleted-key-symlinks-check` to any non-empty text value other than `0`.
 
 ## Reading a configuration from an application
 
