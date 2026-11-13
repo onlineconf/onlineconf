@@ -66,3 +66,8 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 	ns.Valid = true
 	return json.Unmarshal(data, &ns.Bool)
 }
+
+// NullStringOf wraps a Go string as a valid NullString.
+func NullStringOf(s string) NullString {
+	return NullString{NullString: sql.NullString{String: s, Valid: true}}
+}

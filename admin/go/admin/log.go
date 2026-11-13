@@ -15,11 +15,13 @@ import (
 )
 
 type LogEntry struct {
+	ValueFlags
 	ID          int        `json:"id"`
 	NodeID      int        `json:"-"`
 	Path        string     `json:"path"`
 	Version     int        `json:"version"`
 	ContentType string     `json:"mime"`
+	CanReveal   bool       `json:"can_reveal,omitempty"`
 	Value       NullString `json:"data"`
 	MTime       string     `json:"mtime"`
 	Author      string     `json:"author"`
@@ -27,6 +29,7 @@ type LogEntry struct {
 	Deleted     bool       `json:"deleted"`
 	RW          NullBool   `json:"rw"`
 	Same        bool       `json:"same"`
+	storedValue NullString // the stored form of Value, kept aside for a reveal
 }
 
 type LogFilter struct {
@@ -41,6 +44,7 @@ type LogFilter struct {
 type logNotifyEntry struct {
 	Version     int        `json:"version"`
 	ContentType string     `json:"mime"`
+	Encrypted   bool       `json:"encrypted"`
 	Value       NullString `json:"data"`
 	Author      string     `json:"author"`
 	Comment     NullString `json:"comment"`
@@ -96,11 +100,14 @@ func SelectLog(ctx context.Context, filter LogFilter, lastID int) ([]LogEntry, e
 		bind = append(bind, lastID)
 	}
 
+	// Same ("is this version what the tree holds now?") is computed here
+	// rather than in SQL: an encrypted value carries a fresh nonce per
+	// version, so equal plaintexts never compare equal as ciphertext
 	query := `
 		SELECT
-			l.ID, l.NodeID, l.Path, l.Version, l.Value, l.ContentType, l.Author, l.MTime, l.Comment, l.Deleted,
+			l.ID, l.NodeID, l.Path, l.Version, l.Value, l.ContentType, l.Encrypted, l.Author, l.MTime, l.Comment, l.Deleted,
 			my_config_tree_access(t.ID, ?) AS RW,
-			l.ContentType = t.ContentType AND ((l.Value IS NULL AND t.Value IS NULL) OR l.Value = t.Value) AND l.Deleted = t.Deleted AS Same
+			t.Value, t.ContentType, t.Encrypted, t.Deleted
 		FROM my_config_tree_log l JOIN my_config_tree t ON t.ID = l.NodeID
 	`
 	if len(condition) > 0 {
@@ -116,16 +123,54 @@ func SelectLog(ctx context.Context, filter LogFilter, lastID int) ([]LogEntry, e
 	list := make([]LogEntry, 0)
 	for rows.Next() {
 		var l LogEntry
-		err := rows.Scan(&l.ID, &l.NodeID, &l.Path, &l.Version, &l.Value, &l.ContentType, &l.Author, &l.MTime, &l.Comment, &l.Deleted, &l.RW, &l.Same)
+		var current struct {
+			Value       NullString
+			ContentType string
+			Encrypted   bool
+			Deleted     bool
+		}
+		err := rows.Scan(&l.ID, &l.NodeID, &l.Path, &l.Version, &l.Value, &l.ContentType, &l.Encrypted, &l.Author, &l.MTime, &l.Comment, &l.Deleted, &l.RW,
+			&current.Value, &current.ContentType, &current.Encrypted, &current.Deleted)
 		if err != nil {
 			return nil, err
 		}
+		l.Same = l.ContentType == current.ContentType && l.Deleted == current.Deleted &&
+			storedValuesEqual(ctx, l.ContentType, l.Encrypted, l.Value, current.Encrypted, current.Value)
 		if !l.RW.Valid {
 			l.Value = NullString{}
+		} else {
+			l.storedValue = l.Value
+			l.Value = MaskStoredValue(l.ContentType, l.Encrypted, l.Value)
+			if HasEncryptedValue(l.ContentType, l.Encrypted, l.Value) {
+				requireWrite, err := revealRequiresWrite(ctx)
+				if err != nil {
+					return nil, err
+				}
+				l.CanReveal = canReveal(requireWrite, l.RW)
+			}
 		}
 		list = append(list, l)
 	}
 	return list, nil
+}
+
+// storedValuesEqual compares a history version with the tree's current
+// value — by plaintext when either side holds an encrypted leaf. A value the
+// keyring cannot open compares unequal (and is logged): a listing never fails
+// on one bad row.
+func storedValuesEqual(ctx context.Context, contentType string, aEncrypted bool, a NullString, bEncrypted bool, b NullString) bool {
+	if !HasEncryptedValue(contentType, aEncrypted, a) && !HasEncryptedValue(contentType, bEncrypted, b) {
+		return a == b
+	}
+	pa, err := DecryptStoredValue(contentType, aEncrypted, a)
+	if err == nil {
+		var pb NullString
+		if pb, err = DecryptStoredValue(contentType, bEncrypted, b); err == nil {
+			return pa == pb
+		}
+	}
+	log.Ctx(ctx).Warn().Err(err).Msg("cannot compare an encrypted history entry with the current value")
+	return false
 }
 
 func LogLastVersion(ctx context.Context, tx *sql.Tx, path, comment string) error {
@@ -133,8 +178,8 @@ func LogLastVersion(ctx context.Context, tx *sql.Tx, path, comment string) error
 		return ErrCommentRequired
 	}
 	res, err := tx.ExecContext(ctx, `
-		INSERT INTO my_config_tree_log (NodeID, Path, Version, Value, ContentType, Author, MTime, Comment, Deleted)
-		SELECT ID, Path, Version, Value, ContentType, ?, MTime, ?, Deleted
+		INSERT INTO my_config_tree_log (NodeID, Path, Version, Value, ContentType, Encrypted, Author, MTime, Comment, Deleted)
+		SELECT ID, Path, Version, Value, ContentType, Encrypted, ?, MTime, ?, Deleted
 		FROM my_config_tree
 		WHERE Path = ?
 	`, Username(ctx), comment, path)
@@ -167,8 +212,8 @@ func LogLastVersion(ctx context.Context, tx *sql.Tx, path, comment string) error
 // skipped — they are tombstones and keep their pre-move path.
 func LogMovedDescendants(ctx context.Context, tx *sql.Tx, newPath, comment string) error {
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO my_config_tree_log (NodeID, Path, Version, Value, ContentType, Author, MTime, Comment, Deleted, Silent)
-		SELECT ID, Path, Version, Value, ContentType, ?, MTime, ?, Deleted, true
+		INSERT INTO my_config_tree_log (NodeID, Path, Version, Value, ContentType, Encrypted, Author, MTime, Comment, Deleted, Silent)
+		SELECT ID, Path, Version, Value, ContentType, Encrypted, ?, MTime, ?, Deleted, true
 		FROM my_config_tree
 		WHERE Path LIKE ? AND NOT Deleted
 	`, Username(ctx), comment, likeEscape(newPath)+"/%")
@@ -196,7 +241,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 	}
 
 	rows, err := tx.QueryContext(ctx, `
-		SELECT l.Version, l.Value, l.ContentType, l.Author, l.Comment, l.Deleted
+		SELECT l.Version, l.Value, l.ContentType, l.Encrypted, l.Author, l.Comment, l.Deleted
 		FROM (SELECT NodeID, Version FROM my_config_tree_log WHERE ID = ?) s
 		JOIN my_config_tree_log l ON l.NodeID = s.NodeID AND (l.Version BETWEEN s.Version - 1 AND s.Version)
 		ORDER BY l.ID DESC
@@ -209,14 +254,14 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 		return ErrNoSuchVersion
 	}
 	var new logNotifyEntry
-	err = rows.Scan(&new.Version, &new.Value, &new.ContentType, &new.Author, &new.Comment, &new.Deleted)
+	err = rows.Scan(&new.Version, &new.Value, &new.ContentType, &new.Encrypted, &new.Author, &new.Comment, &new.Deleted)
 	if err != nil {
 		return err
 	}
 	message := string(avatars[int(crc32.ChecksumIEEE([]byte(new.Author)))%len(avatars)]) + " " + new.Author + "\n"
 	if rows.Next() {
 		var old logNotifyEntry
-		err := rows.Scan(&old.Version, &old.Value, &old.ContentType, &old.Author, &old.Comment, &old.Deleted)
+		err := rows.Scan(&old.Version, &old.Value, &old.ContentType, &old.Encrypted, &old.Author, &old.Comment, &old.Deleted)
 		if err != nil {
 			return err
 		}
@@ -235,39 +280,46 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 	message += " " + path
 	if !new.Deleted && notification == "with-value" {
 		message += " ➾ "
-		if new.Value.Valid {
+		switch {
+		case !new.Value.Valid:
+			message += "∅"
+		case new.Encrypted:
+			// the renderer never decrypts: the log row holds ciphertext, and
+			// the message is headed for a chat channel
+			message += valueSymbol(new.ContentType, true)
+		case new.ContentType == ContentTypeCase:
 			message += contentTypeSymbol(new.ContentType)
-			if new.ContentType == "application/x-case" {
-				var data []map[string]string
-				err = json.Unmarshal([]byte(new.Value.String), &data)
-				if err == nil {
-					for _, c := range data {
-						message += "\n"
-						if s, ok := c["server"]; ok {
-							message += "ⓗ«" + s + "»: "
-						} else if g, ok := c["group"]; ok {
-							message += "ⓖ«" + g + "»: "
-						} else if d, ok := c["datacenter"]; ok {
-							message += "ⓓ«" + d + "»: "
-						} else if s, ok := c["service"]; ok {
-							message += "ⓢ«" + s + "»: "
-						} else {
-							message += "☆️: "
-						}
-						if v, ok := c["value"]; ok && c["mime"] != "application/x-null" {
-							message += contentTypeSymbol(c["mime"]) + "«" + v + "»"
-						} else {
-							message += "∅"
-						}
+			var data []caseBranch
+			err = json.Unmarshal([]byte(new.Value.String), &data)
+			if err == nil {
+				for _, c := range data {
+					message += "\n"
+					switch {
+					case c.Server.Valid:
+						message += "ⓗ«" + c.Server.String + "»: "
+					case c.Group.Valid:
+						message += "ⓖ«" + c.Group.String + "»: "
+					case c.Datacenter.Valid:
+						message += "ⓓ«" + c.Datacenter.String + "»: "
+					case c.Service.Valid:
+						message += "ⓢ«" + c.Service.String + "»: "
+					default:
+						message += "☆️: "
 					}
-				} else {
-					message += "«" + new.Value.String + "»"
+					switch {
+					case !c.Value.Valid || c.ContentType.String == ContentTypeNull:
+						message += "∅"
+					case c.Encrypted:
+						message += valueSymbol(c.ContentType.String, true)
+					default:
+						message += contentTypeSymbol(c.ContentType.String) + "«" + c.Value.String + "»"
+					}
 				}
 			} else {
 				message += "«" + new.Value.String + "»"
 			}
-		} else {
-			message += "∅"
+		default:
+			message += contentTypeSymbol(new.ContentType) + "«" + new.Value.String + "»"
 		}
 	}
 	if new.Comment.Valid {
@@ -276,17 +328,28 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 	return emitNotification(ctx, message)
 }
 
+// valueSymbol renders the value-type marker of a notification message: the
+// content-type symbol, prefixed with a lock for an encrypted value, whose
+// content is never shown.
+func valueSymbol(contentType string, encrypted bool) string {
+	symbol := contentTypeSymbol(contentType)
+	if encrypted {
+		return "🔒" + symbol
+	}
+	return symbol
+}
+
 func contentTypeSymbol(contentType string) string {
 	switch contentType {
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		return "➦"
-	case "application/x-case":
+	case ContentTypeCase:
 		return "☰"
-	case "application/x-template":
+	case ContentTypeTemplate:
 		return "✄"
-	case "application/json":
+	case ContentTypeJSON:
 		return "ⓙ"
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		return "ⓨ"
 	default:
 		return ""

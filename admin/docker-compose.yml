@@ -15,6 +15,11 @@ services:
       ONLINECONF_DATABASE_BASE: onlineconf
       ONLINECONF_DATABASE_USER: onlineconf
       ONLINECONF_DATABASE_PASSWORD: onlineconf
+      ONLINECONF_ENCRYPTION_KEY_FILE: /usr/local/etc/onlineconf-admin.keys
+    volumes:
+      # copied into place by docker-entrypoint.sh on the first start, so the
+      # key file can be rotated inside the container (see the integration tests)
+      - ./etc/demo-encryption.keys:/usr/local/etc/onlineconf-admin.keys.demo:ro
     restart: always
   onlineconf-database:
     image: mysql:8.0

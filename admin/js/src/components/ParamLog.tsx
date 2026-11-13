@@ -10,6 +10,9 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Button from '@mui/material/Button';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+
 import * as API from '../api';
 import { ParamDialogProps } from './common';
 import ParamDialogTitle from './ParamDialogTitle';
@@ -19,7 +22,10 @@ import ErrorContext from './ErrorContext';
 const useStyles = makeStyles((theme: Theme) => ({
 	progressBlock: {
 		height: 4,
-	}
+	},
+	spacer: {
+		flex: 'auto',
+	},
 }));
 
 interface ParamLogProps extends ParamDialogProps {
@@ -37,6 +43,9 @@ export default function ParamLog(props: ParamLogProps) {
 	const [ active, setActive ] = React.useState(0);
 	const [ data, setData ] = React.useState<API.IParamLog[]>([]);
 	const [ more, setMore ] = React.useState(false);
+	// encrypted versions are served masked; revealing the history is an
+	// explicit, audited request that re-fetches the pages with plaintext
+	const [ reveal, setReveal ] = React.useState(false);
 
 	const { path } = props;
 	const nextPageHandlers = {
@@ -47,7 +56,7 @@ export default function ParamLog(props: ParamLogProps) {
 	const load = () => {
 		setActive(a => a + 1);
 		const cts = axios.CancelToken.source();
-		API.getParamLog(path, lastID, { cancelToken: cts.token })
+		API.getParamLog(path, lastID, { cancelToken: cts.token }, reveal)
 			.then(data => {
 				if (lastID !== undefined) {
 					setData(currentData => [ ...currentData, ...data ]);
@@ -69,7 +78,7 @@ export default function ParamLog(props: ParamLogProps) {
 			});
 		return () => cts.cancel('Operation canceled by the user.');
 	};
-	React.useEffect(load, [path, lastID, onError, onLoaded]);
+	React.useEffect(load, [path, lastID, reveal, onError, onLoaded]);
 	const loading = active !== 0;
 
 	const handleClose = () => setOpen(false);
@@ -79,6 +88,11 @@ export default function ParamLog(props: ParamLogProps) {
 		props.onChange(param);
 	};
 
+	const handleReveal = () => {
+		setLastID(undefined);
+		setReveal(r => !r);
+	};
+
 	const handleScroll: React.UIEventHandler<HTMLDivElement> = React.useCallback(event => {
 		if (!more || data.length === 0) return;
 		const content = event.currentTarget;
@@ -86,6 +100,8 @@ export default function ParamLog(props: ParamLogProps) {
 			setLastID(data[data.length - 1].id);
 		}
 	}, [data, more]);
+
+	const revealable = data.some(entry => entry.can_reveal);
 
 	const classes = useStyles();
 	return (
@@ -107,6 +123,12 @@ export default function ParamLog(props: ParamLogProps) {
 				)}
 			</DialogContent>
 			<DialogActions>
+				{revealable && (
+					<Button onClick={handleReveal} startIcon={reveal ? <VisibilityOffIcon/> : <VisibilityIcon/>}>
+						{t(reveal ? 'param.encrypted.hide' : 'param.encrypted.revealHistory')}
+					</Button>
+				)}
+				<div className={classes.spacer}/>
 				<Button color="primary" onClick={handleClose}>{t('button.close')}</Button>
 			</DialogActions>
 		</Dialog>

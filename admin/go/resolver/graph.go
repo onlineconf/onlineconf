@@ -15,6 +15,7 @@ var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
 type Case struct {
 	ContentType string     `json:"mime"`
+	Encrypted   bool       `json:"encrypted"`
 	Value       NullString `json:"value"`
 	Server      string     `json:"server"`
 	Group       string     `json:"group"`
@@ -59,18 +60,18 @@ func (g *graph) resolve(ctx context.Context, paramPtr **Param) {
 	param := *paramPtr
 	for *paramPtr != nil {
 		switch (*paramPtr).ContentType {
-		case "application/x-symlink":
+		case ContentTypeSymlink:
 			g.resolveSymlink(ctx, paramPtr)
-		case "application/x-case":
+		case ContentTypeCase:
 			g.resolveCase(ctx, *paramPtr)
-		case "application/x-template":
+		case ContentTypeTemplate:
 			g.resolveTemplate(ctx, *paramPtr)
 			return
 		default:
 			return
 		}
 	}
-	log.Ctx(ctx).Warn().Str("param", param.Path).Str("content_type", param.ContentType).Str("value", param.Value.String).Msg("resolve failed")
+	log.Ctx(ctx).Warn().Str("param", param.Path).Str("content_type", param.ContentType).Str("value", param.logValue()).Msg("resolve failed")
 }
 
 func (g *graph) resolveSymlink(ctx context.Context, paramPtr **Param) {
@@ -80,16 +81,20 @@ func (g *graph) resolveSymlink(ctx context.Context, paramPtr **Param) {
 		*paramPtr = target
 		return
 	}
-	log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Msg("symlink is pointing to nowhere")
+	log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.logValue()).Msg("symlink is pointing to nowhere")
 }
 
 func (g *graph) resolveCase(ctx context.Context, param *Param) {
 	cs := g.caseResolver.resolveCase(ctx, param)
 	if cs != nil {
 		param.ContentType = cs.ContentType
+		// the selected branch's secrecy: its own marker, or — for a nested
+		// case — that of any branch inside it
+		param.Encrypted = HasEncryptedValue(cs.ContentType, cs.Encrypted, cs.Value)
 		param.Value = cs.Value
 	} else {
-		param.ContentType = "application/x-null"
+		param.ContentType = ContentTypeNull
+		param.Encrypted = false
 		param.Value = NullString{}
 	}
 }
@@ -104,12 +109,15 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 		name := match[2 : len(match)-1]
 		if strings.HasPrefix(name, "/") {
 			if target := g.get(ctx, name); target != nil {
-				if target.ContentType == "application/x-template" {
+				if target.ContentType == ContentTypeTemplate {
 					expanded = false
+				}
+				if target.Encrypted {
+					param.Encrypted = true // the expansion now carries a secret
 				}
 				return target.Value.String
 			} else {
-				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Str("var", name).Msg("failed to expand variable")
+				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.logValue()).Str("var", name).Msg("failed to expand variable")
 				return ""
 			}
 		} else if value, ok := g.caseResolver.getTemplateVar(name); ok {
@@ -120,7 +128,7 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 		}
 	})
 	if expanded {
-		param.ContentType = "text/plain"
+		param.ContentType = ContentTypeText
 	}
 	param.seen = false
 }

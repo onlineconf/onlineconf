@@ -1,4 +1,5 @@
 import * as React from 'react';
+import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import makeStyles from '@mui/styles/makeStyles';
 import { InputBaseComponentProps } from '@mui/material/InputBase';
@@ -25,6 +26,13 @@ const useStyles = makeStyles({
 			height: '100%',
 		},
 	},
+	// password-style masking of a secret being typed; browsers without the
+	// property simply show the text
+	masked: {
+		'& .CodeMirror-line, & .CodeMirror-line > span': {
+			['-webkit-text-security' as never]: 'disc',
+		},
+	},
 	helper: {
 		padding: 0,
 		margin: 0,
@@ -33,7 +41,7 @@ const useStyles = makeStyles({
 });
 
 function CodeMirrorEditor(props: InputBaseComponentProps) {
-	const { className, inputRef, onFocus, onBlur, onBeforeChange, type, value } = props;
+	const { className, inputRef, onFocus, onBlur, onBeforeChange, type, value, masked } = props;
 	const classes = useStyles();
 
 	const editorRef = React.useRef<CodeMirror.Editor>();
@@ -43,7 +51,7 @@ function CodeMirrorEditor(props: InputBaseComponentProps) {
 	}));
 
 	return (
-		<div className={className} onClick={() => editorRef.current?.focus()}>
+		<div className={clsx(className, masked && classes.masked)} onClick={() => editorRef.current?.focus()}>
 			<CodeMirrorComponent
 				value={value as string}
 				options={{ mode: type, scrollbarStyle: 'null' }}
@@ -74,7 +82,7 @@ function CaseHelperText() {
 }
 
 export default function TextValueEdit(props: EditNonnullValueProps) {
-	const { onChange, type, value } = props;
+	const { onChange, type, value, masked } = props;
 	const { t } = useTranslation();
 	const classes = useStyles();
 
@@ -90,7 +98,7 @@ export default function TextValueEdit(props: EditNonnullValueProps) {
 			className={classes.field}
 			InputProps={{
 				inputComponent: CodeMirrorEditor,
-				inputProps: { type, onBeforeChange: onChange, className: classes.input },
+				inputProps: { type, masked, onBeforeChange: onChange, className: classes.input },
 				className: classes.inputRoot,
 			}}
 		/>

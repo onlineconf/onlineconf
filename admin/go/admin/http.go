@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -24,6 +25,15 @@ var writeError = WriteErrorFunc(map[error]ErrorResponse{
 	ErrNotEmpty:        {HTTPCode: 400, ErrorCode: "NotEmpty"},
 	ErrNotFound:        {HTTPCode: 404, ErrorCode: "NotFound"},
 	ErrParentNotFound:  {HTTPCode: 400, ErrorCode: "ParentNotFound"},
+	ErrDeletedSymlink:  {HTTPCode: 400, ErrorCode: "DeletedSymlink"},
+	ErrDeletedTmpl:     {HTTPCode: 400, ErrorCode: "DeletedTemplate"},
+
+	ErrEncryptionNotAllowed:   {HTTPCode: 400, ErrorCode: "EncryptionNotAllowed"},
+	ErrEncryptionDisabled:     {HTTPCode: 400, ErrorCode: "EncryptionDisabled"},
+	ErrEncryptedFieldRequired: {HTTPCode: 400, ErrorCode: "EncryptedFieldRequired"},
+	ErrRevealDenied:           {HTTPCode: 403, ErrorCode: "RevealDenied"},
+	ErrDecryptionFailed:       {HTTPCode: 500, ErrorCode: "DecryptionFailed"},
+	ErrActiveKeyMissing:       {HTTPCode: 500, ErrorCode: "EncryptionKeyMissing"},
 })
 var writeResponse = WriteResponseOrErrorFunc(writeError)
 
@@ -61,10 +71,16 @@ func RegisterRoutes(r *mux.Router) {
 	r.Path("/monitoring/{host}").Methods("DELETE").HandlerFunc(serveDeleteServerFromMonitoring)
 
 	r.Path("/ui-config").Methods("GET").HandlerFunc(serveUIConfig)
+	r.Path("/encryption-status").Methods("GET").Handler(RootUsersOnly(http.HandlerFunc(serveEncryptionStatus)))
 }
 
 func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 	path := mux.Vars(req)["path"]
+	reveal := req.URL.Query().Get("reveal")
+	if reveal != "" && reveal != "1" {
+		WriteResponse(req.Context(), w, ErrorResponse{HTTPCode: 400, ErrorCode: "InvalidParam", Message: "Parameter 'reveal' must be 1"})
+		return
+	}
 	var parameter *Parameter
 	var err error
 	switch req.URL.Query().Get("symlink") {
@@ -82,6 +98,13 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 		writeError(req.Context(), w, ErrNotFound)
 		return
 	}
+	if reveal != "" {
+		// one parameter at a time: children stay masked whatever the depth
+		if err := RevealParameter(req.Context(), parameter); err != nil {
+			writeError(req.Context(), w, err)
+			return
+		}
+	}
 	var data interface{}
 	switch req.URL.Query().Get("depth") {
 	case "", "children":
@@ -94,12 +117,42 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 	writeResponse(req.Context(), w, data, err)
 }
 
+// encryptedField parses the optional "encrypted" form field. It is
+// tri-state: an absent field yields an invalid NullBool (SetParameter decides
+// what that means for the parameter at hand, CreateParameter takes it as
+// false). Asking for encryption is refused while the feature is off on this
+// instance; declassifying (encrypted=0) is always accepted, so switching the
+// feature off never traps an encrypted parameter.
+func encryptedField(ctx context.Context, f url.Values) (NullBool, error) {
+	var encrypted NullBool
+	if _, ok := f["encrypted"]; !ok {
+		return encrypted, nil
+	}
+	encrypted.Valid = true
+	encrypted.Bool = f.Get("encrypted") == "1"
+	if encrypted.Bool {
+		enabled, err := isValueEncryptionEnabled(ctx)
+		if err != nil {
+			return encrypted, err
+		}
+		if !enabled {
+			return encrypted, ErrEncryptionDisabled
+		}
+	}
+	return encrypted, nil
+}
+
 func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 	path := mux.Vars(req)["path"]
 	req.ParseForm()
 	f := req.PostForm
 
-	var err error
+	encrypted, err := encryptedField(req.Context(), f)
+	if err != nil {
+		writeError(req.Context(), w, err)
+		return
+	}
+
 	if verstr := f.Get("version"); verstr != "" {
 		var version int
 		version, err = strconv.Atoi(verstr)
@@ -113,11 +166,17 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 			// the parameter now lives at newPath, return its state from there
 			// (the old path either holds a symlink or nothing at all)
 			path = newPath
+		} else if restore := f.Get("restore"); restore != "" {
+			var restoreVersion int
+			if restoreVersion, err = strconv.Atoi(restore); err == nil {
+				err = RestoreParameter(req.Context(), path, version, restoreVersion, f.Get("comment"))
+			}
 		} else {
-			err = SetParameter(req.Context(), path, version, f.Get("mime"), f.Get("data"), f.Get("comment"))
+			err = SetParameter(req.Context(), path, version, f.Get("mime"), encrypted, f.Get("data"), f.Get("comment"))
 		}
 	} else if contentType := f.Get("mime"); contentType != "" {
-		err = CreateParameter(req.Context(), path, contentType, f.Get("data"), optValue(f, "summary"), optValue(f, "description"), optValue(f, "notification"), f.Get("comment"))
+		flags := ValueFlags{Encrypted: encrypted.Valid && encrypted.Bool}
+		err = CreateParameter(req.Context(), path, contentType, flags, f.Get("data"), optValue(f, "summary"), optValue(f, "description"), optValue(f, "notification"), f.Get("comment"))
 	} else {
 		_, nOk := f["notification"]
 		_, sOk := f["summary"]
@@ -136,13 +195,9 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 		writeError(req.Context(), w, err)
 		return
 	}
+	controlWritten(req.Context(), path)
 
 	p, err := SelectParameter(req.Context(), path)
-	if err != nil {
-		writeError(req.Context(), w, err)
-		return
-	}
-
 	writeResponse(req.Context(), w, p, err)
 }
 
@@ -151,9 +206,13 @@ func serveDeleteConfig(w http.ResponseWriter, req *http.Request) {
 	req.Method = "POST"
 	req.ParseForm()
 	req.Method = origMethod
+	path := mux.Vars(req)["path"]
 	version, err := strconv.Atoi(req.PostFormValue("version"))
 	if err == nil {
-		err = DeleteParameter(req.Context(), mux.Vars(req)["path"], version, req.PostFormValue("comment"))
+		err = DeleteParameter(req.Context(), path, version, req.PostFormValue("comment"))
+	}
+	if err == nil {
+		controlWritten(req.Context(), path)
 	}
 	writeResponse(req.Context(), w, struct{}{}, err)
 }
@@ -325,12 +384,16 @@ func serveGlobalLog(w http.ResponseWriter, req *http.Request) {
 }
 
 func serveParameterLog(w http.ResponseWriter, req *http.Request) {
+	path := mux.Vars(req)["path"]
 	filter := LogFilter{
-		Path: mux.Vars(req)["path"],
+		Path: path,
 		All:  true,
 	}
 	lastID, _ := strconv.Atoi(req.URL.Query().Get("lastid"))
 	list, err := SelectLog(req.Context(), filter, lastID)
+	if err == nil && req.URL.Query().Get("reveal") == "1" {
+		err = RevealLog(req.Context(), list, path)
+	}
 	writeResponse(req.Context(), w, list, err)
 }
 
@@ -347,12 +410,26 @@ func serveDeleteServerFromMonitoring(w http.ResponseWriter, req *http.Request) {
 	writeResponse(req.Context(), w, struct{}{}, err)
 }
 
+func serveEncryptionStatus(w http.ResponseWriter, req *http.Request) {
+	status, err := SelectEncryptionStatus(req.Context())
+	writeResponse(req.Context(), w, status, err)
+}
+
 const avatarPath = "/onlineconf/ui/avatar"
 
 var errInvalidAvatarContentType = errors.New("invalid content-type")
 
 type UIConfig struct {
-	Avatar *Avatar `json:"avatar,omitempty"`
+	Avatar     *Avatar            `json:"avatar,omitempty"`
+	Encryption UIEncryptionConfig `json:"encryption"`
+}
+
+// UIEncryptionConfig tells the UI whether encrypted writes are accepted on
+// this instance (the switch is on and a keyring is loaded) and who may
+// reveal an encrypted value.
+type UIEncryptionConfig struct {
+	Enabled bool   `json:"enabled"`
+	Reveal  string `json:"reveal"` // rw | ro
 }
 
 type Avatar struct {
@@ -374,13 +451,27 @@ type Avatar struct {
 // - any data MUST be decoded using an explicit schema
 func serveUIConfig(w http.ResponseWriter, req *http.Request) {
 	var config UIConfig
+
+	enabled, err := isValueEncryptionEnabled(req.Context())
+	if err != nil {
+		writeError(req.Context(), w, err)
+		return
+	}
+	config.Encryption.Enabled = enabled
+	requireWrite, err := revealRequiresWrite(req.Context())
+	if err != nil {
+		writeError(req.Context(), w, err)
+		return
+	}
+	config.Encryption.Reveal = revealPolicyName(requireWrite)
+
 	avatarParam, err := SelectParameter(req.Context(), avatarPath)
 	if avatarParam != nil {
 		var avatar Avatar
 		switch avatarParam.ContentType {
-		case "application/json":
+		case ContentTypeJSON:
 			err = json.Unmarshal([]byte(avatarParam.Value.String), &avatar)
-		case "application/x-yaml":
+		case ContentTypeYAML:
 			err = yaml.Unmarshal([]byte(avatarParam.Value.String), &avatar)
 		default:
 			err = errInvalidAvatarContentType

@@ -7,6 +7,8 @@ import (
 	"sort"
 
 	"github.com/rs/zerolog/log"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 type datacenter struct {
@@ -53,7 +55,7 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	for _, name := range sortedNames {
 		dc := *dcroot.Children[name]
 		datacenter := datacenter{name: name}
-		if dc.ContentType == "application/x-null" {
+		if dc.ContentType == ContentTypeNull {
 			datacenter.trust = true
 		} else {
 			ipnets, err := readIPNets(dc)

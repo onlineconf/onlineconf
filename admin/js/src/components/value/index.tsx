@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import { ValueProps, EditValueProps } from '../common';
 import { NonNullParamType, NonNullValueProps, EditNonnullValueProps } from './common';
 import { NullValuePreview, NullValueView, NullValueEdit } from './null';
+import { EncryptedValuePreview, EncryptedValueView } from './encrypted';
 import textValue from './text';
 import templateValue from './template';
 import symlinkValue from './symlink';
@@ -33,10 +34,18 @@ const typeMap: { [P in NonNullParamType]: NonNullTypeConfig } = {
 	'application/x-server2': server2Value,
 };
 
+// An encrypted value whose data is null is a masked secret (the server serves
+// plaintext only on an explicit reveal); it renders as such whatever its type.
+function isMasked(props: ValueProps) {
+	return props.encrypted === true && props.value === null;
+}
+
 export function ValuePreview(props: ValueProps) {
-	const { type, value, ...rest } = props;
+	const { type, value, encrypted, ...rest } = props;
 	if (type === 'application/x-null') {
 		return <NullValuePreview {...rest} type="application/x-null" value={null}/>;
+	} else if (isMasked(props)) {
+		return <EncryptedValuePreview/>;
 	} else {
 		const Preview = typeMap[type].preview;
 		return <Preview {...rest} type={type} value={value !== null ? value : ''}/>;
@@ -57,11 +66,13 @@ interface ValueViewProps extends ValueProps {
 }
 
 export function ValueView(props: ValueViewProps) {
-	const { type, value, disableDecoration, className, ...rest } = props;
+	const { type, value, encrypted, disableDecoration, className, ...rest } = props;
 	const classes = useViewStyles();
 	let view: JSX.Element;
 	if (type === 'application/x-null') {
 		view = <NullValueView type="application/x-null" value={null}/>;
+	} else if (isMasked(props)) {
+		view = <EncryptedValueView/>;
 	} else {
 		const View = typeMap[type].view;
 		view = <View type={type} value={value !== null ? value : ''} />;
@@ -80,11 +91,11 @@ export function ValueView(props: ValueViewProps) {
 }
 
 export function ValueEdit(props: EditValueProps) {
-	const { type, value, ...rest } = props;
+	const { type, value, masked, ...rest } = props;
 	if (type === 'application/x-null') {
 		return <NullValueEdit {...rest} type="application/x-null" value={null}/>;
 	} else {
 		const Edit = typeMap[type].edit;
-		return <Edit {...rest} type={type} value={value !== null ? value : ''}/>;
+		return <Edit {...rest} type={type} masked={masked} value={value !== null ? value : ''}/>;
 	}
 }

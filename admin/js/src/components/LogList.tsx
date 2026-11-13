@@ -116,6 +116,7 @@ function LogItem(props: LogItemProps) {
 			path={props.path}
 			type={props.mime}
 			value={props.data}
+			encrypted={props.encrypted}
 			version={props.version}
 			deleted={props.deleted}
 			onLoaded={() => setRollbackLoading(false)}
@@ -127,7 +128,7 @@ function LogItem(props: LogItemProps) {
 			}}
 		/>);
 		setRollbackLoading(true);
-	}, [onError, props.data, props.deleted, props.mime, props.onChange, props.path, props.version]);
+	}, [onError, props.data, props.deleted, props.encrypted, props.mime, props.onChange, props.path, props.version]);
 
 	return (
 		<ListItem disableGutters className={classes.root}>
@@ -153,9 +154,9 @@ function LogItem(props: LogItemProps) {
 					<Collapse in={!expanded}>
 						{props.deleted ? <div className={classes.deleted}>{t('log.deleted')}</div> : (
 							<div className={classes.flexBlock}>
-								<ParamIcon type={props.mime} fontSize="small" color="action"/>
+								<ParamIcon type={props.mime} encrypted={props.encrypted} fontSize="small" color="action"/>
 								<div className={classes.flexBlockText}>
-									{props.rw === null ? <NoAccess/> : <ValuePreview type={props.mime} value={props.data}/>}
+									{props.rw === null ? <NoAccess/> : <ValuePreview type={props.mime} value={props.data} encrypted={props.encrypted}/>}
 								</div>
 							</div>
 						)}
@@ -177,7 +178,7 @@ function LogItem(props: LogItemProps) {
 							? <span className={classes.deleted}>{t('log.deleted')}</span>
 							: props.rw === null
 								? <NoAccess/>
-								: <ValueView type={props.mime} value={props.data}/>
+								: <ValueView type={props.mime} value={props.data} encrypted={props.encrypted}/>
 					}
 					<Typography variant="body2" color="textSecondary" component="div" className={classes.commentBlock}>
 						<CommentIcon className={classes.commentIcon}/>

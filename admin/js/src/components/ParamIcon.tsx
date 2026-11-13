@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { SvgIconProps } from '@mui/material/SvgIcon';
+import Badge from '@mui/material/Badge';
 
 import DefaultIcon from '@mui/icons-material/Settings';
 import RootIcon from '@mui/icons-material/Language';
@@ -12,8 +13,9 @@ import SymlinkIcon from '@mui/icons-material/Launch';
 import CaseIcon from '@mui/icons-material/Help';
 import TemplateIcon from '@mui/icons-material/LocalAtm';
 import ListIcon from '@mui/icons-material/List';
+import LockIcon from '@mui/icons-material/Lock';
 
-import { ParamType } from '../api';
+import { ParamType, ValueFlags } from '../api';
 
 const iconByType: { [P in ParamType]: React.ComponentType<SvgIconProps> } = {
 	'application/x-null': NullIcon,
@@ -28,14 +30,16 @@ const iconByType: { [P in ParamType]: React.ComponentType<SvgIconProps> } = {
 	'application/x-server2': ListIcon,
 };
 
-interface ParamIconProps extends SvgIconProps {
+// an encrypted value gets a lock badge over the type icon: the type still
+// reads as itself
+interface ParamIconProps extends SvgIconProps, ValueFlags {
 	type: ParamType;
 	path?: string;
 	numChildren?: number;
 }
 
 export default function ParamIcon(props: ParamIconProps) {
-	const { type, path, name, numChildren, ...rest } = props;
+	const { type, path, name, numChildren, encrypted, className, ...rest } = props;
 	let Icon = iconByType[type] || DefaultIcon;
 
 	if (type === 'application/x-null') {
@@ -47,5 +51,17 @@ export default function ParamIcon(props: ParamIconProps) {
 			Icon = FolderIcon;
 		}
 	}
-	return <Icon {...rest}/>;
+	if (!encrypted) {
+		return <Icon {...rest} className={className}/>;
+	}
+	return (
+		<Badge
+			overlap="circular"
+			anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+			badgeContent={<LockIcon sx={{ fontSize: 10 }}/>}
+			className={className}
+		>
+			<Icon {...rest}/>
+		</Badge>
+	);
 }

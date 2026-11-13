@@ -56,6 +56,7 @@ class ListValueEdit extends React.Component<EditNonnullValueProps & WithStyles<t
 								variant="standard"
 								margin="dense"
 								fullWidth
+								type={this.props.masked ? 'password' : 'text'}
 								value={item}
 								onChange={this.createChangeItemHandler(i)}
 								autoFocus={item === ''} />
