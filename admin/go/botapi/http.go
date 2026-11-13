@@ -27,6 +27,10 @@ func RegisterRoutes(r *mux.Router) {
 	n := r.Path("/notification/").Subrouter()
 	n.Use(scopeMiddleware("notifications"))
 	n.Methods("GET").HandlerFunc(notificationFeed.serve)
+
+	a := r.Path("/audit/").Subrouter()
+	a.Use(scopeMiddleware("audit"))
+	a.Methods("GET").HandlerFunc(auditFeed.serve)
 }
 
 type NotificationsResponse struct {
@@ -34,9 +38,16 @@ type NotificationsResponse struct {
 	LastID        int            `json:"lastID"`
 }
 
+type AuditEventsResponse struct {
+	Events []AuditEvent `json:"events"`
+	LastID int          `json:"lastID"`
+}
+
 // feed is a long-polled, cursor-based event stream: `lastID` is the cursor
 // the client has consumed up to, `limit` the page size (0 just returns the
-// current cursor), `wait` how long to hold the request for new events.
+// current cursor), `wait` how long to hold the request for new events. The
+// change notifications consumed by onlineconf-bot and the audit log are two
+// instances of it.
 type feed struct {
 	// fetch returns the response (entries plus the new cursor), the number
 	// of entries, and the new cursor.
@@ -47,6 +58,13 @@ var notificationFeed = feed{
 	fetch: func(ctx context.Context, lastID, limit int) (interface{}, int, int, error) {
 		notifications, lastID, err := SelectNotifications(ctx, lastID, limit)
 		return NotificationsResponse{Notifications: notifications, LastID: lastID}, len(notifications), lastID, err
+	},
+}
+
+var auditFeed = feed{
+	fetch: func(ctx context.Context, lastID, limit int) (interface{}, int, int, error) {
+		events, lastID, err := SelectAuditEvents(ctx, lastID, limit)
+		return AuditEventsResponse{Events: events, LastID: lastID}, len(events), lastID, err
 	},
 }
 

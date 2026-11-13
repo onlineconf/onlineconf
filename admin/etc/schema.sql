@@ -88,6 +88,28 @@ CREATE TABLE `my_config_encryption_key` (
     UNIQUE KEY `Seq` (`Seq`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- The audit log: acts worth telling a parameter's owners about that are not
+-- changes of the parameter itself. Today these are the reveals of encrypted
+-- values — reveal_view: the current value was shown, to view or to edit it;
+-- reveal_history: the parameter's history was shown — written before any
+-- decryption happens and served to bots by the botapi audit feed. A later
+-- kind is appended at the END of the Kind enum by its own update-N.sql:
+-- MySQL applies that as a metadata-only change, whereas reordering or
+-- removing members rebuilds the table. NodeID is NULL for an event that is
+-- not bound to a parameter.
+CREATE TABLE `my_config_audit` (
+    `ID` bigint(20) unsigned NOT NULL auto_increment,
+    `NodeID` bigint(20) unsigned default NULL,
+    `Path` varchar(512) character set ascii collate ascii_bin NOT NULL default '',
+    `User` varchar(128) character set ascii NOT NULL,
+    `Kind` enum('reveal_view','reveal_history') character set ascii NOT NULL,
+    `Time` timestamp NOT NULL default CURRENT_TIMESTAMP,
+    PRIMARY KEY  (`ID`),
+    KEY `NodeID` (`NodeID`),
+    KEY `Time` (`Time`),
+    CONSTRAINT `my_config_audit_ibfk_1` FOREIGN KEY (`NodeID`) REFERENCES `my_config_tree` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- The schema version: the number of the last admin/etc/update-N.sql applied.
 -- Every update file ends with INSERT INTO my_config_schema (Version) VALUES
 -- (N), so that onlineconf-admin refuses to start against a schema behind the

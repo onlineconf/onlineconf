@@ -117,11 +117,14 @@ not protect against a compromised admin host, against users the reveal
 policy admits, or against copies of the database taken before a value was
 encrypted.
 
-**Reading a secret is an explicit act.** The UI and the API serve
+**Reading a secret is an explicit, audited act.** The UI and the API serve
 an encrypted value as `null` in every listing; the plaintext is returned
 only by `GET /config/<path>?reveal=1` (and the parameter's history by
 `GET /log/<path>?reveal=1`), subject to the reveal policy (see
-`/onlineconf/value-encryption/reveal` below).
+`/onlineconf/value-encryption/reveal` below), and every such request is
+recorded in the audit log (`my_config_audit`, kinds `reveal_view` and
+`reveal_history`) and announced to the parameter's owners through the bot
+(`GET /botapi/audit/`, scope `audit`) and the legacy notification table.
 Writing an encrypted parameter requires stating the
 `encrypted` form field (`1` or `0`) explicitly: a client that does not know
 about encryption is refused rather than allowed to overwrite the secret
@@ -334,3 +337,11 @@ If there are no notifications and `wait` query parameter is provided then waits 
 If `limit=0` then the method just returns the current `lastID`.
 
 Scope `notifications` is required to access this method.
+
+### GET /audit/
+
+Returns `limit` audit events starting from the next after `lastID`, with the same `wait` and `limit=0` semantics as `GET /notification/`.
+An event is `{"id", "path", "user", "kind", "mtime", "notification", "users"}`: who did what (`kind`: `reveal_view` — the current value of an encrypted parameter was revealed, to view or to edit it; `reveal_history` — its history was revealed) to which parameter, with the parameter's notification setting and the users to tell, exactly as a notification carries them.
+Events of parameters whose notification setting is `none` are not served. The response is `{"events": [...], "lastID": N}`.
+
+Scope `audit` is required to access this method.

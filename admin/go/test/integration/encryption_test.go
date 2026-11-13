@@ -3,7 +3,9 @@
 package integration
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -131,14 +133,20 @@ func TestEncryptedCRUD(t *testing.T) {
 		t.Errorf("plaintext stored in the tree")
 	}
 
-	// listings mask; a reveal returns plaintext
+	// listings mask; a reveal returns plaintext and is audited
 	info := getParamInfo(t, p, "")
 	if info.Data != nil || !info.Encrypted || !info.CanReveal {
 		t.Errorf("masked GET: data=%s encrypted=%v can_reveal=%v", dataOf(info), info.Encrypted, info.CanReveal)
 	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)); got != 0 {
+		t.Errorf("a masked GET was audited as a reveal")
+	}
 	info = getParamInfo(t, p, "?reveal=1")
 	if dataOf(info) != "hunter2" || !info.Encrypted {
 		t.Errorf("reveal: data=%s encrypted=%v", dataOf(info), info.Encrypted)
+	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)+" AND User = 'admin' AND Kind = 'reveal_view'"); got != 1 {
+		t.Errorf("reveal audit rows = %d, want 1", got)
 	}
 	if status, body := adminReq(t, "GET", "/config"+p+"?reveal=all", nil); status != http.StatusBadRequest {
 		t.Errorf("bogus reveal kind: status %d, body %s", status, body)
@@ -168,6 +176,9 @@ func TestEncryptedCRUD(t *testing.T) {
 	}
 	if dataOf(getParamInfo(t, p, "?reveal=1")) != "hunter3" {
 		t.Errorf("new value not stored")
+	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)+" AND Kind = 'reveal_view'"); got != 4 {
+		t.Errorf("reveal audit rows after the edits = %d, want 4 (view, view with children, two edits)", got)
 	}
 	// the type cannot become ineligible while encrypted
 	status, body = setParam(t, p, url.Values{"mime": {"application/x-symlink"}, "data": {p + "/child"}, "encrypted": {"1"}})
@@ -251,6 +262,9 @@ func TestRevealPolicy(t *testing.T) {
 	}
 	status, body := reqAs(t, "meerkat", "meerkat", "GET", "/config"+p+"?reveal=1", nil)
 	expectError(t, status, body, http.StatusForbidden, "RevealDenied")
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)); got != 0 {
+		t.Errorf("a refused reveal was audited")
+	}
 
 	// the policy parameter relaxes it to read access
 	policy := "/onlineconf/value-encryption/reveal"
@@ -276,6 +290,102 @@ func TestRevealPolicy(t *testing.T) {
 	status, info = getParamInfoAs(t, "meerkat", "meerkat", p, "?reveal=1")
 	if status != http.StatusOK || dataOf(info) != "policy-secret" {
 		t.Errorf("read-only user reveal under the ro policy: status=%d data=%s", status, dataOf(info))
+	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)+" AND User = 'meerkat'"); got != 1 {
+		t.Errorf("meerkat's reveal audit rows = %d, want 1", got)
+	}
+}
+
+func TestRevealFeed(t *testing.T) {
+	bot := fmt.Sprintf("it-rbot-%d", os.Getpid())
+	const password = "it-rbot-password"
+	hash := sha256.Sum256([]byte(password))
+	ensureParam(t, "/onlineconf/botapi", "application/x-null", "", "botapi root")
+	ensureParam(t, "/onlineconf/botapi/bot", "application/x-null", "", "botapi accounts")
+	mkParam(t, "/onlineconf/botapi/bot/"+bot, "text/plain", hex.EncodeToString(hash[:]), "bot account")
+	mkParam(t, "/onlineconf/botapi/bot/"+bot+"/scopes", "application/x-list", "notifications,audit", "bot scopes")
+	noScope := fmt.Sprintf("it-nbot-%d", os.Getpid())
+	mkParam(t, "/onlineconf/botapi/bot/"+noScope, "text/plain", hex.EncodeToString(hash[:]), "bot account")
+	mkParam(t, "/onlineconf/botapi/bot/"+noScope+"/scopes", "application/x-list", "notifications", "bot scopes")
+
+	feed := func(bot string, lastID int) (int, map[string]json.RawMessage) {
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/botapi/audit/?lastID=%d&limit=100", baseURL, lastID), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.SetBasicAuth(bot, password)
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var r map[string]json.RawMessage
+		if resp.StatusCode == http.StatusOK {
+			if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return resp.StatusCode, r
+	}
+	deadline := time.Now().Add(60 * time.Second)
+	var status int
+	var baseline map[string]json.RawMessage
+	for {
+		if status, baseline = feed(bot, 0); status == http.StatusOK {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("botapi credentials did not become active, last status %d", status)
+		}
+		time.Sleep(time.Second)
+	}
+	var lastID int
+	if err := json.Unmarshal(baseline["lastID"], &lastID); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := feed(noScope, 0); status != http.StatusForbidden {
+		t.Errorf("audit feed without the audit scope: status %d, want 403", status)
+	}
+
+	p := uniqPath("enc-feed")
+	mkEncrypted(t, p, "text/plain", "feed-secret", "mk")
+	setNotification(t, p, "no-value") // the feed follows the notification opt-in
+	const countQuery = "SELECT COUNT(*) FROM my_change_notification"
+	before := dbInt(t, countQuery)
+	getParamInfo(t, p, "?reveal=1")
+
+	status, r := feed(bot, lastID)
+	if status != http.StatusOK {
+		t.Fatalf("reveal feed: status %d", status)
+	}
+	var reveals []struct {
+		Path  string            `json:"path"`
+		User  string            `json:"user"`
+		Kind  string            `json:"kind"`
+		Users map[string]string `json:"users"`
+	}
+	if err := json.Unmarshal(r["events"], &reveals); err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, rv := range reveals {
+		if rv.Path == p {
+			found = true
+			if rv.User != "admin" || rv.Kind != "reveal_view" || rv.Users["admin"] != "rw" {
+				t.Errorf("reveal event = %+v", rv)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("reveal of %s missing from the feed: %s", p, r["events"])
+	}
+	// legacy notifyDB message, without the value
+	if got := dbInt(t, countQuery); got != before+1 {
+		t.Errorf("notifyDB messages %d -> %d, want +1 for the reveal", before, got)
+	}
+	last := dbQuery(t, "SELECT Message FROM my_change_notification ORDER BY ID DESC LIMIT 1")
+	if len(last) != 1 || !strings.Contains(last[0][0], "🔓 admin revealed "+p) || strings.Contains(last[0][0], "feed-secret") {
+		t.Errorf("reveal notifyDB message = %v", last)
 	}
 }
 
@@ -501,6 +611,9 @@ func TestHistorySealedOnFlip(t *testing.T) {
 			t.Errorf("revealed history entry v%d = %v, want %s", e.Version, e.Data, want[e.Version])
 		}
 	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)+" AND Kind = 'reveal_history'"); got != 1 {
+		t.Errorf("history reveal audit rows = %d, want 1 (one node)", got)
+	}
 }
 
 func TestRestore(t *testing.T) {
@@ -516,6 +629,9 @@ func TestRestore(t *testing.T) {
 	info := getParamInfo(t, p, "?reveal=1")
 	if info.Version != 3 || !info.Encrypted || dataOf(info) != "first" {
 		t.Errorf("restored parameter: %+v data=%s", info, dataOf(info))
+	}
+	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)); got != 1 {
+		t.Errorf("a restore counted as a reveal: %d audit rows", got)
 	}
 	// a deleted version cannot be restored
 	q := uniqPath("enc-restore-del")
