@@ -166,7 +166,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	var data []Case
 	err := json.Unmarshal([]byte(param.Value.String), &data)
 	if err != nil {
-		log.Ctx(ctx).Error().Err(err).Str("param", param.Path).Str("value", param.Value.String).Msg("failed to decode case json")
+		log.Ctx(ctx).Error().Err(err).Str("param", param.Path).Str("value", param.logValue()).Msg("failed to decode case json")
 		return nil
 	}
 
@@ -189,7 +189,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 			defaultCase = cs
 			hasDefaultCase = true
 		} else {
-			log.Ctx(ctx).Error().Str("param", param.Path).Str("value", param.Value.String).Msg("invalid case")
+			log.Ctx(ctx).Error().Str("param", param.Path).Str("value", param.logValue()).Msg("invalid case")
 		}
 	}
 	sort.Slice(byServer, func(i, j int) bool {

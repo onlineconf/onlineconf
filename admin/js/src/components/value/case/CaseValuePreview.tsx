@@ -40,7 +40,7 @@ export default function CaseValuePreview(props: NonNullValueProps) {
 						{ i !== 0 && <React.Fragment>; </React.Fragment> }
 						{ !isDefault && <React.Fragment><span className={classes.key}>{key}</span>: </React.Fragment> }
 						{ isCase && '{ ' }
-						<ValuePreview type={c.mime} value={c.value} />
+						<ValuePreview type={c.mime} value={c.value} encrypted={c.encrypted} />
 						{ isCase && ' }' }
 					</React.Fragment>
 				);

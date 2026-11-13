@@ -16,7 +16,7 @@ import { getDictionary, dictionaryKeys } from '../../../cache';
 import { Case, CaseConditions, caseConditions } from './common';
 import { EditNonnullValueProps } from '../common';
 import { ParamType } from '../../../api';
-import TypeValueFields from '../../TypeValueFields';
+import TypeValueFields, { TypeValueState } from '../../TypeValueFields';
 import ValueOutline from '../ValueOutline';
 
 const styles = (theme: Theme) => createStyles({
@@ -132,13 +132,20 @@ export default withStyles(styles)(withTranslation()(
 		}
 
 		createDataHandler(id: number) {
-			return ({ type, value }: { type?: ParamType, value?: string | null }) => {
+			return ({ type, value, encrypted }: Partial<TypeValueState>) => {
 				this.handleChange(cases => {
 					if (type !== undefined) {
 						cases[id].mime = type;
 					}
 					if (value !== undefined) {
 						cases[id].value = value;
+					}
+					// present only when set, keeping plain branches in their
+					// historical JSON shape
+					if (encrypted) {
+						cases[id].encrypted = true;
+					} else {
+						delete cases[id].encrypted;
 					}
 				});
 			};
@@ -295,7 +302,7 @@ export default withStyles(styles)(withTranslation()(
 									{caseKey}
 								</div>
 								<div className={classes.caseValue}>
-									<TypeValueFields type={c.mime} value={c.value} onChange={this.createDataHandler(i)} onError={this.props.onError}/>
+									<TypeValueFields type={c.mime} value={c.value} encrypted={c.encrypted} onChange={this.createDataHandler(i)} onError={this.props.onError}/>
 								</div>
 							</div>
 						);

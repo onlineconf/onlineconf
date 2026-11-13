@@ -459,6 +459,8 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 				version={param.version}
 				type={param.mime}
 				value={param.data}
+				encrypted={param.encrypted}
+				isValueMasked={param.can_reveal}
 				summary={param.summary}
 				description={param.description}
 				onChange={this.handleEditDone}
@@ -687,7 +689,7 @@ class ConfigTree extends React.Component< ConfigTreeProps & WithStyles<'icon'>, 
 
 	handleValuePopoverOpen = (event: React.MouseEvent<HTMLElement>, param: IParamNode) => {
 		this.setState({
-			popover: <ValuePopover type={param.mime} value={param.data} onClose={this.handleValuePopoverClose} anchorEl={event.currentTarget as HTMLElement} />
+			popover: <ValuePopover type={param.mime} value={param.data} encrypted={param.encrypted} onClose={this.handleValuePopoverClose} anchorEl={event.currentTarget as HTMLElement} />
 		});
 	};
 

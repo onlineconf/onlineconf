@@ -5,6 +5,7 @@ CREATE TABLE `my_config_tree` (
     `Path` varchar(512) character set ascii collate ascii_bin NOT NULL,
     `Value` mediumtext character set utf8mb4 collate utf8mb4_bin,
     `ContentType` varchar(255) character set ascii NOT NULL default 'application/x-null',
+    `Encrypted` tinyint(1) NOT NULL default '0',
     `Summary` varchar(255) NOT NULL default '',
     `Description` varchar(8192) NOT NULL default '',
     `Version` int(11) NOT NULL default '1',
@@ -25,6 +26,7 @@ CREATE TABLE `my_config_tree_log` (
     `Version` int(11) NOT NULL,
     `Value` mediumtext character set utf8mb4 collate utf8mb4_bin,
     `ContentType` varchar(255) character set ascii NOT NULL default 'application/x-null',
+    `Encrypted` tinyint(1) NOT NULL default '0',
     `Author` varchar(128) character set ascii NOT NULL,
     `MTime` timestamp NOT NULL default CURRENT_TIMESTAMP,
     `Comment` varchar(512) default NULL,
@@ -70,6 +72,33 @@ CREATE TABLE `my_config_activity` (
     `Package` varchar(32) NOT NULL,
     PRIMARY KEY  (`Host`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Registry of the value encryption keys ever loaded: no key material, only a
+-- verifier (the fixed registry constant sealed under the key) that lets an
+-- instance prove its key file holds the material registered under an id, and
+-- the Active mark the stored data is encrypted under once a rotation sweep
+-- completed. Seq orders keys by registration.
+CREATE TABLE `my_config_encryption_key` (
+    `KeyID` varchar(32) character set ascii NOT NULL,
+    `Seq` int(11) unsigned NOT NULL auto_increment,
+    `Verifier` varbinary(64) NOT NULL,
+    `Active` tinyint(1) NOT NULL default '0',
+    `CreatedAt` timestamp NOT NULL default CURRENT_TIMESTAMP,
+    PRIMARY KEY  (`KeyID`),
+    UNIQUE KEY `Seq` (`Seq`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- The schema version: the number of the last admin/etc/update-N.sql applied.
+-- Every update file ends with INSERT INTO my_config_schema (Version) VALUES
+-- (N), so that onlineconf-admin refuses to start against a schema behind the
+-- one it is written for, naming the files to apply.
+CREATE TABLE `my_config_schema` (
+    `Version` int(11) unsigned NOT NULL,
+    `AppliedAt` timestamp NOT NULL default CURRENT_TIMESTAMP,
+    PRIMARY KEY  (`Version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `my_config_schema` (`Version`) VALUES (8);
 
 delimiter $$
 
@@ -204,14 +233,21 @@ END;$$
 
 delimiter ;
 
-INSERT INTO `my_config_tree` (`ID`, `Name`, `ParentID`, `Notification`) VALUES
-    (1, '', NULL, 'none'),
-    (2, 'onlineconf', 1, NULL),
-    (3, 'module', 2, NULL),
-    (4, 'service', 2, NULL);
+-- /onlineconf/value-encryption is seeded enabled: a fresh installation may
+-- store encrypted values out of the box (once a key file is configured). On
+-- upgraded installations the parameter does not exist and the feature stays
+-- off — applying the schema migration alone changes nothing — until the
+-- operator creates it with "1" after every instance runs a version that
+-- understands the Encrypted marker and has the key file.
+INSERT INTO `my_config_tree` (`ID`, `Name`, `ParentID`, `Value`, `ContentType`, `Notification`) VALUES
+    (1, '', NULL, NULL, 'application/x-null', 'none'),
+    (2, 'onlineconf', 1, NULL, 'application/x-null', NULL),
+    (3, 'module', 2, NULL, 'application/x-null', NULL),
+    (4, 'service', 2, NULL, 'application/x-null', NULL),
+    (5, 'value-encryption', 2, '1', 'text/plain', NULL);
 
-INSERT INTO `my_config_tree_log` (`NodeID`, `Path`, `Version`, `Value`, `ContentType`, `Author`, `MTime`, `Comment`, `Deleted`)
-SELECT `ID`, `Path`, `Version`, `Value`, `ContentType`, 'onlineconf', `MTime`, 'Init onlineconf', `Deleted` FROM `my_config_tree` ORDER BY `ID`;
+INSERT INTO `my_config_tree_log` (`NodeID`, `Path`, `Version`, `Value`, `ContentType`, `Encrypted`, `Author`, `MTime`, `Comment`, `Deleted`)
+SELECT `ID`, `Path`, `Version`, `Value`, `ContentType`, `Encrypted`, 'onlineconf', `MTime`, 'Init onlineconf', `Deleted` FROM `my_config_tree` ORDER BY `ID`;
 
 INSERT INTO `my_config_group` (`Name`) VALUES ('root');
 

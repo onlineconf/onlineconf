@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"sort"
 	"strings"
@@ -28,6 +29,7 @@ type Param struct {
 	MTime        string
 	Version      int
 	ContentType  string
+	Encrypted    bool // holds (or, after resolution, carries) a secret: never log its value
 	Value        NullString
 	Children     map[string]**Param
 	common       bool
@@ -71,6 +73,14 @@ func (node *Param) GetStruct(ptr interface{}) error {
 	default: // ignore any other type
 		return nil
 	}
+}
+
+// logValue is what a log statement may print of a parameter's value.
+func (node *Param) logValue() string {
+	if node.Encrypted {
+		return "<encrypted>"
+	}
+	return node.Value.String
 }
 
 func (node *Param) deepMarkCommon(ctx context.Context) {
@@ -158,17 +168,31 @@ type tree struct {
 	syncMutex    sync.Mutex
 }
 
+// treeLogMarginSeconds keeps the change log watermark behind the clock. A
+// write is stamped at its UPDATE and committed later, so a write committed
+// after a reload with a stamp that reload already covered would never make
+// max(MTime) grow and would stay out of the tree until the next unrelated
+// write. Leaving the newest seconds out of the watermark lets the next tick
+// see it, at the price of a change reaching the tree up to the margin
+// later; a transaction longer than the margin can still slip through when
+// another write lands meanwhile.
+// TODO: the real fix is a tree version counter incremented inside every
+// write transaction, which makes this check exact.
+const treeLogMarginSeconds = 5
+
+// getTreeMTime returns the watermark: the newest MTime older than the
+// margin, or "" when there is none yet.
 func getTreeMTime(ctx context.Context) (string, error) {
-	query := "SELECT max(MTime) FROM my_config_tree_log"
+	query := fmt.Sprintf("SELECT max(MTime) FROM my_config_tree_log WHERE MTime < now() - interval %d second", treeLogMarginSeconds)
 	row := DB.QueryRowContext(ctx, query)
-	var mtime string
+	var mtime sql.NullString
 	err := row.Scan(&mtime)
-	return mtime, err
+	return mtime.String, err
 }
 
 func selectTree(ctx context.Context) (*Param, error) {
 	query := `
-		SELECT ID, Name, Path, MTime, Version, ContentType, Value, ParentID
+		SELECT ID, Name, Path, MTime, Version, ContentType, Encrypted, Value, ParentID
 		FROM my_config_tree
 		WHERE NOT Deleted
 		ORDER BY Path
@@ -184,10 +208,19 @@ func selectTree(ctx context.Context) (*Param, error) {
 		param := Param{}
 		param.Children = make(map[string]**Param)
 		var parentID sql.NullInt64
-		err = rows.Scan(&param.ID, &param.Name, &param.Path, &param.MTime, &param.Version, &param.ContentType, &param.Value, &parentID)
+		err = rows.Scan(&param.ID, &param.Name, &param.Path, &param.MTime, &param.Version, &param.ContentType, &param.Encrypted, &param.Value, &parentID)
 		if err != nil {
 			return nil, err
 		}
+		// the resolver works on plaintext: decrypt at load, and fail closed
+		// on a value the keyring cannot open (the caller keeps the last good
+		// tree, or refuses to start)
+		param.Value, err = DecryptStoredValue(param.ContentType, param.Encrypted, param.Value)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", param.Path, err)
+		}
+		// a case with an encrypted branch is as secret as its branches
+		param.Encrypted = HasEncryptedValue(param.ContentType, param.Encrypted, param.Value)
 		paramByID[param.ID] = &param
 		if parentID.Valid {
 			parent, ok := paramByID[int(parentID.Int64)]

@@ -1,15 +1,35 @@
 import { TreeNodeState } from './TreeNode';
-import { ParamType, IParam } from '../api';
+import { ParamType, IParam, ValueFlags } from '../api';
 import { DistributiveOmit } from '@mui/types';
 
-export interface ValueProps {
+export interface ValueProps extends ValueFlags {
 	type: ParamType;
 	value: string | null;
 }
 
-export interface EditValueProps extends ValueProps {
+// An editor gets the value and its type; whether the value is stored
+// encrypted is the business of the switch above it (TypeValueFields), the
+// editor only hides what is typed when asked to.
+export interface EditValueProps extends Pick<ValueProps, 'type' | 'value'> {
+	// hide what is typed (password-style), for secrets
+	masked?: boolean;
 	onChange: (value: string | null) => void;
 	onError: (error: unknown) => void;
+}
+
+// Types whose values may be stored encrypted: everything except the special
+// types whose value is not free content (null has none; a symlink target and
+// a case structure must stay readable — case branches carry their own flag).
+// Must match EncryptionEligible in the backend (admin/go/common/encryption_storage.go).
+export function encryptionEligible(type: ParamType): boolean {
+	switch (type) {
+		case 'application/x-null':
+		case 'application/x-symlink':
+		case 'application/x-case':
+			return false;
+		default:
+			return true;
+	}
 }
 
 export interface IParamNode extends DistributiveOmit<IParam, 'children'> {

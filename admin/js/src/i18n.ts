@@ -78,6 +78,25 @@ const resources = {
 				delete: {
 					confirm: 'Are you really want to delete {{param}}?',
 				},
+				encrypted: {
+					flag: 'Encrypted',
+					ineligible: 'Null, Symlink and Case values cannot be encrypted; the branches of a Case can.',
+					masked: 'encrypted value',
+					reveal: 'Reveal',
+					hide: 'Hide',
+					revealEdit: 'Reveal and edit',
+					replace: 'Replace',
+					revealHistory: 'Reveal history',
+					mask: 'Hide the text',
+					unmask: 'Show the text',
+					rollbackKeepsEncrypted: 'The parameter is encrypted: the restored value will be stored encrypted too.',
+					rollbackNeedsReveal: 'This version is encrypted: reveal the history to restore it into a deleted parameter.',
+					declassify: {
+						title: 'Store in plaintext?',
+						text: 'The value will be stored unencrypted from this version on. Previous versions stay encrypted.',
+						confirm: 'Store in plaintext',
+					},
+				},
 			},
 			log: {
 				author: 'Author',
@@ -185,6 +204,25 @@ const resources = {
 				},
 				delete: {
 					confirm: 'Вы действительно хотите удалить {{param}}?',
+				},
+				encrypted: {
+					flag: 'Зашифровано',
+					ineligible: 'Значения типов Null, Symlink и Case не шифруются; ветки Case — можно.',
+					masked: 'зашифрованное значение',
+					reveal: 'Показать',
+					hide: 'Скрыть',
+					revealEdit: 'Показать и изменить',
+					replace: 'Заменить',
+					revealHistory: 'Показать историю',
+					mask: 'Скрыть текст',
+					unmask: 'Показать текст',
+					rollbackKeepsEncrypted: 'Параметр зашифрован: восстановленное значение тоже будет сохранено зашифрованным.',
+					rollbackNeedsReveal: 'Эта версия зашифрована: чтобы восстановить её в удалённый параметр, сначала покажите историю.',
+					declassify: {
+						title: 'Сохранить открытым текстом?',
+						text: 'Начиная с этой версии значение будет храниться незашифрованным. Предыдущие версии останутся зашифрованными.',
+						confirm: 'Сохранить открытым',
+					},
 				},
 			},
 			log: {

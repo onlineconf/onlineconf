@@ -14,3 +14,9 @@ const (
 	ContentTypeServer   = "application/x-server"
 	ContentTypeServer2  = "application/x-server2"
 )
+
+// ValueFlags are the orthogonal properties of a stored value, kept next to
+// its content type in the tree, the log and every API surface.
+type ValueFlags struct {
+	Encrypted bool `json:"encrypted"`
+}

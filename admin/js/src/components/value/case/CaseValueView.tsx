@@ -55,7 +55,7 @@ const CaseValueView = (props: NonNullValueProps & WithStyles<typeof styles>) => 
 						<div className={props.classes.keyBlock}>
 							<span className={keyClassName}>{key}</span>:
 						</div>
-						<ValueView type={c.mime} value={c.value} disableDecoration className={props.classes.value}/>
+						<ValueView type={c.mime} value={c.value} encrypted={c.encrypted} disableDecoration className={props.classes.value}/>
 					</React.Fragment>
 				);
 			})}

@@ -119,6 +119,7 @@ export default withStyles(styles)(
 									variant="standard"
 									fullWidth
 									margin="none"
+									type={this.props.masked ? 'password' : 'text'}
 									value={item.host}
 									onChange={this.createChangeHostHandler(i)}
 									autoFocus={item.host === ''}
@@ -129,6 +130,7 @@ export default withStyles(styles)(
 											variant="standard"
 											fullWidth
 											margin="none"
+											type={this.props.masked ? 'password' : 'text'}
 											value={port}
 											onChange={this.createChangePortHandler(i, j)}
 											autoFocus={port === '' && item.host !== ''}

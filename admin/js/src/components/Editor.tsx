@@ -7,6 +7,7 @@ import withStyles from '@mui/styles/withStyles';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
@@ -14,11 +15,16 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Typography from '@mui/material/Typography';
 import { useTheme, useMediaQuery } from '@mui/material';
 
-import { ValueProps } from './common';
-import { Notification, postParam, IParam, ParamModify } from '../api';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+
+import { ValueProps, encryptionEligible } from './common';
+import { Notification, postParam, getParam, IParam, ParamModify } from '../api';
 import NotificationControl from './NotificationControl';
-import TypeValueFields from './TypeValueFields';
+import TypeValueFields, { TypeValueState } from './TypeValueFields';
 import SummaryDescriptionFields from './SummaryDescriptionFields';
+import { EncryptedValueView } from './value/encrypted';
+import { FeaturesContext } from './UIConfig';
 
 const styles = (theme: Theme) => createStyles({
 	paper: {
@@ -42,6 +48,14 @@ const styles = (theme: Theme) => createStyles({
 		width: 'auto',
 		flex: 'auto',
 	},
+	masked: {
+		display: 'flex',
+		alignItems: 'center',
+		flexWrap: 'wrap',
+		columnGap: theme.spacing(2),
+		rowGap: theme.spacing(1),
+		padding: theme.spacing(1, 0),
+	},
 });
 
 export interface EditorProps extends Partial<ValueProps> {
@@ -52,21 +66,36 @@ export interface EditorProps extends Partial<ValueProps> {
 	fullScreen?: boolean;
 	description?: string;
 	notification?: Notification;
+	// the value passed in is served masked (it holds encrypted values the
+	// server shows on an explicit reveal only): the editor opens on the
+	// choice between revealing it and replacing it blind
+	isValueMasked?: boolean;
+	// the value passed in is plaintext already (revealed by the caller)
+	revealed?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
 	onError: (error: unknown) => void;
 }
 
-interface EditorState extends ValueProps {
+interface EditorState extends Required<ValueProps> {
 	open: boolean;
 	name: string;
 	summary: string;
 	description: string;
 	notification?: Notification | null;
 	comment: string;
+	// the value is still masked: it must be revealed, or replaced blind
+	masked: boolean;
+	// a new secret is being typed without the old one shown
+	replace: boolean;
+	revealing: boolean;
+	confirmDeclassify: boolean;
 }
 
 class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & WithTranslation, EditorState> {
+
+	static contextType = FeaturesContext;
+	context!: React.ContextType<typeof FeaturesContext>;
 
 	constructor(props: EditorProps & WithStyles<typeof styles> & WithTranslation) {
 		super(props);
@@ -75,6 +104,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 			name: '',
 			type: props.type !== undefined ? props.type : 'application/x-null',
 			value: props.value !== undefined ? props.value : null,
+			encrypted: props.encrypted === true,
+			masked: !props.create && props.isValueMasked === true && props.revealed !== true,
+			replace: false,
+			revealing: false,
+			confirmDeclassify: false,
 			summary: props.summary !== undefined ? props.summary : '',
 			description: props.description !== undefined ? props.description : '',
 			notification: props.notification !== undefined ? null : undefined,
@@ -94,8 +128,8 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 		this.setState({ description });
 	};
 
-	handleTypeValueChange = (newState: Pick<EditorState, 'type' | 'value'>) => {
-		this.setState(newState);
+	handleTypeValueChange = (newState: TypeValueState) => {
+		this.setState({ type: newState.type, value: newState.value, encrypted: newState.encrypted === true });
 	};
 
 	handleNotificationChange = (notification: Notification | null) => {
@@ -110,8 +144,47 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 		this.setState({ open: false });
 	};
 
-	handleSave = async () => {
+	// Reveal and edit: an audited fetch of the plaintext
+	handleReveal = async () => {
+		this.setState({ revealing: true });
+		try {
+			const param = await getParam(this.props.path, undefined, 'none', {}, true);
+			this.setState({ type: param.mime, value: param.data, encrypted: param.encrypted === true, masked: false, revealing: false });
+		} catch (error) {
+			this.setState({ revealing: false });
+			this.props.onError(error);
+		}
+	};
+
+	// Replace: type a new secret without the old one ever leaving the server
+	handleReplace = () => {
+		this.setState({ value: '', masked: false, replace: true });
+	};
+
+	// the encrypted field as the server expects it: stated for eligible types
+	// where encryption is on or the parameter is encrypted already, and
+	// stated as off when an ineligible type replaces an encrypted value
+	encryptedField(): boolean | undefined {
+		if (encryptionEligible(this.state.type)) {
+			if (this.context.encryption.enabled || this.props.encrypted) {
+				return this.state.encrypted;
+			}
+			return undefined;
+		}
+		return this.props.encrypted ? false : undefined;
+	}
+
+	handleSave = () => {
+		if (this.props.encrypted && this.encryptedField() === false) {
+			this.setState({ confirmDeclassify: true });
+			return;
+		}
+		this.save();
+	};
+
+	save = async () => {
 		const { onChange, onError } = this.props;
+		this.setState({ confirmDeclassify: false });
 		try {
 			let path = this.props.path;
 			let params: ParamModify;
@@ -135,6 +208,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 				...params,
 				mime: this.state.type,
 				data: this.state.value,
+				encrypted: this.encryptedField(),
 				comment: this.state.comment,
 			});
 			onChange(param);
@@ -145,14 +219,15 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	};
 
 	render() {
-		const { t } = this.props;
+		const { t, classes } = this.props;
+		const scalar = this.state.type !== 'application/x-case';
 		return (
 			<Dialog
 				open={this.state.open}
 				onClose={this.handleClose}
 				maxWidth={false}
 				fullScreen={this.props.fullScreen}
-				classes={this.props.fullScreen ? undefined : { paper: this.props.classes.paper }}
+				classes={this.props.fullScreen ? undefined : { paper: classes.paper }}
 				TransitionProps={{
 					onExited: this.props.onClose
 				}}>
@@ -162,7 +237,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 						{this.props.summary !== '' && <Typography variant="body2" color="textSecondary">{this.props.summary}</Typography>}
 					</DialogTitle>
 				)}
-				<DialogContent className={this.props.classes.content}>
+				<DialogContent className={classes.content}>
 					{this.props.create ? (
 						<React.Fragment>
 							<TextField
@@ -175,11 +250,11 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 								value={this.state.name}
 								onChange={this.handleNameChange}
 								InputProps={{
-									startAdornment: <InputAdornment position="start" disableTypography className={this.props.classes.pathPrefix}>
+									startAdornment: <InputAdornment position="start" disableTypography className={classes.pathPrefix}>
 										{this.props.path.endsWith('/') ? this.props.path : this.props.path + '/'}
 									</InputAdornment>
 								}}
-								inputProps={{ className: this.props.classes.pathInput }}
+								inputProps={{ className: classes.pathInput }}
 							/>
 							<SummaryDescriptionFields
 								summary={this.state.summary}
@@ -191,7 +266,34 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 					) : this.props.description !== '' &&
 						<Typography paragraph variant="body2">{this.props.description}</Typography>
 					}
-					<TypeValueFields type={this.state.type} value={this.state.value} onChange={this.handleTypeValueChange} onError={this.props.onError} />
+					{this.state.masked ? (
+						<div className={classes.masked}>
+							<EncryptedValueView/>
+							<Button
+								variant="outlined"
+								color="primary"
+								startIcon={<VisibilityIcon/>}
+								disabled={this.state.revealing}
+								onClick={this.handleReveal}
+							>
+								{t('param.encrypted.revealEdit')}
+							</Button>
+							{scalar && (
+								<Button variant="outlined" startIcon={<EditIcon/>} onClick={this.handleReplace}>
+									{t('param.encrypted.replace')}
+								</Button>
+							)}
+						</div>
+					) : (
+						<TypeValueFields
+							type={this.state.type}
+							value={this.state.value}
+							encrypted={this.state.encrypted}
+							maskByDefault={this.state.replace}
+							onChange={this.handleTypeValueChange}
+							onError={this.props.onError}
+						/>
+					)}
 					{this.state.notification !== undefined && (
 						<NotificationControl
 							compact
@@ -204,8 +306,18 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 				</DialogContent>
 				<DialogActions>
 					<Button color="primary" onClick={this.handleClose}>{t('button.cancel')}</Button>
-					<Button color="primary" onClick={this.handleSave} disabled={this.state.comment === ''}>{t('button.save')}</Button>
+					<Button color="primary" onClick={this.handleSave} disabled={this.state.comment === '' || this.state.masked}>{t('button.save')}</Button>
 				</DialogActions>
+				<Dialog open={this.state.confirmDeclassify} onClose={() => this.setState({ confirmDeclassify: false })}>
+					<DialogTitle>{t('param.encrypted.declassify.title')}</DialogTitle>
+					<DialogContent>
+						<DialogContentText>{t('param.encrypted.declassify.text')}</DialogContentText>
+					</DialogContent>
+					<DialogActions>
+						<Button color="primary" onClick={() => this.setState({ confirmDeclassify: false })}>{t('button.cancel')}</Button>
+						<Button color="primary" onClick={this.save}>{t('param.encrypted.declassify.confirm')}</Button>
+					</DialogActions>
+				</Dialog>
 			</Dialog>
 		);
 	}
