@@ -38,9 +38,9 @@ type Param struct {
 
 func (node *Param) Strings() ([]string, error) {
 	switch node.ContentType {
-	case "application/x-null":
+	case ContentTypeNull:
 		return nil, nil
-	case "application/x-list", "text/plain":
+	case ContentTypeList, ContentTypeText:
 		untrimmed := strings.Split(node.Value.String, ",")
 		list := make([]string, 0, len(untrimmed))
 		for _, item := range untrimmed {
@@ -49,11 +49,11 @@ func (node *Param) Strings() ([]string, error) {
 			}
 		}
 		return list, nil
-	case "application/json":
+	case ContentTypeJSON:
 		var list []string
 		err := json.Unmarshal([]byte(node.Value.String), &list)
 		return list, err
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		var list []string
 		err := yaml.Unmarshal([]byte(node.Value.String), &list)
 		return list, err
@@ -64,9 +64,9 @@ func (node *Param) Strings() ([]string, error) {
 
 func (node *Param) GetStruct(ptr interface{}) error {
 	switch node.ContentType {
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		return yaml.Unmarshal([]byte(node.Value.String), ptr)
-	case "application/json":
+	case ContentTypeJSON:
 		return json.Unmarshal([]byte(node.Value.String), ptr)
 	default: // ignore any other type
 		return nil
@@ -83,7 +83,7 @@ func (node *Param) deepMarkCommon(ctx context.Context) {
 		}
 	}
 	switch node.ContentType {
-	case "application/x-symlink", "application/x-case", "application/x-template":
+	case ContentTypeSymlink, ContentTypeCase, ContentTypeTemplate:
 		ok = false
 	}
 	node.common = ok
@@ -123,7 +123,7 @@ func (node *Param) deepCreateChildList(ctx context.Context) {
 		Name:        "", // Name field is used by perl legacy updater only
 		Path:        listPath,
 		Version:     1,
-		ContentType: "application/json",
+		ContentType: ContentTypeJSON,
 		Value: NullString{NullString: sql.NullString{
 			String: string(chilrenNamesJson),
 			Valid:  true,

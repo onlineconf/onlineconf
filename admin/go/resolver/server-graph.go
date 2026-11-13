@@ -243,7 +243,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 		return &defaultCase
 	}
 
-	return &Case{ContentType: "application/x-null"}
+	return &Case{ContentType: common.ContentTypeNull}
 }
 
 func (cr serverCaseResolver) getTemplateVar(name string) (string, bool) {

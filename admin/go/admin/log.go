@@ -237,7 +237,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 		message += " ➾ "
 		if new.Value.Valid {
 			message += contentTypeSymbol(new.ContentType)
-			if new.ContentType == "application/x-case" {
+			if new.ContentType == ContentTypeCase {
 				var data []map[string]string
 				err = json.Unmarshal([]byte(new.Value.String), &data)
 				if err == nil {
@@ -254,7 +254,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 						} else {
 							message += "☆️: "
 						}
-						if v, ok := c["value"]; ok && c["mime"] != "application/x-null" {
+						if v, ok := c["value"]; ok && c["mime"] != ContentTypeNull {
 							message += contentTypeSymbol(c["mime"]) + "«" + v + "»"
 						} else {
 							message += "∅"
@@ -278,15 +278,15 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 
 func contentTypeSymbol(contentType string) string {
 	switch contentType {
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		return "➦"
-	case "application/x-case":
+	case ContentTypeCase:
 		return "☰"
-	case "application/x-template":
+	case ContentTypeTemplate:
 		return "✄"
-	case "application/json":
+	case ContentTypeJSON:
 		return "ⓙ"
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		return "ⓨ"
 	default:
 		return ""

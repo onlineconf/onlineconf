@@ -138,7 +138,7 @@ func selectParameterResolvingSymlink(ctx context.Context, path string, seen map[
 	if parameter == nil {
 		return nil, nil
 	}
-	if parameter.ContentType == "application/x-symlink" {
+	if parameter.ContentType == ContentTypeSymlink {
 		seen[path] = true
 		defer delete(seen, path)
 		return selectParameterResolvingSymlink(ctx, parameter.Value.String, seen)
@@ -387,7 +387,7 @@ func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 func CreateParameter(ctx context.Context, path, contentType, value string, optSummary, optDescription, optNotification NullString, comment string) error {
 	ctx, sink := withNotifications(ctx)
 	var nullValue NullString
-	if contentType != "application/x-null" {
+	if contentType != ContentTypeNull {
 		nullValue.Valid = true
 		nullValue.String = value
 	}
@@ -467,7 +467,7 @@ func CreateParameter(ctx context.Context, path, contentType, value string, optSu
 func SetParameter(ctx context.Context, path string, version int, contentType string, value string, comment string) error {
 	ctx, sink := withNotifications(ctx)
 	var nullValue NullString
-	if contentType != "application/x-null" {
+	if contentType != ContentTypeNull {
 		nullValue.Valid = true
 		nullValue.String = value
 	}
@@ -564,7 +564,7 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 			nullNotification.String = p.Notification
 		}
 		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Value, Notification) VALUES (?, ?, ?, ?, ?)",
-			p.ParentID, p.Name, "application/x-symlink", newPath, nullNotification)
+			p.ParentID, p.Name, ContentTypeSymlink, newPath, nullNotification)
 		if err == nil {
 			err = LogLastVersion(ctx, tx, path, fmt.Sprintf("Moved to %s. %s", newPath, comment))
 		}
@@ -733,7 +733,7 @@ func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if param == nil || param.ContentType != "text/plain" || !param.Value.Valid {
+	if param == nil || param.ContentType != ContentTypeText || !param.Value.Valid {
 		return false, nil
 	}
 
@@ -742,9 +742,9 @@ func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
 
 func isSymlink(param *Parameter) bool {
 	switch param.ContentType {
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		return true
-	case "application/x-case":
+	case ContentTypeCase:
 		var caseType []struct {
 			Type string `json:"mime"`
 		}
@@ -754,7 +754,7 @@ func isSymlink(param *Parameter) bool {
 		}
 
 		for _, ct := range caseType {
-			if ct.Type == "application/x-symlink" {
+			if ct.Type == ContentTypeSymlink {
 				return true
 			}
 		}
@@ -834,7 +834,7 @@ func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTar
 const sqlSymlinksCheck1 = `
     SELECT Path, Value
       FROM my_config_tree
-     WHERE ContentType = 'application/x-symlink'
+     WHERE ContentType = '` + ContentTypeSymlink + `'
        AND NOT Deleted
        AND (Value IN (`
 
@@ -846,9 +846,9 @@ const sqlSymlinksCheck2 = `)
     SELECT t.Path, j.value
       FROM my_config_tree AS t
       JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
+     WHERE t.ContentType='` + ContentTypeCase + `'
        AND NOT t.Deleted
-       AND j.mime='application/x-symlink'
+       AND j.mime='` + ContentTypeSymlink + `'
        AND (j.value IN (`
 
 const sqlSymlinksCheck2s = `) OR j.value LIKE ?`
@@ -857,16 +857,16 @@ const sqlSymlinksCheck3 = `)
     UNION
     SELECT Path, ''
       FROM my_config_tree
-     WHERE ContentType = 'application/x-template'
+     WHERE ContentType = '` + ContentTypeTemplate + `'
        AND NOT Deleted
        AND Value LIKE ?
     UNION
     SELECT t.Path, ''
       FROM my_config_tree AS t
       JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
+     WHERE t.ContentType='` + ContentTypeCase + `'
        AND NOT t.Deleted
-       AND j.mime='application/x-template'
+       AND j.mime='` + ContentTypeTemplate + `'
        AND j.value LIKE ?
 `
 
@@ -930,31 +930,31 @@ func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Pa
 
 func validateParameter(ctx context.Context, contentType string, value NullString) error {
 	switch contentType {
-	case "application/x-null":
+	case ContentTypeNull:
 		if value.Valid {
 			return ErrInvalidValue
 		} else {
 			return nil
 		}
-	case "text/plain", "application/x-list", "application/x-server", "application/x-server2", "application/x-template":
+	case ContentTypeText, ContentTypeList, ContentTypeServer, ContentTypeServer2, ContentTypeTemplate:
 		if value.Valid {
 			return nil
 		} else {
 			return ErrInvalidValue
 		}
-	case "application/json":
+	case ContentTypeJSON:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
 		var i interface{}
 		return json.Unmarshal([]byte(value.String), &i)
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
 		var i interface{}
 		return yaml.Unmarshal([]byte(value.String), &i)
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
@@ -966,7 +966,7 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 		} else {
 			return nil
 		}
-	case "application/x-case":
+	case ContentTypeCase:
 		if !value.Valid {
 			return ErrInvalidValue
 		}

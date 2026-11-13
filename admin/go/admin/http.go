@@ -378,9 +378,9 @@ func serveUIConfig(w http.ResponseWriter, req *http.Request) {
 	if avatarParam != nil {
 		var avatar Avatar
 		switch avatarParam.ContentType {
-		case "application/json":
+		case ContentTypeJSON:
 			err = json.Unmarshal([]byte(avatarParam.Value.String), &avatar)
-		case "application/x-yaml":
+		case ContentTypeYAML:
 			err = yaml.Unmarshal([]byte(avatarParam.Value.String), &avatar)
 		default:
 			err = errInvalidAvatarContentType
