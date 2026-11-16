@@ -43,3 +43,12 @@ func TestCheckSchema(t *testing.T) {
 		t.Errorf("unrelated error taken for a missing table")
 	}
 }
+
+func TestAuditMessage(t *testing.T) {
+	if got := auditMessage(AuditRevealView, "ann", "/a"); got != "🔓 ann revealed /a" {
+		t.Errorf("view: %q", got)
+	}
+	if got := auditMessage(AuditRevealHistory, "ann", "/a"); got != "🔓 ann revealed the history of /a" {
+		t.Errorf("history: %q", got)
+	}
+}

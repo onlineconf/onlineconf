@@ -26,7 +26,11 @@ func RegisterRoutes(r *mux.Router) {
 
 	n := r.Path("/notification/").Subrouter()
 	n.Use(scopeMiddleware("notifications"))
-	n.Methods("GET").HandlerFunc(serveNotifications)
+	n.Methods("GET").HandlerFunc(notificationFeed.serve)
+
+	a := r.Path("/audit/").Subrouter()
+	a.Use(scopeMiddleware("audit"))
+	a.Methods("GET").HandlerFunc(auditFeed.serve)
 }
 
 type NotificationsResponse struct {
@@ -34,7 +38,37 @@ type NotificationsResponse struct {
 	LastID        int            `json:"lastID"`
 }
 
-func serveNotifications(w http.ResponseWriter, req *http.Request) {
+type AuditEventsResponse struct {
+	Events []AuditEvent `json:"events"`
+	LastID int          `json:"lastID"`
+}
+
+// feed is a long-polled, cursor-based event stream: `lastID` is the cursor
+// the client has consumed up to, `limit` the page size (0 just returns the
+// current cursor), `wait` how long to hold the request for new events. The
+// change notifications consumed by onlineconf-bot and the audit log are two
+// instances of it.
+type feed struct {
+	// fetch returns the response (entries plus the new cursor), the number
+	// of entries, and the new cursor.
+	fetch func(ctx context.Context, lastID, limit int) (response interface{}, count, newLastID int, err error)
+}
+
+var notificationFeed = feed{
+	fetch: func(ctx context.Context, lastID, limit int) (interface{}, int, int, error) {
+		notifications, lastID, err := SelectNotifications(ctx, lastID, limit)
+		return NotificationsResponse{Notifications: notifications, LastID: lastID}, len(notifications), lastID, err
+	},
+}
+
+var auditFeed = feed{
+	fetch: func(ctx context.Context, lastID, limit int) (interface{}, int, int, error) {
+		events, lastID, err := SelectAuditEvents(ctx, lastID, limit)
+		return AuditEventsResponse{Events: events, LastID: lastID}, len(events), lastID, err
+	},
+}
+
+func (f feed) serve(w http.ResponseWriter, req *http.Request) {
 	lastID, err := GetQueryInt(req, "lastID")
 	if err != nil {
 		writeError(req.Context(), w, err)
@@ -51,12 +85,9 @@ func serveNotifications(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	notifications, lastID, err := SelectNotifications(req.Context(), lastID, limit)
-	if !wait || err != nil || len(notifications) > 0 || limit == 0 {
-		writeResponseOrError(req.Context(), w, NotificationsResponse{
-			Notifications: notifications,
-			LastID:        lastID,
-		}, err)
+	response, count, lastID, err := f.fetch(req.Context(), lastID, limit)
+	if !wait || err != nil || count > 0 || limit == 0 {
+		writeResponseOrError(req.Context(), w, response, err)
 		return
 	}
 
@@ -65,15 +96,12 @@ func serveNotifications(w http.ResponseWriter, req *http.Request) {
 		timer := time.NewTimer(time.Second)
 		select {
 		case <-waitTimer.C:
-			WriteResponse(req.Context(), w, NotificationsResponse{Notifications: notifications, LastID: lastID})
+			WriteResponse(req.Context(), w, response)
 			return
 		case <-timer.C:
-			notifications, lastID, err = SelectNotifications(req.Context(), lastID, limit)
-			if err != nil || len(notifications) > 0 {
-				writeResponseOrError(req.Context(), w, NotificationsResponse{
-					Notifications: notifications,
-					LastID:        lastID,
-				}, err)
+			response, count, lastID, err = f.fetch(req.Context(), lastID, limit)
+			if err != nil || count > 0 {
+				writeResponseOrError(req.Context(), w, response, err)
 				return
 			}
 		}
@@ -99,8 +127,8 @@ func (bc *botsCredentials) Update(ctx context.Context, param *resolver.Param) {
 	}
 	for name, childPtr := range param.Children {
 		child := *childPtr
-		if child == nil {
-			continue
+		if name == "" || child == nil {
+			continue // the child-list pseudo node is not an account
 		}
 		pwdHash, err := hex.DecodeString(child.Value.String)
 		if err != nil {
