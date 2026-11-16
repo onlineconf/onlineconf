@@ -164,7 +164,7 @@ func serializeParam(param *Param) error {
 func newSerializerParam(path string, param *Param) *serializerParam {
 	value := param.Value
 	switch param.ContentType {
-	case "application/json", "application/x-yaml", "application/x-null":
+	case ContentTypeJSON, ContentTypeYAML, ContentTypeNull:
 		break
 	default:
 		value.String = stringValueReplacer.Replace(value.String)

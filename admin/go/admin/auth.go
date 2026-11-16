@@ -47,6 +47,8 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		req = AddUsernameToRequest(req, username)
+		// the reveal policy is read once per request (revealRequiresWrite)
+		req = req.WithContext(withPolicyMemo(req.Context()))
 		next.ServeHTTP(w, req)
 	})
 }

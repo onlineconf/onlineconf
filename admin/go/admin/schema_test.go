@@ -1,0 +1,54 @@
+//go:build !integration
+
+package admin
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/go-sql-driver/mysql"
+)
+
+func TestCheckSchema(t *testing.T) {
+	version := func(v int64) sql.NullInt64 { return sql.NullInt64{Int64: v, Valid: true} }
+	cases := []struct {
+		name    string
+		version sql.NullInt64
+		err     error
+		fatal   string // substring, "" for no fatal
+		warn    string // substring, "" for no warning
+	}{
+		{"missing table", sql.NullInt64{}, &mysql.MySQLError{Number: 1146}, "apply admin/etc/update-8.sql", ""},
+		{"wrapped missing table", sql.NullInt64{}, fmt.Errorf("x: %w", &mysql.MySQLError{Number: 1146}), "update-8.sql", ""},
+		{"empty table", sql.NullInt64{}, nil, "update-8.sql", ""},
+		{"connectivity", sql.NullInt64{}, errors.New("connection refused"), "", "skipped"},
+		{"behind by one", version(7), nil, "apply admin/etc/update-8.sql", ""},
+		{"behind by many", version(5), nil, "update-6.sql through update-8.sql", ""},
+		{"current", version(8), nil, "", ""},
+		{"ahead", version(9), nil, "", "rolling upgrade"},
+	}
+	for _, c := range cases {
+		fatal, warn := checkSchema(c.version, c.err)
+		if (c.fatal == "") != (fatal == "") || !strings.Contains(fatal, c.fatal) {
+			t.Errorf("%s: fatal = %q, want %q", c.name, fatal, c.fatal)
+		}
+		if (c.warn == "") != (warn == "") || !strings.Contains(warn, c.warn) {
+			t.Errorf("%s: warn = %q, want %q", c.name, warn, c.warn)
+		}
+	}
+	if isMissingTable(&mysql.MySQLError{Number: 1054}) || isMissingTable(errors.New("other")) {
+		t.Errorf("unrelated error taken for a missing table")
+	}
+}
+
+func TestAuditMessage(t *testing.T) {
+	if got := auditMessage(AuditRevealView, "ann", "/a"); got != "🔓 ann revealed /a" {
+		t.Errorf("view: %q", got)
+	}
+	if got := auditMessage(AuditRevealHistory, "ann", "/a"); got != "🔓 ann revealed the history of /a" {
+		t.Errorf("history: %q", got)
+	}
+}

@@ -34,7 +34,7 @@ var (
 )
 
 const selectFields string = `
-	SELECT t.ID, t.Name, t.ParentID, t.Path, t.Value, t.ContentType, t.Summary, t.Description, t.Version, t.MTime, t.Deleted,
+	SELECT t.ID, t.Name, t.ParentID, t.Path, t.Value, t.ContentType, t.Encrypted, t.Summary, t.Description, t.Version, t.MTime, t.Deleted,
 	(SELECT count(*) FROM my_config_tree c WHERE c.ParentID = t.ID AND NOT c.Deleted) AS NumChildren,
 	(SELECT count(*) <> 0 FROM my_config_tree_group g WHERE g.NodeID = t.ID) AS AccessModified,
 		my_config_tree_access(t.ID, ?) AS RW,
@@ -53,6 +53,8 @@ type Parameter struct {
 	Path                 string        `json:"path"`
 	Value                NullString    `json:"data"`
 	ContentType          string        `json:"mime"`
+	Encrypted            bool          `json:"encrypted"`
+	CanReveal            bool          `json:"can_reveal,omitempty"`
 	Summary              string        `json:"summary"`
 	Description          string        `json:"description"`
 	Version              int           `json:"version"`
@@ -63,28 +65,64 @@ type Parameter struct {
 	RW                   NullBool      `json:"rw"`
 	Notification         string        `json:"notification"`
 	NotificationModified bool          `json:"notification_modified"`
+	storedValue          NullString    // the stored form of Value, kept aside for a reveal
+}
+
+// rowScanner is what sql.Row and sql.Rows have in common.
+type rowScanner interface {
+	Scan(dest ...interface{}) error
+}
+
+// scanParameter reads one row of selectFields as stored. Every reader but
+// the write path's locked read then applies finishScan.
+func scanParameter(row rowScanner) (*Parameter, error) {
+	p := Parameter{}
+	err := row.Scan(
+		&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType, &p.Encrypted,
+		&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
+		&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// finishScan applies the read-side rules to a freshly scanned row: no value
+// without read access, never a stored ciphertext — an encrypted value is
+// masked (null, marker kept) until an explicit reveal, for every caller —
+// and can_reveal from the reveal policy and the caller's access.
+func (p *Parameter) finishScan(ctx context.Context) error {
+	if !p.RW.Valid {
+		p.Value = NullString{}
+		return nil
+	}
+	p.storedValue = p.Value
+	if p.Encrypted {
+		p.Value = NullString{}
+		requireWrite, err := revealRequiresWrite(ctx)
+		if err != nil {
+			return err
+		}
+		p.CanReveal = canReveal(requireWrite, p.RW)
+	}
+	return nil
 }
 
 func SelectParameter(ctx context.Context, path string) (*Parameter, error) {
 	query := selectFromConfig + "WHERE Path = ? AND NOT Deleted\n"
 
-	row := DB.QueryRowContext(ctx, query, Username(ctx), path)
-	p := Parameter{}
-	err := row.Scan(
-		&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
-		&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
-		&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
-	)
+	p, err := scanParameter(DB.QueryRowContext(ctx, query, Username(ctx), path))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	if !p.RW.Valid {
-		p.Value = NullString{}
+	if err := p.finishScan(ctx); err != nil {
+		return nil, err
 	}
-	return &p, nil
+	return p, nil
 }
 
 func SelectParameterFollowingSymlink(ctx context.Context, path string) (*Parameter, error) {
@@ -138,7 +176,7 @@ func selectParameterResolvingSymlink(ctx context.Context, path string, seen map[
 	if parameter == nil {
 		return nil, nil
 	}
-	if parameter.ContentType == "application/x-symlink" {
+	if parameter.ContentType == ContentTypeSymlink {
 		seen[path] = true
 		defer delete(seen, path)
 		return selectParameterResolvingSymlink(ctx, parameter.Value.String, seen)
@@ -180,22 +218,17 @@ func selectChildren(ctx context.Context, params []ParameterWithDescendants) erro
 	}
 	defer rows.Close()
 	for rows.Next() {
-		c := Parameter{}
-		err := rows.Scan(
-			&c.ID, &c.Name, &c.ParentID, &c.Path, &c.Value, &c.ContentType,
-			&c.Summary, &c.Description, &c.Version, &c.MTime, &c.Deleted,
-			&c.NumChildren, &c.AccessModified, &c.RW, &c.Notification, &c.NotificationModified,
-		)
+		c, err := scanParameter(rows)
 		if err != nil {
 			return err
 		}
-		if !c.RW.Valid {
-			c.Value = NullString{}
+		if err := c.finishScan(ctx); err != nil {
+			return err
 		}
 		parent := paramsMap[int(c.ParentID.Int64)]
-		parent.AddChild(c)
+		parent.AddChild(*c)
 	}
-	return nil
+	return rows.Err()
 }
 
 type ParameterWithChildren struct {
@@ -211,6 +244,7 @@ func (p *ParameterWithChildren) AddChild(child Parameter) {
 	p.Children = append(p.Children, child)
 }
 
+// SelectChildren fills in the children of the given nodes.
 func SelectChildren(ctx context.Context, params []*ParameterWithChildren) error {
 	paramsIf := make([]ParameterWithDescendants, 0, len(params))
 	for _, p := range params {
@@ -311,21 +345,16 @@ func SelectWithChildrenMulti(ctx context.Context, paths []string) (map[string]*P
 	defer rows.Close()
 	result := make(map[string]*ParameterWithChildren)
 	for rows.Next() {
-		var p Parameter
-		err := rows.Scan(
-			&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
-			&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
-			&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
-		)
+		p, err := scanParameter(rows)
 		if err != nil {
 			return nil, err
 		}
-		if !p.RW.Valid {
-			p.Value = NullString{}
+		if err := p.finishScan(ctx); err != nil {
+			return nil, err
 		}
 		if pathMap[p.Path] {
 			result[p.Path] = &ParameterWithChildren{
-				Parameter: p,
+				Parameter: *p,
 				Children:  []Parameter{},
 			}
 		}
@@ -335,11 +364,11 @@ func SelectWithChildrenMulti(ctx context.Context, paths []string) (map[string]*P
 				return nil, err
 			}
 			if _, ok := result[parentPath]; ok {
-				result[parentPath].Children = append(result[parentPath].Children, p)
+				result[parentPath].Children = append(result[parentPath].Children, *p)
 			}
 		}
 	}
-	return result, nil
+	return result, rows.Err()
 }
 
 func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
@@ -355,7 +384,7 @@ func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 		SELECT * FROM (
 			`+selectFromConfig+`
 			WHERE NOT Deleted
-			AND (`+publicSearch+` OR Value COLLATE utf8mb4_unicode_ci LIKE ?)
+			AND (`+publicSearch+` OR (NOT Encrypted AND Value COLLATE utf8mb4_unicode_ci LIKE ?))
 			ORDER BY Path
 		) x
 		WHERE RW IS NOT NULL
@@ -367,32 +396,27 @@ func SearchParameters(ctx context.Context, term string) ([]Parameter, error) {
 	defer rows.Close()
 	list := make([]Parameter, 0)
 	for rows.Next() {
-		var p Parameter
-		err := rows.Scan(
-			&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
-			&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
-			&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
-		)
+		p, err := scanParameter(rows)
 		if err != nil {
 			return nil, err
 		}
-		if !p.RW.Valid {
-			p.Value = NullString{}
+		if err := p.finishScan(ctx); err != nil {
+			return nil, err
 		}
-		list = append(list, p)
+		list = append(list, *p)
 	}
-	return list, nil
+	return list, rows.Err()
 }
 
-func CreateParameter(ctx context.Context, path, contentType, value string, optSummary, optDescription, optNotification NullString, comment string) error {
+func CreateParameter(ctx context.Context, path, contentType string, encrypted bool, value string, optSummary, optDescription, optNotification NullString, comment string) error {
 	ctx, sink := withNotifications(ctx)
 	var nullValue NullString
-	if contentType != "application/x-null" {
+	if contentType != ContentTypeNull {
 		nullValue.Valid = true
 		nullValue.String = value
 	}
 
-	if err := validateParameter(ctx, contentType, nullValue); err != nil {
+	if err := validateParameter(ctx, contentType, encrypted, nullValue); err != nil {
 		return err
 	}
 
@@ -426,19 +450,32 @@ func CreateParameter(ctx context.Context, path, contentType, value string, optSu
 		return err
 	}
 
-	row := tx.QueryRowContext(ctx, "SELECT Deleted FROM my_config_tree WHERE Path = ? FOR UPDATE", path)
 	var deleted bool
-	err = row.Scan(&deleted)
-	if err == sql.ErrNoRows {
-		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Value, Summary, Description, Notification) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			parent.ID, name, contentType, nullValue, optSummary.String, optDescription.String, notification)
-	} else if err == nil {
-		if !deleted {
-			tx.Rollback()
-			return ErrAlreadyExists
-		}
-		fields := "ContentType = ?, Value = ?, "
-		bind := []interface{}{contentType, nullValue}
+	err = tx.QueryRowContext(ctx, "SELECT Deleted FROM my_config_tree WHERE Path = ? FOR UPDATE", path).Scan(&deleted)
+	exists := err == nil
+	if err != nil && err != sql.ErrNoRows {
+		tx.Rollback()
+		return err
+	}
+	if exists && !deleted {
+		tx.Rollback()
+		return ErrAlreadyExists
+	}
+	// the plaintext is validated; from here on only the stored form is
+	// written — encrypted after the row locks above (see activeKeyForWrite)
+	storedValue, keyID, err := encryptForStorage(ctx, tx, encrypted, nullValue)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if !exists {
+		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Encrypted, Value, Summary, Description, Notification) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			parent.ID, name, contentType, encrypted, storedValue, optSummary.String, optDescription.String, notification)
+	} else {
+		// Encrypted is set unconditionally: a resurrected row must not inherit
+		// the marker from its previous, unrelated life as a soft-deleted zombie
+		fields := "ContentType = ?, Encrypted = ?, Value = ?, "
+		bind := []interface{}{contentType, encrypted, storedValue}
 		if optSummary.Valid {
 			fields += "Summary = ?, "
 			bind = append(bind, optSummary.String)
@@ -454,6 +491,10 @@ func CreateParameter(ctx context.Context, path, contentType, value string, optSu
 		bind = append(bind, path)
 		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET "+fields+"Version = Version + 1, MTime = now(), Deleted = false WHERE Path = ?", bind...)
 	}
+	if err == nil && encrypted {
+		// a resurrected zombie may have plaintext history to seal
+		err = sealHistoryByPath(ctx, tx, path, keyID)
+	}
 	if err == nil {
 		err = LogLastVersion(ctx, tx, path, comment)
 	}
@@ -464,16 +505,17 @@ func CreateParameter(ctx context.Context, path, contentType, value string, optSu
 	return commitAndNotify(ctx, tx, sink)
 }
 
-func SetParameter(ctx context.Context, path string, version int, contentType string, value string, comment string) error {
+// SetParameter writes a new version. The encrypted field is tri-state: on a
+// plaintext parameter an absent field keeps it plaintext; on an encrypted
+// parameter the field is mandatory — a client that does not know it cannot
+// have obtained the plaintext (it is posting back the masked null it
+// received), so writing would replace the secret with an empty value.
+func SetParameter(ctx context.Context, path string, version int, contentType string, encrypted NullBool, value string, comment string) error {
 	ctx, sink := withNotifications(ctx)
 	var nullValue NullString
-	if contentType != "application/x-null" {
+	if contentType != ContentTypeNull {
 		nullValue.Valid = true
 		nullValue.String = value
-	}
-
-	if err := validateParameter(ctx, contentType, nullValue); err != nil {
-		return err
 	}
 
 	tx, err := DB.BeginTx(ctx, nil)
@@ -490,7 +532,29 @@ func SetParameter(ctx context.Context, path string, version int, contentType str
 		tx.Rollback()
 		return ErrVersionNotMatch
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Value = ?, Version = Version + 1, MTime = now() WHERE Path = ?", contentType, nullValue, path)
+
+	var storeEncrypted bool
+	switch {
+	case encrypted.Valid:
+		storeEncrypted = encrypted.Bool
+	case p.Encrypted:
+		tx.Rollback()
+		return ErrEncryptedFieldRequired
+	}
+	if err := validateParameter(ctx, contentType, storeEncrypted, nullValue); err != nil {
+		tx.Rollback()
+		return err
+	}
+	storedValue, keyID, err := encryptForStorage(ctx, tx, storeEncrypted, nullValue)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Encrypted = ?, Value = ?, Version = Version + 1, MTime = now() WHERE Path = ?", contentType, storeEncrypted, storedValue, path)
+	if err == nil && storeEncrypted {
+		err = sealHistory(ctx, tx, p.ID, keyID)
+	}
 	if err == nil {
 		err = LogLastVersion(ctx, tx, path, comment)
 	}
@@ -499,6 +563,178 @@ func SetParameter(ctx context.Context, path string, version int, contentType str
 		return err
 	}
 	return commitAndNotify(ctx, tx, sink)
+}
+
+// RestoreParameter writes a historical version as the parameter's new
+// version, server-side: the UI cannot re-post a value it only sees masked,
+// and a rollback is not a reveal. The version is identified by its log
+// entry, which must have been written at this path — what the history of a
+// path lists. With a version given the path holds a live parameter at that
+// version, and the entry may be a former occupant's (a node that lived at
+// the path before the current one): the caller then needs read access to
+// that node and, when the entry holds a secret, the right to reveal it —
+// the rights a reveal-and-post would have demanded. Without a version the
+// path holds no live parameter, a soft-deleted one or none, and the entry
+// brings the parameter back as a create would, under the parent's write
+// access. Encryption never downgrades: an encrypted parameter stays
+// encrypted whenever the restored value can be. The restored plaintext is
+// re-validated (a symlink target may be gone).
+func RestoreParameter(ctx context.Context, path string, version *int, entryID int, comment string) error {
+	ctx, sink := withNotifications(ctx)
+	tx, err := DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	if err := restoreParameter(ctx, tx, path, version, entryID, comment); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return commitAndNotify(ctx, tx, sink)
+}
+
+func restoreParameter(ctx context.Context, tx *sql.Tx, path string, version *int, entryID int, comment string) error {
+	var entry struct {
+		nodeID      int
+		path        string
+		version     int
+		contentType string
+		encrypted   bool
+		value       NullString
+		deleted     bool
+	}
+	err := tx.QueryRowContext(ctx, "SELECT NodeID, Path, Version, ContentType, Encrypted, Value, Deleted FROM my_config_tree_log WHERE ID = ?", entryID).
+		Scan(&entry.nodeID, &entry.path, &entry.version, &entry.contentType, &entry.encrypted, &entry.value, &entry.deleted)
+	if err == sql.ErrNoRows || (err == nil && (entry.path != path || entry.deleted)) {
+		return ErrInvalidValue
+	} else if err != nil {
+		return err
+	}
+	plaintext, err := decryptStored(entry.encrypted, entry.value)
+	if err != nil {
+		return fmt.Errorf("%w: version %d: %v", ErrDecryptionFailed, entry.version, err)
+	}
+	// the version's own marker: only a scalar of an eligible type ever
+	// carries one (validateParameter, sealHistory)
+	encrypted := entry.encrypted
+
+	if version != nil {
+		// a live parameter at the path, at that version
+		p, err := selectParameterForUpdate(ctx, tx, path)
+		if err != nil {
+			return err
+		}
+		if p.Version != *version {
+			return ErrVersionNotMatch
+		}
+		if entry.nodeID != p.ID {
+			// a former occupant's entry
+			if err := checkEntryAccess(ctx, tx, entry.nodeID, entry.encrypted); err != nil {
+				return err
+			}
+		}
+		// encryption never downgrades: a version of an eligible type restored
+		// onto an encrypted parameter is stored encrypted; a null, symlink,
+		// case or template version comes back as the plaintext it is
+		if p.Encrypted && EncryptionEligible(entry.contentType) && plaintext.Valid {
+			encrypted = true
+		}
+		if err := validateParameter(ctx, entry.contentType, encrypted, plaintext); err != nil {
+			return err
+		}
+		storedValue, keyID, err := encryptForStorage(ctx, tx, encrypted, plaintext)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Encrypted = ?, Value = ?, Version = Version + 1, MTime = now() WHERE Path = ?", entry.contentType, encrypted, storedValue, path); err != nil {
+			return err
+		}
+		if encrypted {
+			if err := sealHistory(ctx, tx, p.ID, keyID); err != nil {
+				return err
+			}
+		}
+		return LogLastVersion(ctx, tx, path, comment)
+	}
+
+	// no live parameter at the path: the entry brings one back as a create
+	// would — under the parent's write access, into the soft-deleted row or
+	// a new one — with the marker of the version: there is no current value
+	// to never-downgrade from, and a resurrected row never inherits the
+	// marker of its previous life
+	parentPath, name, err := splitPath(path)
+	if err != nil {
+		return err
+	}
+	parent, err := selectParameterForUpdate(ctx, tx, parentPath)
+	if err != nil {
+		if err == ErrNotFound {
+			return ErrParentNotFound
+		}
+		return err
+	}
+	var deleted bool
+	err = tx.QueryRowContext(ctx, "SELECT Deleted FROM my_config_tree WHERE Path = ? FOR UPDATE", path).Scan(&deleted)
+	exists := err == nil
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	if exists && !deleted {
+		return ErrAlreadyExists
+	}
+	if entry.encrypted {
+		// the secret's own node decides who may bring it back; a deleted
+		// node's access groups were cleared at its deletion, so that is the
+		// parent's access under the policy
+		if err := checkEntryAccess(ctx, tx, entry.nodeID, true); err != nil {
+			return err
+		}
+	}
+	if err := validateParameter(ctx, entry.contentType, encrypted, plaintext); err != nil {
+		return err
+	}
+	storedValue, keyID, err := encryptForStorage(ctx, tx, encrypted, plaintext)
+	if err != nil {
+		return err
+	}
+	if exists {
+		_, err = tx.ExecContext(ctx, "UPDATE my_config_tree SET ContentType = ?, Encrypted = ?, Value = ?, Version = Version + 1, MTime = now(), Deleted = false WHERE Path = ?", entry.contentType, encrypted, storedValue, path)
+	} else {
+		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Encrypted, Value) VALUES (?, ?, ?, ?, ?)", parent.ID, name, entry.contentType, encrypted, storedValue)
+	}
+	if err != nil {
+		return err
+	}
+	if encrypted {
+		// a resurrected row may have plaintext history to seal
+		if err := sealHistoryByPath(ctx, tx, path, keyID); err != nil {
+			return err
+		}
+	}
+	return LogLastVersion(ctx, tx, path, comment)
+}
+
+// checkEntryAccess checks the caller's rights on a history entry of a node
+// other than the one being written — a former occupant of the path, or a
+// deleted node being brought back: read access to that node, and when the
+// entry holds a secret the right to reveal it under the policy.
+func checkEntryAccess(ctx context.Context, tx *sql.Tx, nodeID int, encrypted bool) error {
+	var rw NullBool
+	if err := tx.QueryRowContext(ctx, "SELECT my_config_tree_access(?, ?)", nodeID, Username(ctx)).Scan(&rw); err != nil {
+		return err
+	}
+	if !rw.Valid {
+		return ErrAccessDenied
+	}
+	if encrypted {
+		requireWrite, err := revealRequiresWrite(ctx)
+		if err != nil {
+			return err
+		}
+		if !canReveal(requireWrite, rw) {
+			return ErrRevealDenied
+		}
+	}
+	return nil
 }
 
 func MoveParameter(ctx context.Context, path string, newPath string, symlink bool, version int, comment string) error {
@@ -564,7 +800,7 @@ func MoveParameter(ctx context.Context, path string, newPath string, symlink boo
 			nullNotification.String = p.Notification
 		}
 		_, err = tx.ExecContext(ctx, "INSERT INTO my_config_tree (ParentID, Name, ContentType, Value, Notification) VALUES (?, ?, ?, ?, ?)",
-			p.ParentID, p.Name, "application/x-symlink", newPath, nullNotification)
+			p.ParentID, p.Name, ContentTypeSymlink, newPath, nullNotification)
 		if err == nil {
 			err = LogLastVersion(ctx, tx, path, fmt.Sprintf("Moved to %s. %s", newPath, comment))
 		}
@@ -715,36 +951,20 @@ func checkDeletedParamSymlinks(ctx context.Context, tx *sql.Tx, param *Parameter
 		return nil
 	}
 
-	isDisabled, err := isDeletedParamSymlinksCheckDisabled(ctx)
-	if err != nil {
+	if disabled, err := deletedSymlinksCheckDisabled.enabled(ctx); err != nil {
 		return err
-	}
-
-	if isDisabled {
+	} else if disabled {
 		return nil
 	}
 
 	return checkDeletedParamSymlinksRecursive(ctx, tx, param.Path, isSymlink(param), 0)
 }
 
-func isDeletedParamSymlinksCheckDisabled(ctx context.Context) (bool, error) {
-	param, err := SelectParameterResolvingSymlink(ctx, "/onlineconf/disable-deleted-key-symlinks-check")
-	if err != nil {
-		return false, err
-	}
-
-	if param == nil || param.ContentType != "text/plain" || !param.Value.Valid {
-		return false, nil
-	}
-
-	return param.Value.String != "" && param.Value.String != "0", nil
-}
-
 func isSymlink(param *Parameter) bool {
 	switch param.ContentType {
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		return true
-	case "application/x-case":
+	case ContentTypeCase:
 		var caseType []struct {
 			Type string `json:"mime"`
 		}
@@ -754,7 +974,7 @@ func isSymlink(param *Parameter) bool {
 		}
 
 		for _, ct := range caseType {
-			if ct.Type == "application/x-symlink" {
+			if ct.Type == ContentTypeSymlink {
 				return true
 			}
 		}
@@ -834,7 +1054,7 @@ func checkDeletedParamSymlinksRecursive(ctx context.Context, tx *sql.Tx, linkTar
 const sqlSymlinksCheck1 = `
     SELECT Path, Value
       FROM my_config_tree
-     WHERE ContentType = 'application/x-symlink'
+     WHERE ContentType = '` + ContentTypeSymlink + `'
        AND NOT Deleted
        AND (Value IN (`
 
@@ -846,9 +1066,9 @@ const sqlSymlinksCheck2 = `)
     SELECT t.Path, j.value
       FROM my_config_tree AS t
       JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
+     WHERE t.ContentType='` + ContentTypeCase + `'
        AND NOT t.Deleted
-       AND j.mime='application/x-symlink'
+       AND j.mime='` + ContentTypeSymlink + `'
        AND (j.value IN (`
 
 const sqlSymlinksCheck2s = `) OR j.value LIKE ?`
@@ -857,16 +1077,16 @@ const sqlSymlinksCheck3 = `)
     UNION
     SELECT Path, ''
       FROM my_config_tree
-     WHERE ContentType = 'application/x-template'
+     WHERE ContentType = '` + ContentTypeTemplate + `'
        AND NOT Deleted
        AND Value LIKE ?
     UNION
     SELECT t.Path, ''
       FROM my_config_tree AS t
       JOIN JSON_TABLE(t.Value, "$[*]" COLUMNS (mime VARCHAR(32) PATH "$.mime", value VARCHAR(512) PATH "$.value")) AS j
-     WHERE t.ContentType='application/x-case'
+     WHERE t.ContentType='` + ContentTypeCase + `'
        AND NOT t.Deleted
-       AND j.mime='application/x-template'
+       AND j.mime='` + ContentTypeTemplate + `'
        AND j.value LIKE ?
 `
 
@@ -908,14 +1128,11 @@ func formatSymlinkCheckQuery(target string, isSymlink bool) (query string, param
 	return sqlSymlinksCheck1 + pl + ")" + sqlSymlinksCheck2 + pl + ")" + sqlSymlinksCheck3, targets
 }
 
+// selectParameterForUpdate locks the row for a write and returns it as
+// stored (no masking: the write path compares and re-encrypts stored
+// values).
 func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Parameter, error) {
-	row := tx.QueryRowContext(ctx, selectFromConfig+"WHERE Path = ? AND NOT Deleted FOR UPDATE", Username(ctx), path)
-	p := Parameter{}
-	err := row.Scan(
-		&p.ID, &p.Name, &p.ParentID, &p.Path, &p.Value, &p.ContentType,
-		&p.Summary, &p.Description, &p.Version, &p.MTime, &p.Deleted,
-		&p.NumChildren, &p.AccessModified, &p.RW, &p.Notification, &p.NotificationModified,
-	)
+	p, err := scanParameter(tx.QueryRowContext(ctx, selectFromConfig+"WHERE Path = ? AND NOT Deleted FOR UPDATE", Username(ctx), path))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
@@ -925,36 +1142,100 @@ func selectParameterForUpdate(ctx context.Context, tx *sql.Tx, path string) (*Pa
 	if !(p.RW.Valid && p.RW.Bool) {
 		return nil, ErrAccessDenied
 	}
-	return &p, nil
+	return p, nil
 }
 
-func validateParameter(ctx context.Context, contentType string, value NullString) error {
+// encryptForStorage turns a plaintext value into its stored form: an envelope
+// under the key in use when the value is to be encrypted, the value itself
+// otherwise. It is the one place every encrypted write passes — a create, a
+// set, a restore — so the feature switch gates it here: while the switch is
+// off, or no keyring is loaded, nothing encrypted is written (a restore
+// whose result would hold a secret is refused like any other encrypted
+// write), while reveals and declassification stay unaffected. The key is
+// read in the write's transaction, after its row locks (activeKeyForWrite),
+// and returned for the sealing of the history that follows the write.
+func encryptForStorage(ctx context.Context, tx *sql.Tx, encrypted bool, value NullString) (stored NullString, keyID string, err error) {
+	if !encrypted || !value.Valid {
+		return value, "", nil
+	}
+	if enabled, err := isValueEncryptionEnabled(ctx); err != nil {
+		return value, "", err
+	} else if !enabled {
+		return value, "", ErrEncryptionDisabled
+	}
+	keyID, err = activeKeyForWrite(ctx, tx)
+	if err != nil {
+		return value, "", err
+	}
+	envelope, err := EncryptWith(keyID, value.String)
+	if err != nil {
+		return value, "", err
+	}
+	return NullStringOf(envelope), keyID, nil
+}
+
+// decryptStored turns a stored value into its plaintext: an encrypted value
+// is opened with the key its envelope names, and a value marked encrypted
+// that is not an envelope is a DecryptionError, never plaintext.
+func decryptStored(encrypted bool, value NullString) (NullString, error) {
+	if !encrypted {
+		return value, nil
+	}
+	plaintext, err := Decrypt(value.String)
+	if err != nil {
+		return value, err
+	}
+	return NullStringOf(plaintext), nil
+}
+
+// caseBranch is one entry of a case value. Absent condition keys stay invalid
+// NullStrings, mirroring the resolver's selection semantics. Unknown keys are
+// ignored, as they always were. Encrypted is read only to refuse it: a branch
+// is never encrypted, and a client still sending the marker is told so
+// rather than stored.
+type caseBranch struct {
+	Server      NullString `json:"server"`
+	Group       NullString `json:"group"`
+	Datacenter  NullString `json:"datacenter"`
+	Service     NullString `json:"service"`
+	ContentType NullString `json:"mime"`
+	Value       NullString `json:"value"`
+	Encrypted   bool       `json:"encrypted"`
+}
+
+// validateParameter checks a plaintext value against its content type and
+// marker — before encryption, which is the only place the structure of a
+// secret can be checked.
+func validateParameter(ctx context.Context, contentType string, encrypted bool, value NullString) error {
+	if encrypted && !EncryptionEligible(contentType) {
+		return ErrEncryptionNotAllowed
+	}
 	switch contentType {
-	case "application/x-null":
+	case ContentTypeNull:
 		if value.Valid {
 			return ErrInvalidValue
 		} else {
 			return nil
 		}
-	case "text/plain", "application/x-list", "application/x-server", "application/x-server2", "application/x-template":
+	case ContentTypeText, ContentTypeList, ContentTypeServer, ContentTypeServer2, ContentTypeTemplate:
 		if value.Valid {
 			return nil
 		} else {
 			return ErrInvalidValue
 		}
-	case "application/json":
+	case ContentTypeJSON:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
 		var i interface{}
 		return json.Unmarshal([]byte(value.String), &i)
-	case "application/x-yaml":
+	case ContentTypeYAML:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
 		var i interface{}
 		return yaml.Unmarshal([]byte(value.String), &i)
-	case "application/x-symlink":
+	case ContentTypeSymlink:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
@@ -966,21 +1247,21 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 		} else {
 			return nil
 		}
-	case "application/x-case":
+	case ContentTypeCase:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
-		var cases []map[string]NullString
+		var cases []caseBranch
 		if err := json.Unmarshal([]byte(value.String), &cases); err != nil {
 			return err
 		}
 		def := 0
 		for _, c := range cases {
 			i := 0
-			for _, key := range []string{"server", "group", "datacenter", "service"} {
-				if c[key].Valid {
+			for _, cond := range []NullString{c.Server, c.Group, c.Datacenter, c.Service} {
+				if cond.Valid {
 					i++
-					if c[key].String == "" {
+					if cond.String == "" {
 						return ErrInvalidValue
 					}
 				}
@@ -990,7 +1271,12 @@ func validateParameter(ctx context.Context, contentType string, value NullString
 			} else if i > 1 {
 				return ErrInvalidValue
 			}
-			if err := validateParameter(ctx, c["mime"].String, c["value"]); err != nil {
+			if c.Encrypted {
+				// a branch holds no secret: it reaches one through a symlink
+				// to an encrypted parameter
+				return ErrEncryptionNotAllowed
+			}
+			if err := validateParameter(ctx, c.ContentType.String, false, c.Value); err != nil {
 				return err
 			}
 		}

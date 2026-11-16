@@ -7,6 +7,8 @@ import (
 	"sort"
 
 	"github.com/rs/zerolog/log"
+
+	. "github.com/onlineconf/onlineconf/admin/go/common"
 )
 
 type datacenter struct {
@@ -53,7 +55,7 @@ func (graph *commonGraph) readDatacenters(ctx context.Context) ([]datacenter, er
 	for _, name := range sortedNames {
 		dc := *dcroot.Children[name]
 		datacenter := datacenter{name: name}
-		if dc.ContentType == "application/x-null" {
+		if dc.ContentType == ContentTypeNull {
 			datacenter.trust = true
 		} else {
 			ipnets, err := readIPNets(dc)
@@ -156,14 +158,23 @@ func (graph *commonGraph) synchronize(ctx context.Context, path string, target S
 	target.Update(ctx, param)
 }
 
+// commonCaseResolver resolves the graph that belongs to no server: a case
+// has no branch to select and a host variable has no value here. A case
+// resolves to absent — as it does on a server without a matching branch —
+// and a host variable stays unexpanded, each with a warning: the paths
+// the common graph reads (/onlineconf/ephemeral-ip, the datacenters, the
+// groups, the services and every synchronized control parameter) are
+// meant to hold plain values.
 type commonCaseResolver struct{}
 
-func (cr commonCaseResolver) resolveCase(context.Context, *Param) *Case {
-	panic("Dummy")
+func (cr commonCaseResolver) resolveCase(ctx context.Context, param *Param) *Case {
+	log.Ctx(ctx).Warn().Str("param", param.Path).Msg("a case cannot be resolved outside a server's graph: treated as absent")
+	return nil
 }
 
-func (cr commonCaseResolver) getTemplateVar(string) (string, bool) {
-	panic("Dummy")
+func (cr commonCaseResolver) getTemplateVar(ctx context.Context, param *Param, name string) (string, bool) {
+	log.Ctx(ctx).Warn().Str("param", param.Path).Str("var", name).Msg("a host variable cannot be expanded outside a server's graph: left as is")
+	return "", false
 }
 
 func readIPNets(param *Param) ([]net.IPNet, error) {

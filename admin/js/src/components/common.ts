@@ -5,11 +5,34 @@ import { DistributiveOmit } from '@mui/types';
 export interface ValueProps {
 	type: ParamType;
 	value: string | null;
+	encrypted?: boolean;
 }
 
-export interface EditValueProps extends ValueProps {
+// An editor gets the value and its type; whether the value is stored
+// encrypted is the business of the switch above it (TypeValueFields), the
+// editor only hides what is typed when asked to.
+export interface EditValueProps extends Pick<ValueProps, 'type' | 'value'> {
+	// hide what is typed (password-style), for secrets
+	masked?: boolean;
 	onChange: (value: string | null) => void;
 	onError: (error: unknown) => void;
+}
+
+// Types whose values may be stored encrypted: everything except the special
+// types whose value is not free content (null has none; a symlink target and
+// a case structure must stay readable — a case branch reaches a secret
+// through a symlink; a template's ${/path} references must stay searchable).
+// Must match EncryptionEligible in the backend (admin/go/common/encryption_storage.go).
+export function encryptionEligible(type: ParamType): boolean {
+	switch (type) {
+		case 'application/x-null':
+		case 'application/x-symlink':
+		case 'application/x-case':
+		case 'application/x-template':
+			return false;
+		default:
+			return true;
+	}
 }
 
 export interface IParamNode extends DistributiveOmit<IParam, 'children'> {

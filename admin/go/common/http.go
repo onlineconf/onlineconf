@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -106,9 +107,15 @@ func WriteErrorFunc(knownErrors map[error]ErrorResponse) func(context.Context, h
 		} else if response, ok := knownErrors[err]; ok {
 			response.Message = err.Error()
 			return WriteResponse(ctx, w, response)
-		} else {
-			return WriteServerError(ctx, w, err)
 		}
+		// known errors are often wrapped with details (fmt.Errorf %w)
+		for known, response := range knownErrors {
+			if errors.Is(err, known) {
+				response.Message = err.Error()
+				return WriteResponse(ctx, w, response)
+			}
+		}
+		return WriteServerError(ctx, w, err)
 	}
 }
 
