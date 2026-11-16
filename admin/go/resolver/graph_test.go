@@ -68,14 +68,14 @@ func TestCommonGraphCaseAndHostVariable(t *testing.T) {
 // variable, which is all a taint test needs of a server.
 type fakeCaseResolver struct{}
 
-func (fakeCaseResolver) resolveCase(_ context.Context, param *Param) *Case {
-	var branches []Case
+func (fakeCaseResolver) resolveCase(_ context.Context, param *Param) *CaseBranch {
+	var branches []CaseBranch
 	if err := json.Unmarshal([]byte(param.Value.String), &branches); err != nil {
 		return nil
 	}
 	for i := range branches {
 		b := &branches[i]
-		if b.Server == "" && b.Group == "" && b.Datacenter == "" && b.Service == "" {
+		if !b.Server.Valid && !b.Group.Valid && !b.Datacenter.Valid && !b.Service.Valid {
 			return b
 		}
 	}

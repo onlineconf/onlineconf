@@ -40,6 +40,7 @@ var writeResponse = WriteResponseOrErrorFunc(writeError)
 
 func RegisterRoutes(r *mux.Router) {
 	r.Use(authMiddleware)
+	r.Use(policyMemoMiddleware)
 	r.Use(csrfProtection)
 
 	c := r.Path("/config{path:(?:/|(?:/[^/]+)+)}").Subrouter()
@@ -77,13 +78,12 @@ func RegisterRoutes(r *mux.Router) {
 
 func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 	path := mux.Vars(req)["path"]
-	reveal := req.URL.Query().Get("reveal")
-	if reveal != "" && reveal != "1" {
-		WriteResponse(req.Context(), w, ErrorResponse{HTTPCode: 400, ErrorCode: "InvalidParam", Message: "Parameter 'reveal' must be 1"})
+	reveal, err := revealQuery(req)
+	if err != nil {
+		writeError(req.Context(), w, err)
 		return
 	}
 	var parameter *Parameter
-	var err error
 	switch req.URL.Query().Get("symlink") {
 	case "":
 		parameter, err = SelectParameter(req.Context(), path)
@@ -99,7 +99,7 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 		writeError(req.Context(), w, ErrNotFound)
 		return
 	}
-	if reveal != "" {
+	if reveal {
 		// one parameter at a time: children stay masked whatever the depth
 		if err := RevealParameter(req.Context(), parameter); err != nil {
 			writeError(req.Context(), w, err)
@@ -118,16 +118,32 @@ func serveGetConfig(w http.ResponseWriter, req *http.Request) {
 	writeResponse(req.Context(), w, data, err)
 }
 
-// encryptedField parses the optional "encrypted" form field. It is
-// tri-state: an absent field yields an invalid NullBool (SetParameter decides
-// what that means for the parameter at hand, CreateParameter takes it as
-// false). Asking for encryption is refused while the feature is off on this
-// instance; declassifying (encrypted=0) is always accepted, so switching the
-// feature off never traps an encrypted parameter.
 // errInvalidEncryptedField answers an encrypted field that is neither 0 nor
 // 1: a client spelling the flag as a form library would ("true", "on") is
 // told so rather than taken to declassify.
 var errInvalidEncryptedField = errors.New("Parameter 'encrypted' must be 0 or 1")
+
+// revealQuery parses the reveal query parameter of the read endpoints: absent
+// or "1"; anything else is told so.
+func revealQuery(req *http.Request) (bool, error) {
+	switch req.URL.Query().Get("reveal") {
+	case "":
+		return false, nil
+	case "1":
+		return true, nil
+	}
+	return false, ErrorResponse{HTTPCode: 400, ErrorCode: "InvalidParam", Message: "Parameter 'reveal' must be 1"}
+}
+
+// formInt parses a form field the API needs as an integer; anything else is
+// a 400 for the client, not a 500 for the log.
+func formInt(f url.Values, key string) (int, error) {
+	n, err := strconv.Atoi(f.Get(key))
+	if err != nil {
+		return 0, ErrorResponse{HTTPCode: 400, ErrorCode: "InvalidParam", Message: "Parameter '" + key + "' is not integer"}
+	}
+	return n, nil
+}
 
 // encryptedField parses the encrypted form field: absent, "0" or "1". The
 // feature switch is not consulted here but where every encrypted write
@@ -159,10 +175,9 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if verstr := f.Get("version"); verstr != "" {
+	if f.Get("version") != "" {
 		var version int
-		version, err = strconv.Atoi(verstr)
-		if err != nil {
+		if version, err = formInt(f, "version"); err != nil {
 			writeError(req.Context(), w, err)
 			return
 		}
@@ -172,18 +187,18 @@ func serveSetConfig(w http.ResponseWriter, req *http.Request) {
 			// the parameter now lives at newPath, return its state from there
 			// (the old path either holds a symlink or nothing at all)
 			path = newPath
-		} else if restore := f.Get("restore"); restore != "" {
+		} else if f.Get("restore") != "" {
 			var entryID int
-			if entryID, err = strconv.Atoi(restore); err == nil {
+			if entryID, err = formInt(f, "restore"); err == nil {
 				err = RestoreParameter(req.Context(), path, &version, entryID, f.Get("comment"))
 			}
 		} else {
 			err = SetParameter(req.Context(), path, version, f.Get("mime"), encrypted, f.Get("data"), f.Get("comment"))
 		}
-	} else if restore := f.Get("restore"); restore != "" {
+	} else if f.Get("restore") != "" {
 		// a rollback into a deleted parameter: no version, no mime
 		var entryID int
-		if entryID, err = strconv.Atoi(restore); err == nil {
+		if entryID, err = formInt(f, "restore"); err == nil {
 			err = RestoreParameter(req.Context(), path, nil, entryID, f.Get("comment"))
 		}
 	} else if contentType := f.Get("mime"); contentType != "" {
@@ -217,7 +232,7 @@ func serveDeleteConfig(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	req.Method = origMethod
 	path := mux.Vars(req)["path"]
-	version, err := strconv.Atoi(req.PostFormValue("version"))
+	version, err := formInt(req.PostForm, "version")
 	if err == nil {
 		err = DeleteParameter(req.Context(), path, version, req.PostFormValue("comment"))
 	}
@@ -396,9 +411,14 @@ func serveParameterLog(w http.ResponseWriter, req *http.Request) {
 		Path: path,
 		All:  true,
 	}
+	reveal, err := revealQuery(req)
+	if err != nil {
+		writeError(req.Context(), w, err)
+		return
+	}
 	lastID, _ := strconv.Atoi(req.URL.Query().Get("lastid"))
 	list, err := SelectLog(req.Context(), filter, lastID)
-	if err == nil && req.URL.Query().Get("reveal") == "1" {
+	if err == nil && reveal {
 		err = RevealLog(req.Context(), list, path)
 	}
 	writeResponse(req.Context(), w, list, err)

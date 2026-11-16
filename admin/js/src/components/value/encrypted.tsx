@@ -31,7 +31,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 	},
 }), { name: 'EncryptedValue' });
 
-export const maskedText = '••••••';
+const maskedText = '••••••';
 
 export function EncryptedValuePreview() {
 	const classes = useStyles();
@@ -83,11 +83,18 @@ export function RevealButton(props: RevealButtonProps) {
 export function useReveal(path: string, version: number, onError: (error: unknown) => void) {
 	const [ revealed, setRevealed ] = React.useState<API.IParam>();
 	const [ loading, setLoading ] = React.useState(false);
+	// what the hook serves now: a reveal still in flight when the version
+	// changes must not store the older plaintext afterwards
+	const current = React.useRef({ path, version });
+	current.current = { path, version };
 	React.useEffect(() => setRevealed(undefined), [path, version]);
 	const reveal = React.useCallback(async () => {
 		setLoading(true);
 		try {
-			setRevealed(await API.getParam(path, undefined, 'none', {}, true));
+			const param = await API.getParam(path, undefined, 'none', {}, true);
+			if (param.path === current.current.path && param.version === current.current.version) {
+				setRevealed(param);
+			}
 		} catch (error) {
 			onError(error);
 		}

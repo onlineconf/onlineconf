@@ -5,8 +5,13 @@ package admin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/go-sql-driver/mysql"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
 	"github.com/onlineconf/onlineconf/admin/go/resolver"
@@ -59,11 +64,11 @@ func TestValidateParameterEncryptionEligibility(t *testing.T) {
 	if err := validateParameter(nil, "application/json", true, NullStringOf(`{broken`)); err == nil {
 		t.Errorf("broken encrypted json accepted")
 	}
-	// a case branch is never encrypted: a branch carrying the marker is
-	// refused, the same case without it is accepted
+	// a case branch is never encrypted; a stray marker on a branch is an
+	// unknown key, ignored like any other
 	marked := `[{"server":"a*","mime":"text/plain","encrypted":true,"value":"s"},{"mime":"application/json","value":"1"}]`
-	if err := validateParameter(nil, ContentTypeCase, false, NullStringOf(marked)); !errors.Is(err, ErrEncryptionNotAllowed) {
-		t.Errorf("marked branch: err = %v, want ErrEncryptionNotAllowed", err)
+	if err := validateParameter(nil, ContentTypeCase, false, NullStringOf(marked)); err != nil {
+		t.Errorf("branch with a stray marker: %v", err)
 	}
 	plain := `[{"server":"a*","mime":"text/plain","value":"s"},{"mime":"application/json","value":"1"}]`
 	if err := validateParameter(nil, ContentTypeCase, false, NullStringOf(plain)); err != nil {
@@ -72,6 +77,22 @@ func TestValidateParameterEncryptionEligibility(t *testing.T) {
 	// a branch without a value is refused by the non-null rule of its type
 	if err := validateParameter(nil, ContentTypeCase, false, NullStringOf(`[{"mime":"text/plain","value":null}]`)); !errors.Is(err, ErrInvalidValue) {
 		t.Errorf("null text branch: err = %v, want ErrInvalidValue", err)
+	}
+}
+
+// A syntax error in a JSON or YAML value is the bare invalid-value error,
+// encrypted or not: the decoder's text quotes the value.
+func TestValidateParameterDecoderErrors(t *testing.T) {
+	for _, c := range []struct{ mime, value string }{
+		{"application/json", `{"zq":`},
+		{"application/x-yaml", "zq: [\n"},
+	} {
+		for _, encrypted := range []bool{true, false} {
+			err := validateParameter(nil, c.mime, encrypted, NullStringOf(c.value))
+			if !errors.Is(err, ErrInvalidValue) || err.Error() != ErrInvalidValue.Error() {
+				t.Errorf("%s encrypted=%v: err = %v, want the bare ErrInvalidValue", c.mime, encrypted, err)
+			}
+		}
 	}
 }
 
@@ -93,6 +114,19 @@ func TestEncryptedField(t *testing.T) {
 		if !errors.Is(err, c.err) || (err == nil && (got.Valid != c.valid || got.Bool != c.value)) {
 			t.Errorf("encryptedField(%v) = %+v, %v; want valid=%v value=%v err=%v", c.form, got.NullBool, err, c.valid, c.value, c.err)
 		}
+	}
+}
+
+// Without a keyring a stored secret cannot be opened: a deleted secret's
+// restore and a sealed version's reveal fail with that error wrapped as
+// DecryptionFailed, while the resolver, which loads live rows only, serves.
+func TestDecryptStoredWithoutKeyring(t *testing.T) {
+	withKeys(t, nil)
+	if _, err := decryptStored(true, NullStringOf("oc1:demo:AAAA")); !errors.Is(err, ErrNoEncryptionKey) {
+		t.Errorf("decrypt without a keyring: err = %v, want ErrNoEncryptionKey", err)
+	}
+	if got, err := decryptStored(false, NullStringOf("plain")); err != nil || got.String != "plain" {
+		t.Errorf("plaintext passthrough: %v, %v", got, err)
 	}
 }
 
@@ -168,5 +202,133 @@ func TestKeyIDWatcherValue(t *testing.T) {
 	w.prime("k3")
 	if !w.seen || w.last != "k3" {
 		t.Errorf("primed: last = %q", w.last)
+	}
+}
+
+func TestIsRetryableLockError(t *testing.T) {
+	for number, want := range map[uint16]bool{1213: true, 1205: true, 1062: false} {
+		if got := isRetryableLockError(&mysql.MySQLError{Number: number}); got != want {
+			t.Errorf("%d: %v, want %v", number, got, want)
+		}
+	}
+	if isRetryableLockError(errors.New("other")) || isRetryableLockError(fmt.Errorf("x: %w", &mysql.MySQLError{Number: 1062})) {
+		t.Errorf("an unrelated error taken for a lock conflict")
+	}
+	if !isRetryableLockError(fmt.Errorf("x: %w", &mysql.MySQLError{Number: 1213})) {
+		t.Errorf("a wrapped deadlock missed")
+	}
+}
+
+func TestWithLockRetry(t *testing.T) {
+	prev := lockRetryPause
+	lockRetryPause = time.Millisecond
+	t.Cleanup(func() { lockRetryPause = prev })
+	ctx := context.Background()
+	calls := 0
+	err := withLockRetry(ctx, "op", func() error {
+		calls++
+		if calls < 3 {
+			return &mysql.MySQLError{Number: 1213}
+		}
+		return nil
+	})
+	if err != nil || calls != 3 {
+		t.Errorf("two deadlocks then success: err = %v, calls = %d", err, calls)
+	}
+	calls = 0
+	duplicate := &mysql.MySQLError{Number: 1062}
+	if err := withLockRetry(ctx, "op", func() error { calls++; return duplicate }); err != duplicate || calls != 1 {
+		t.Errorf("a duplicate key: err = %v, calls = %d", err, calls)
+	}
+	calls = 0
+	timeout := &mysql.MySQLError{Number: 1205}
+	if err := withLockRetry(ctx, "op", func() error { calls++; return timeout }); err != timeout || calls != lockRetryAttempts {
+		t.Errorf("a lasting lock wait: err = %v, calls = %d", err, calls)
+	}
+}
+
+// withSweepStub replaces the sweep run for a test and resets the goroutine's
+// bookkeeping afterwards.
+func withSweepStub(t *testing.T, run func() bool) {
+	t.Helper()
+	kr, err := ParseKeyring(strings.NewReader("k1 " + strings.Repeat("A", 43) + "=\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	withKeys(t, kr)
+	prev := runSweep
+	runSweep = run
+	t.Cleanup(func() {
+		runSweep = prev
+		sweepMu.Lock()
+		if sweepRetry != nil {
+			sweepRetry.Stop()
+		}
+		sweepArmed, sweepRunning, sweepRerun, sweepRetry, sweepRetryDelay = false, false, false, nil, sweepRetryMin
+		sweepMu.Unlock()
+	})
+}
+
+func sweepIsRunning() bool {
+	sweepMu.Lock()
+	defer sweepMu.Unlock()
+	return sweepRunning
+}
+
+func awaitSweepIdle(t *testing.T) {
+	t.Helper()
+	for i := 0; i < 500 && sweepIsRunning(); i++ {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if sweepIsRunning() {
+		t.Fatalf("the sweep goroutine did not end")
+	}
+}
+
+// The trigger does nothing before the startup armed it; while the sweep
+// runs, triggers mark it to run once more, not once per trigger.
+func TestSweepTrigger(t *testing.T) {
+	runs, release := make(chan struct{}), make(chan struct{})
+	count := 0
+	withSweepStub(t, func() bool { count++; runs <- struct{}{}; <-release; return true })
+	triggerKeyReconcile()
+	if sweepIsRunning() {
+		t.Fatalf("a trigger before the startup started the sweep")
+	}
+	armSweep()
+	triggerKeyReconcile()
+	<-runs
+	triggerKeyReconcile()
+	triggerKeyReconcile()
+	release <- struct{}{}
+	<-runs
+	release <- struct{}{}
+	awaitSweepIdle(t)
+	if count != 2 {
+		t.Errorf("the sweep ran %d times, want 2: once, and once more for the triggers that arrived meanwhile", count)
+	}
+}
+
+// A failed sweep is scheduled again with a growing delay; a trigger
+// arriving meanwhile cancels the timer and runs it at once.
+func TestSweepRetryAfterFailure(t *testing.T) {
+	count := 0
+	withSweepStub(t, func() bool { count++; return false })
+	armSweep()
+	triggerKeyReconcile()
+	awaitSweepIdle(t)
+	sweepMu.Lock()
+	timer, delay := sweepRetry, sweepRetryDelay
+	sweepMu.Unlock()
+	if timer == nil || delay != 2*sweepRetryMin {
+		t.Errorf("after a failure: timer %v, next delay %v", timer != nil, delay)
+	}
+	triggerKeyReconcile()
+	awaitSweepIdle(t)
+	sweepMu.Lock()
+	delay = sweepRetryDelay
+	sweepMu.Unlock()
+	if count != 2 || delay != 4*sweepRetryMin {
+		t.Errorf("after a trigger during the retry delay: runs %d, next delay %v", count, delay)
 	}
 }

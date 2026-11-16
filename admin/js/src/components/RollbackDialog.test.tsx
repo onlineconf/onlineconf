@@ -19,13 +19,13 @@ const current: API.IParam = {
 };
 
 // opens the dialog on the log entry 42 of /p; `exists` says whether /p is
-// live (at version 5) or deleted
-async function openDialog(entry: { deleted?: boolean, encrypted?: boolean, value: string | null }, exists: boolean) {
+// live (at version 5, with `cur` overriding its fields) or deleted
+async function openDialog(entry: { deleted?: boolean, encrypted?: boolean, value: string | null }, exists: boolean, cur: Partial<API.IParam> = {}, type: API.ParamType = 'application/x-list') {
 	getParam.mockReset();
 	postParam.mockReset();
 	deleteParam.mockReset();
 	if (exists) {
-		getParam.mockResolvedValue(current);
+		getParam.mockResolvedValue({ ...current, ...cur });
 	} else {
 		getParam.mockRejectedValue({ response: { status: 404 } });
 	}
@@ -40,7 +40,7 @@ async function openDialog(entry: { deleted?: boolean, encrypted?: boolean, value
 					path="/p"
 					id={42}
 					version={2}
-					type="application/x-list"
+					type={type}
 					value={entry.value}
 					encrypted={entry.encrypted}
 					deleted={entry.deleted === true}
@@ -97,5 +97,65 @@ it('brings a deleted parameter back by the log entry, a masked entry included', 
 	await rollback();
 	expect(postParam).toHaveBeenCalledWith('/p', { restore: 42, comment: 'c' });
 	expect(deleteParam).not.toHaveBeenCalled();
+	cleanup();
+});
+
+const note = 'The parameter is encrypted: the restored value will be stored encrypted too.';
+
+it('notes the never-downgrade for an eligible entry of an encrypted parameter only', async () => {
+	// the parameter's own flag says it is encrypted, not can_reveal
+	let cleanup = await openDialog({ value: 'old' }, true, { encrypted: true, can_reveal: false, data: null });
+	expect(document.body.textContent).toContain(note);
+	cleanup();
+	// a symlink version comes back plain: no note
+	cleanup = await openDialog({ value: '/q' }, true, { encrypted: true, can_reveal: true, data: null }, 'application/x-symlink');
+	expect(document.body.textContent).not.toContain(note);
+	cleanup();
+	// can_reveal without the flag is not an encrypted parameter
+	cleanup = await openDialog({ value: 'old' }, true, { can_reveal: true });
+	expect(document.body.textContent).not.toContain(note);
+	cleanup();
+});
+
+it('edits a revealed secret version of a plain parameter with the switch on and no declassify confirmation', async () => {
+	const cleanup = await openDialog({ value: 'old-secret', encrypted: true }, true);
+	const pencils = Array.from(document.body.querySelectorAll<HTMLButtonElement>('.MuiDialog-root button')).filter(b => b.querySelector('svg[data-testid="EditIcon"]'));
+	expect(pencils).toHaveLength(2);
+	await act(async () => {
+		Simulate.click(pencils[1]);
+	});
+	const editor = Array.from(document.body.querySelectorAll<HTMLElement>('.MuiDialog-root')).pop();
+	if (!editor) {
+		throw new Error('no editor');
+	}
+	// the version's flag seeds the switch...
+	const toggle = editor.querySelector<HTMLInputElement>('input[type="checkbox"]');
+	expect(toggle?.checked).toBe(true);
+	// ...but the parameter is plain: turning it off declassifies nothing
+	await act(async () => {
+		toggle!.checked = false;
+		Simulate.change(toggle!);
+	});
+	const label = Array.from(editor.querySelectorAll('label')).find(e => e.textContent?.startsWith('Comment'));
+	const comment = label?.htmlFor ? document.getElementById(label.htmlFor) as HTMLInputElement | null : null;
+	if (!comment) {
+		throw new Error('no comment field in the editor');
+	}
+	await act(async () => {
+		comment.value = 'c';
+		Simulate.change(comment);
+	});
+	const saveButton = Array.from(editor.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent === 'Save');
+	if (!saveButton) {
+		throw new Error('no Save button');
+	}
+	await act(async () => {
+		Simulate.click(saveButton);
+	});
+	expect(document.body.textContent).not.toContain('Store in plaintext?');
+	expect(postParam).toHaveBeenCalledTimes(1);
+	const posted = postParam.mock.calls[0][1] as API.ParamModify;
+	expect(posted.data).toBe('old-secret');
+	expect(posted.encrypted).toBeUndefined();
 	cleanup();
 });

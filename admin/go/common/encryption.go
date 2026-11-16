@@ -24,8 +24,10 @@ import (
 //
 // written and read by onlineconf-admin only: the resolver decrypts at tree
 // load, the admin API decrypts on an explicit reveal or a restore. The keys
-// come from a keyring file whose first line is the active key (used for every
-// new encryption) and whose other lines are retired keys kept for decryption.
+// come from a key file, one per line, in no particular order: the key new
+// encryptions use is the one the admin's registry records as active (a
+// fresh installation starts with the file's first key); every other key is
+// kept for decryption.
 
 // EncryptionConfig is the `encryption` stanza of the admin configuration.
 type EncryptionConfig struct {
@@ -137,9 +139,9 @@ func (k *Key) CheckVerifier(verifier []byte) bool {
 	return err == nil && string(plaintext) == verifierPlaintext
 }
 
-// Keyring holds the keys of the key file in file order, and the key new
-// encryptions use: the key the admin finds recorded as active in its
-// registry (SetActive); the file's first key until then.
+// Keyring holds the keys of the key file, in file order and by id. It has no
+// notion of an active key: the admin reads the key in use from its registry
+// for every write (First is what a fresh installation starts with).
 type Keyring struct {
 	keys []*Key
 	byID map[string]*Key

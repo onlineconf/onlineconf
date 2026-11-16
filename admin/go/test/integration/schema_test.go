@@ -43,6 +43,30 @@ func TestSchemaVersionGuard(t *testing.T) {
 	}
 }
 
+// TestColdStartLog reads what the suite's cold start logged: the database
+// is not reachable at the admin's first attempt (the MySQL container's
+// healthcheck passes before it listens on the network), so the startup
+// checks must retry until they judge the schema.
+func TestColdStartLog(t *testing.T) {
+	if !strings.Contains(coldStartLog, `"message":"encryption key registered as active"`) {
+		t.Skip("not a cold start on a fresh database: the log shows no registration")
+	}
+	if !strings.Contains(coldStartLog, "database schema is current") {
+		t.Errorf("the cold start never judged the schema:\n%s", coldStartLog)
+	}
+	// the first registration happens once — the startup's trigger, not a
+	// tree load racing it — and the pass after it verifies the fresh data
+	if n := strings.Count(coldStartLog, `"message":"encryption key registered as active"`); n != 1 {
+		t.Errorf("the key was registered as active %d times, want once:\n%s", n, coldStartLog)
+	}
+	if n := strings.Count(coldStartLog, "re-encryption of stored values finished"); n != 1 {
+		t.Errorf("%d sweeps finished at the cold start, want the one after the registration:\n%s", n, coldStartLog)
+	}
+	if strings.Contains(coldStartLog, "re-encryption of stored values failed") {
+		t.Errorf("a sweep failed at the cold start:\n%s", coldStartLog)
+	}
+}
+
 func restartAdmin(t *testing.T) {
 	t.Helper()
 	if out, err := compose("restart", "onlineconf-admin"); err != nil {

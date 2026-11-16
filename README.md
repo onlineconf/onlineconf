@@ -151,7 +151,10 @@ the secret with the `null` it was served. Rolling a parameter back to a
 historical version is done server-side (`POST /config/<path>` with
 `restore=<log entry id>`, the `id` of a `/log` entry, and the current
 `version`; without `version` a deleted parameter is brought back from its
-history), needs no reveal, and never downgrades encryption.
+history), needs no reveal, and never downgrades encryption. A `reveal`
+other than `1` on either endpoint and a non-numeric `restore` or `version`
+are refused with `InvalidParam`; a JSON or YAML value the decoder refuses
+is `InvalidValue`, without the decoder's text, whatever the parameter.
 
 **Configuration.** The key file is a text file with one
 `<key-id> <base64 of 32 random bytes>` per line (`#` comments allowed); a
@@ -173,32 +176,49 @@ use is named by `encryption key in use` once the registry has been
 consulted), or `value encryption is not configured` — a key file is never
 loaded implicitly. Without a key the UI offers no *Encrypted* switch and
 `/ui-config` reports `"encryption": {"enabled": false}`. An instance that
-finds encrypted values in the database without a key file, or a key whose
-material differs from the one registered in the database under the same
-id, refuses to start; one that cannot decrypt a value at reload keeps
-serving its last good configuration. Every instance of an installation
-must have the same keys.
+finds live encrypted parameters in the database without a key file, or a
+key whose material differs from the one registered in the database under
+the same id, refuses to start; one that cannot decrypt a value at reload
+keeps serving its last good configuration. Once no live parameter is
+encrypted the key file may be dropped: the deleted secrets and the sealed
+history then cannot be restored or revealed until it is back. Every
+instance of an installation must have the same keys.
 
 **Rotation** needs no tool, only the key file and one restart. Add the new
 key to the key file on every instance — on any line: the file's order
-matters on a fresh installation only — and restart them. Once every
-instance holds it, write its id to `/onlineconf/value-encryption/key-id`:
-that names the *wanted* key, a request every instance notices at its next
-tree reload, within seconds. The instance that takes the job re-encrypts
-every stored value in the background, in the tree and in the history,
-without touching versions, timestamps or notifications, then records the
-new key as active in the key registry (`my_config_encryption_key`): from
-that moment it is the key *in use*, the one every encrypted write on every
-instance encrypts with — a write reads it in its own transaction, so no
-write lands under the old key after the switch — and the sweep walks both
-tables again until a pass finds nothing left under another key.
-`GET /encryption-status` (root users only) reports the wanted key
-(`wanted`), the key in use (`recorded`) and the sweep; `done` means
-verified, and once it reports done, delete the old key from the files at
-any later deploy. A retired key is promoted again the same way. An id
+matters on a fresh installation only — and restart them. Once every instance
+holds it, write its id to `/onlineconf/value-encryption/key-id`: that names
+the *wanted* key, a request every instance notices at its next tree reload,
+within seconds. The instance that takes the job re-encrypts every stored
+value in the background, in the tree and in the history, without touching
+versions, timestamps or notifications, then records the new key as active in
+the key registry (`my_config_encryption_key`): from that moment it is the
+key *in use*, the one every encrypted write on every instance encrypts with
+— a write reads it in its own transaction, so no write lands under the old
+key after the switch — and the sweep walks both tables again until a pass
+finds nothing left under another key. `GET /encryption-status` (root users
+only) reports the wanted key (`wanted`), the key in use (`recorded`), the
+instance that answered (`instance`) and that instance's last sweep
+(`sweep`). The old key may go once an instance reports `sweep.state: done`
+with the new key as `sweep.target`: that pass walked both tables and found
+nothing left under another key. The sweep fields describe the instance that
+answered, so ask until one reports it; `wanted` and `recorded` alone never
+mean verified — the key in use is recorded after the first pass, before the
+passes that verify — and `keys[].verified` is about the key material, not
+the data. Then delete the old key from the files at any later deploy. Every
+instance that saw the rotation runs a pass of its own once the first is done
+and reports `done` for the new key; one still queued behind it reports
+`waiting`, and one whose key file lacks the key reports `refused` with the
+reason. A request written while a sweep runs elsewhere is not lost: it runs
+when the lock frees, the latest wish winning. A sweep that fails — `failed`,
+with the cause in `error` — is retried by itself after a minute, then with a
+growing delay up to ten minutes; a restart of any instance retries too. A
+lasting difference between `wanted` and `recorded` therefore means that the
+wanted key is not in the key files (`refused` on those instances) or that a
+sweep keeps failing. A retired key is promoted again the same way. An id
 written before every instance holds the key is refused by the instances
-without it (logged, nothing changes on them), and after the sweep they
-cannot decrypt what the others wrote until they get the key.
+without it (`refused`, logged, nothing changes on them), and after the sweep
+they cannot decrypt what the others wrote until they get the key.
 
 ## Authentication
 
@@ -288,6 +308,8 @@ supported) and should be treated as a foolproof only and not as a formal consist
 some parameter is deleted.
 
 To disable this foolproof, you can set `/onlineconf/disable-deleted-key-symlinks-check` to any non-empty text value other than `0`.
+Like the other settings under `/onlineconf` that the server consults for its own behavior, the parameter is plain text read by path — symlinks are followed,
+the access rights of the user deleting the parameter are not consulted — and an encrypted value, a case or a template there counts as absent.
 
 ### /onlineconf/value-encryption
 

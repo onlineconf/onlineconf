@@ -162,29 +162,31 @@ func newServerCaseResolver(ctx context.Context, t *tree, server Server) *serverC
 	}
 }
 
-func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Case {
-	var data []Case
+func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *common.CaseBranch {
+	var data []common.CaseBranch
 	err := json.Unmarshal([]byte(param.Value.String), &data)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Str("param", param.Path).Str("value", param.logValue()).Msg("failed to decode case json")
 		return nil
 	}
 
-	byServer := make([]Case, 0)
-	byGroup := make(map[string]Case, 0)
-	byDatacenter := make(map[string]Case, 0)
-	byService := make(map[string]Case, 0)
-	var defaultCase Case
+	// a condition is its value: absent and empty alike (the validator never
+	// lets an empty one through)
+	byServer := make([]common.CaseBranch, 0)
+	byGroup := make(map[string]common.CaseBranch, 0)
+	byDatacenter := make(map[string]common.CaseBranch, 0)
+	byService := make(map[string]common.CaseBranch, 0)
+	var defaultCase common.CaseBranch
 	hasDefaultCase := false
 	for _, cs := range data {
-		if cs.Server != "" {
+		if cs.Server.String != "" {
 			byServer = append(byServer, cs)
-		} else if cs.Group != "" {
-			byGroup[cs.Group] = cs
-		} else if cs.Datacenter != "" {
-			byDatacenter[cs.Datacenter] = cs
-		} else if cs.Service != "" {
-			byService[cs.Service] = cs
+		} else if cs.Group.String != "" {
+			byGroup[cs.Group.String] = cs
+		} else if cs.Datacenter.String != "" {
+			byDatacenter[cs.Datacenter.String] = cs
+		} else if cs.Service.String != "" {
+			byService[cs.Service.String] = cs
 		} else if !hasDefaultCase {
 			defaultCase = cs
 			hasDefaultCase = true
@@ -194,24 +196,24 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 	}
 	sort.Slice(byServer, func(i, j int) bool {
 		var ic, jc int
-		is := serverSortRe.ReplaceAllStringFunc(byServer[i].Server, func(string) string { ic++; return "" })
-		js := serverSortRe.ReplaceAllStringFunc(byServer[j].Server, func(string) string { jc++; return "" })
+		is := serverSortRe.ReplaceAllStringFunc(byServer[i].Server.String, func(string) string { ic++; return "" })
+		js := serverSortRe.ReplaceAllStringFunc(byServer[j].Server.String, func(string) string { jc++; return "" })
 		if len(is) != len(js) {
 			return len(is) > len(js)
 		}
 		if ic != jc {
 			return ic < jc
 		}
-		if len(byServer[i].Server) != len(byServer[j].Server) {
-			return len(byServer[i].Server) > len(byServer[j].Server)
+		if len(byServer[i].Server.String) != len(byServer[j].Server.String) {
+			return len(byServer[i].Server.String) > len(byServer[j].Server.String)
 		}
-		return byServer[i].Server < byServer[j].Server
+		return byServer[i].Server.String < byServer[j].Server.String
 	})
 
 	for _, cs := range byServer {
-		match, err := doublestar.Match(cs.Server, cr.server.Host) // using '/' separator for compatibility reason
+		match, err := doublestar.Match(cs.Server.String, cr.server.Host) // using '/' separator for compatibility reason
 		if err != nil {
-			log.Ctx(ctx).Warn().Str("server", cs.Server).Msg("invalid server glob")
+			log.Ctx(ctx).Warn().Str("server", cs.Server.String).Msg("invalid server glob")
 		} else if match {
 			return &cs
 		}
@@ -243,7 +245,7 @@ func (cr serverCaseResolver) resolveCase(ctx context.Context, param *Param) *Cas
 		return &defaultCase
 	}
 
-	return &Case{ContentType: common.ContentTypeNull}
+	return &common.CaseBranch{ContentType: common.ContentTypeNull}
 }
 
 func (cr serverCaseResolver) getTemplateVar(_ context.Context, _ *Param, name string) (string, bool) {

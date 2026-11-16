@@ -22,7 +22,7 @@ export interface EditValueProps extends Pick<ValueProps, 'type' | 'value'> {
 // types whose value is not free content (null has none; a symlink target and
 // a case structure must stay readable — a case branch reaches a secret
 // through a symlink; a template's ${/path} references must stay searchable).
-// Must match EncryptionEligible in the backend (admin/go/common/encryption_storage.go).
+// Must match EncryptionEligibleTypes in the backend (admin/go/common/encryption.go).
 export function encryptionEligible(type: ParamType): boolean {
 	switch (type) {
 		case 'application/x-null':

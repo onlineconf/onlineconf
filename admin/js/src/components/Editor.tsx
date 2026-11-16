@@ -72,6 +72,10 @@ export interface EditorProps extends Partial<ValueProps> {
 	isValueMasked?: boolean;
 	// the value passed in is plaintext already (revealed by the caller)
 	revealed?: boolean;
+	// the initial state of the Encrypted switch when it is not the
+	// parameter's own flag: a revealed historical version brought into the
+	// editor keeps its own
+	initialEncrypted?: boolean;
 	onClose: () => void;
 	onChange: (param: IParam) => void;
 	onError: (error: unknown) => void;
@@ -104,7 +108,7 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 			name: '',
 			type: props.type !== undefined ? props.type : 'application/x-null',
 			value: props.value !== undefined ? props.value : null,
-			encrypted: props.encrypted === true,
+			encrypted: props.initialEncrypted !== undefined ? props.initialEncrypted : props.encrypted === true,
 			masked: !props.create && props.isValueMasked === true && props.revealed !== true,
 			replace: false,
 			revealing: false,
@@ -162,11 +166,13 @@ class Editor extends React.Component<EditorProps & WithStyles<typeof styles> & W
 	};
 
 	// the encrypted field as the server expects it: stated for eligible types
-	// where encryption is on or the parameter is encrypted already, and
-	// stated as off when an ineligible type replaces an encrypted value
+	// where encryption is on, the parameter is encrypted already or the switch
+	// is on — a switch shown on never posts an omitted field, which the server
+	// takes as plaintext — and stated as off when an ineligible type replaces
+	// an encrypted value
 	encryptedField(): boolean | undefined {
 		if (encryptionEligible(this.state.type)) {
-			if (this.context.enabled || this.props.encrypted) {
+			if (this.context.enabled || this.props.encrypted || this.state.encrypted) {
 				return this.state.encrypted;
 			}
 			return undefined;

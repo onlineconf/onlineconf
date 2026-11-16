@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/rs/zerolog/log"
 
 	. "github.com/onlineconf/onlineconf/admin/go/common"
@@ -30,10 +32,6 @@ var (
 	ErrDecryptionFailed       = errors.New("Failed to decrypt the value")
 	ErrActiveKeyMissing       = errors.New("The active encryption key is not in this instance's key file")
 )
-
-// encryptedRowsWhere matches the rows holding an encrypted value: the
-// Encrypted column is the whole truth about a row, in both tables.
-const encryptedRowsWhere = `Encrypted`
 
 // isValueEncryptionEnabled reports whether encrypted writes are accepted on
 // this instance: the switch is on and a keyring is loaded.
@@ -84,14 +82,19 @@ var errAdvisoryLocked = errors.New("locked by another instance")
 // (GET_LOCK is connection-scoped and released by the server if the
 // connection dies, so a crashed holder cannot leave it stuck). The name is
 // scoped to the current database: advisory locks are server-wide and
-// installations may share a server.
+// installations may share a server. A negative wait waits for the lock
+// without a bound.
 func acquireAdvisoryLock(ctx context.Context, name string, wait time.Duration) (release func(), err error) {
 	conn, err := DB.Conn(ctx)
 	if err != nil {
 		return nil, err
 	}
+	seconds := int(wait / time.Second)
+	if wait < 0 {
+		seconds = -1 // GET_LOCK's infinite timeout
+	}
 	var got sql.NullInt64
-	row := conn.QueryRowContext(ctx, "SELECT GET_LOCK(CONCAT(DATABASE(), '/', ?), ?)", name, int(wait/time.Second))
+	row := conn.QueryRowContext(ctx, "SELECT GET_LOCK(CONCAT(DATABASE(), '/', ?), ?)", name, seconds)
 	if err := row.Scan(&got); err != nil {
 		conn.Close()
 		return nil, err
@@ -117,17 +120,25 @@ func (e *fatalEncryptionError) Error() string { return e.msg }
 
 const encryptionStartupRetry = 5 * time.Second
 
-// initializeEncryption runs the startup checks: refuse to run without
-// a keyring when encrypted values exist, verify every loaded key against the
-// registry, register unknown keys, and reconcile the wanted key with the
-// registered one (the consistency pass, or a promotion). Database errors
-// are retried in the background; the server serves in the meantime (the
-// resolver fails closed on its own if the keys are wrong). The key id
-// parameter is watched from then on through the resolver's tree reloads.
-func initializeEncryption() {
+// runStartupChecks runs the checks that need the database: the schema
+// version (ensureSchemaCurrent) and then value encryption — refuse to run
+// without a keyring when live encrypted values exist, verify every loaded
+// key against the registry, register unknown keys, and reconcile the wanted
+// key, and hand the registry work — the first registration, a promotion,
+// the consistency pass — to the sweep goroutine, armed here. A database
+// that cannot be reached is retried in the background; the server serves
+// in the meantime (the resolver fails closed on its own if the keys are
+// wrong), and a verdict against the schema or the keys stops it whenever
+// it is reached. The key id parameter is watched from the start through
+// the resolver's tree reloads, which trigger the goroutine once it is
+// armed.
+func runStartupChecks() {
 	resolver.Synchronize(string(activeKeyID), keyIDWatch)
 	ctx := log.Logger.WithContext(context.Background())
 	run := func() bool {
+		if !ensureSchemaCurrent() {
+			return false
+		}
 		err := encryptionStartup(ctx)
 		var fatal *fatalEncryptionError
 		if errors.As(err, &fatal) {
@@ -151,8 +162,12 @@ func initializeEncryption() {
 
 func encryptionStartup(ctx context.Context) error {
 	if Keys == nil {
+		// what the resolver serves: live rows. A deleted secret and the sealed
+		// history need the key too, but only at a restore or a reveal, which
+		// then fail with DecryptionFailed; an installation that declassified
+		// or deleted every secret may drop its key file
 		var n int
-		if err := DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM my_config_tree WHERE "+encryptedRowsWhere).Scan(&n); err != nil {
+		if err := DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM my_config_tree WHERE Encrypted = 1 AND NOT Deleted").Scan(&n); err != nil {
 			return err
 		}
 		if n > 0 {
@@ -174,7 +189,14 @@ func encryptionStartup(ctx context.Context) error {
 		return err
 	}
 	keyIDWatch.prime(value)
-	return reconcileActiveKey(ctx, true)
+	if err := reconcileActiveKey(ctx); err != nil {
+		return err
+	}
+	// the startup judged; the sweep goroutine does the work, now and at
+	// every change of the key id the watcher sees
+	armSweep()
+	triggerKeyReconcile()
+	return nil
 }
 
 // --- the active key -----------------------------------------------------------
@@ -228,14 +250,14 @@ func planActiveKey(wanted, source, active string, hasActive, held bool) (keyActi
 	}
 }
 
-// reconcileActiveKey compares the wanted key (wantedKeyID) with the
-// registry's active key and acts on the difference, planActiveKey being the
-// table: a fresh installation records the wanted key, a wanted key that is
-// held is promoted by the background sweep, one that is not is reported and
-// changes nothing. It runs at startup — then with the consistency pass when
-// the key in use is the wanted one — and whenever a tree reload shows the
-// key id parameter changed.
-func reconcileActiveKey(ctx context.Context, startup bool) error {
+// reconcileActiveKey judges the wanted key at startup, so that the outcomes
+// that must stop the server are fatal before it serves: the registry's
+// active key not in the key file, or a fresh installation wanting a key the
+// file lacks. The work itself — the registration, the promotion or the
+// consistency pass — is the sweep goroutine's, which makes the same plan
+// again under the lock (runEncryptionSweep) once the startup has armed and
+// triggered it.
+func reconcileActiveKey(ctx context.Context) error {
 	wanted, source, err := wantedKeyID(ctx)
 	if err != nil {
 		return err
@@ -250,42 +272,10 @@ func reconcileActiveKey(ctx context.Context, startup bool) error {
 		}
 	}
 	_, held := Keys.Key(wanted)
-	action, message := planActiveKey(wanted, source, active, hasActive, held)
-	switch action {
-	case keyActionFatal:
+	if action, message := planActiveKey(wanted, source, active, hasActive, held); action == keyActionFatal {
 		return &fatalEncryptionError{message}
-	case keyActionRegister:
-		if err := setRegisteredActive(ctx, wanted); err != nil {
-			return err
-		}
-		log.Info().Str("key", wanted).Str("source", source).Msg(message)
-	case keyActionNone:
-		log.Info().Str("key", active).Msg(message)
-		if startup {
-			go runEncryptionSweep(active)
-		}
-	case keyActionRefuse:
-		log.Error().Str("key", wanted).Str("source", source).Str("active", active).Msg(message)
-	case keyActionPromote:
-		log.Info().Str("from", active).Str("to", wanted).Str("source", source).Msg(message)
-		go runEncryptionSweep(wanted)
 	}
 	return nil
-}
-
-// triggerKeyReconcile runs the reconciliation outside startup, when a tree
-// reload showed the key id parameter changed. Nothing here may stop a
-// serving instance; every outcome is logged.
-func triggerKeyReconcile(reason string) {
-	if Keys == nil {
-		return
-	}
-	go func() {
-		ctx := log.Logger.WithContext(context.Background())
-		if err := reconcileActiveKey(ctx, false); err != nil {
-			log.Error().Err(err).Str("reason", reason).Msg("encryption key reconciliation failed")
-		}
-	}()
 }
 
 // activeKeyForWrite resolves the key a write transaction encrypts under: the
@@ -343,7 +333,7 @@ func (w *keyIDWatcher) Update(ctx context.Context, param *resolver.Param) {
 	w.seen, w.last = true, value
 	w.mu.Unlock()
 	if changed {
-		triggerKeyReconcile("tree reload")
+		triggerKeyReconcile()
 	}
 }
 
@@ -399,13 +389,41 @@ func setRegisteredActive(ctx context.Context, keyID string) error {
 	return err
 }
 
+// registerActiveKey records the key as the registry's active one on a fresh
+// installation, unless a peer did first: a locking read of the active row in
+// a transaction, then the flip only when there is none — two instances
+// starting together register once, the first writer winning, whatever
+// their key files' order. It returns the key recorded: the given one, or
+// the peer's.
+func registerActiveKey(ctx context.Context, keyID string) (string, error) {
+	tx, err := DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+	var active string
+	err = tx.QueryRowContext(ctx, "SELECT KeyID FROM my_config_encryption_key WHERE Active FOR UPDATE").Scan(&active)
+	if err == nil {
+		return active, nil
+	} else if err != sql.ErrNoRows {
+		return "", err
+	}
+	if _, err := tx.ExecContext(ctx, "UPDATE my_config_encryption_key SET Active = (KeyID = ?)", keyID); err != nil {
+		return "", err
+	}
+	return keyID, tx.Commit()
+}
+
 // --- sweep --------------------------------------------------------------------
 
 // sweepStatus is the per-instance state of the last sweep, served by the
-// status endpoint. done means verified: the last pass walked every
-// encrypted row of both tables and rewrote nothing.
+// status endpoint. done means verified on this instance: the last pass
+// walked every encrypted row of both tables under the target and rewrote
+// nothing; waiting is the goroutine queued behind another instance's lock,
+// before it knows its job; refused a wanted or a recorded key this
+// instance's file lacks.
 type sweepStatus struct {
-	State       string `json:"state"` // idle, running, done, failed
+	State       string `json:"state"` // idle, waiting, running, done, failed, refused
 	Target      string `json:"target,omitempty"`
 	Scanned     int    `json:"scanned"`
 	Reencrypted int    `json:"reencrypted"`
@@ -419,66 +437,198 @@ var (
 	sweepState = sweepStatus{State: "idle"}
 )
 
-const (
-	sweepBatch     = 500
-	sweepLockWait  = 10 * time.Second
-	sweepMaxPasses = 5
+// the one sweep goroutine of this instance (triggerKeyReconcile): armed once
+// the startup succeeded, running while it waits for the lock or works, marked
+// to run again by a trigger that arrived meanwhile, and scheduled again after
+// a failure with a growing delay
+var (
+	sweepArmed, sweepRunning, sweepRerun bool
+
+	sweepRetry      *time.Timer
+	sweepRetryDelay = sweepRetryMin
 )
 
-// runEncryptionSweep re-encrypts every stored value under the target key and
-// records the target as the registry's active key — a promotion — or, with
-// the target recorded already, verifies that everything is under it: the
-// consistency pass of a startup, and the share of the work left to an
-// instance that asked for the same promotion and got the lock second. A
-// pass walks both tables in full and rewrites every envelope under another
-// key, with a compare-and-swap so that a concurrent write always wins. The
-// flip of the registry's mark after the first pass waits for every
-// in-flight encrypted write under the old key and makes every later write
-// use the target (activeKeyForWrite); the passes after it repeat until one
-// rewrites nothing, and that pass is the verification: every envelope of
-// both tables is under the target, and nothing under the old key can still
-// be in flight. Versions, timestamps and notifications are never touched.
-func runEncryptionSweep(target string) {
+// runSweep is runEncryptionSweep; the unit tests replace it.
+var runSweep = runEncryptionSweep
+
+// lockRetryPause is the first pause between two attempts at an operation a
+// lock conflict failed; it doubles each time. The unit tests shorten it.
+var lockRetryPause = time.Second
+
+const (
+	sweepBatch        = 500
+	sweepMaxPasses    = 5
+	sweepRetryMin     = time.Minute
+	sweepRetryMax     = 10 * time.Minute
+	lockRetryAttempts = 5
+)
+
+// armSweep lets triggers start the sweep goroutine. The startup calls it
+// once the keys are registered and verified, so that a registration by the
+// goroutine finds the verifier rows, and a tree load delivered while the
+// startup retries triggers nothing.
+func armSweep() {
+	sweepMu.Lock()
+	sweepArmed = true
+	sweepMu.Unlock()
+}
+
+// triggerKeyReconcile starts this instance's sweep goroutine, or marks it to
+// run again when it is already waiting for the lock or working, so that a
+// change of the key id observed during a sweep is never lost on this
+// instance. Before the startup armed it, and without a keyring, it does
+// nothing. The resolver's watcher of the key id parameter calls it at every
+// change, the startup once, and a failed sweep again after a delay.
+func triggerKeyReconcile() {
+	sweepMu.Lock()
+	defer sweepMu.Unlock()
+	if !sweepArmed || Keys == nil {
+		return
+	}
+	if sweepRetry != nil {
+		sweepRetry.Stop()
+		sweepRetry = nil
+	}
+	if sweepRunning {
+		sweepRerun = true
+		return
+	}
+	sweepRunning = true
+	go sweepLoop()
+}
+
+// sweepLoop runs the sweep, again as long as triggers arrived meanwhile, and
+// schedules a retry after a failure: after a minute, then twice as long each
+// time up to ten minutes, so that a persistent cause is logged every ten
+// minutes at most and a transient one heals without a restart.
+func sweepLoop() {
+	for {
+		ok := runSweep()
+		sweepMu.Lock()
+		if sweepRerun {
+			sweepRerun = false
+			sweepMu.Unlock()
+			continue
+		}
+		sweepRunning = false
+		if ok {
+			sweepRetryDelay = sweepRetryMin
+		} else {
+			sweepRetry = time.AfterFunc(sweepRetryDelay, triggerKeyReconcile)
+			if sweepRetryDelay *= 2; sweepRetryDelay > sweepRetryMax {
+				sweepRetryDelay = sweepRetryMax
+			}
+		}
+		sweepMu.Unlock()
+		return
+	}
+}
+
+func setSweepState(s sweepStatus) {
+	sweepMu.Lock()
+	sweepState = s
+	sweepMu.Unlock()
+}
+
+// runEncryptionSweep is one run of the sweep goroutine. It takes the
+// advisory lock — waiting without a bound behind another instance's sweep —
+// and plans under it what the wanted key needs: a promotion re-encrypts
+// every stored value under the wanted key, records it as the registry's
+// active key and walks both tables again until a pass rewrites nothing;
+// with the wanted key recorded already, the passes alone — the consistency
+// pass of a startup, and the share of the work left to an instance that
+// queued behind the promotion, whose clean pass is this instance's
+// verification; on a fresh installation the registration first. A pass
+// walks both tables in full and rewrites every envelope under another key,
+// with a compare-and-swap so that a concurrent write always wins. The flip
+// of the registry's mark after the first pass waits for every in-flight
+// encrypted write under the old key and makes every later write use the
+// target (activeKeyForWrite). Versions, timestamps and notifications are
+// never touched. It reports false after a failure, which the goroutine
+// retries later.
+func runEncryptionSweep() bool {
 	ctx := log.Logger.WithContext(context.Background())
-	release, err := acquireAdvisoryLock(ctx, "encryption-sweep", sweepLockWait)
-	if errors.Is(err, errAdvisoryLocked) {
-		log.Info().Msg("another instance is re-encrypting stored values; skipping")
-		return
-	} else if err != nil {
+	setSweepState(sweepStatus{State: "waiting"})
+	release, err := acquireAdvisoryLock(ctx, "encryption-sweep", -1)
+	if err != nil {
 		log.Error().Err(err).Msg("failed to acquire the encryption sweep lock")
-		return
+		setSweepState(sweepStatus{State: "failed", Error: err.Error(), FinishedAt: time.Now().Format(time.RFC3339)})
+		return false
 	}
 	defer release()
 
-	sweepMu.Lock()
-	sweepState = sweepStatus{State: "running", Target: target, StartedAt: time.Now().Format(time.RFC3339)}
-	sweepMu.Unlock()
+	refuse := func(target, message string) bool {
+		setSweepState(sweepStatus{State: "refused", Target: target, Error: message, FinishedAt: time.Now().Format(time.RFC3339)})
+		return true
+	}
+	fail := func(target string, err error) bool {
+		log.Error().Err(err).Str("key", target).Msg("re-encryption of stored values failed")
+		setSweepState(sweepStatus{State: "failed", Target: target, Error: err.Error(), FinishedAt: time.Now().Format(time.RFC3339)})
+		return false
+	}
 
-	var scanned, reencrypted int
+	// the plan, made under the lock: what the wanted key needs now
+	wanted, source, err := wantedKeyID(ctx)
+	if err != nil {
+		return fail("", err)
+	}
 	active, hasActive, err := registeredActiveKey(ctx)
-	promotion := err == nil && (!hasActive || active != target)
-	if promotion {
-		var s, r int
-		if s, r, err = encryptionSweep(ctx, target); err == nil {
-			scanned, reencrypted = s, r
-			err = setRegisteredActive(ctx, target)
+	if err != nil {
+		return fail("", err)
+	}
+	if hasActive {
+		if _, held := Keys.Key(active); !held {
+			// a peer promoted a key this instance lacks (fatal at startup):
+			// nothing to re-encrypt with, and its writes fail closed already
+			message := fmt.Sprintf("the registered active encryption key %s is not in the key file", active)
+			log.Error().Str("key", active).Msg(message)
+			return refuse(active, message)
 		}
 	}
-	for pass := 0; err == nil; pass++ {
-		if pass == sweepMaxPasses {
-			err = fmt.Errorf("stored values were still being written under another key after %d passes", sweepMaxPasses)
+	target, promotion := active, false
+	for {
+		_, held := Keys.Key(wanted)
+		action, message := planActiveKey(wanted, source, active, hasActive, held)
+		if action == keyActionRegister {
+			registered, err := registerActiveKey(ctx, wanted)
+			if err != nil {
+				return fail(wanted, err)
+			}
+			if registered != wanted {
+				// a peer registered first: its key is the one in use, and
+				// the plan is made again with it, the wanted key re-read
+				// (without the parameter it is now the registry's)
+				log.Info().Str("key", registered).Str("wanted", wanted).Msg("encryption key registered as active by a peer")
+				if _, held := Keys.Key(registered); !held {
+					message := fmt.Sprintf("the registered active encryption key %s is not in the key file", registered)
+					log.Error().Str("key", registered).Msg(message)
+					return refuse(registered, message)
+				}
+				active, hasActive, target = registered, true, registered
+				if wanted, source, err = wantedKeyID(ctx); err != nil {
+					return fail(registered, err)
+				}
+				continue
+			}
+			log.Info().Str("key", wanted).Str("source", source).Msg(message)
+			target = wanted
 			break
 		}
-		var s, r int
-		if s, r, err = encryptionSweep(ctx, target); err != nil {
-			break
+		switch action {
+		case keyActionFatal, keyActionRefuse:
+			log.Error().Str("key", wanted).Str("source", source).Str("active", active).Msg(message)
+			return refuse(wanted, message)
+		case keyActionNone:
+			log.Info().Str("key", active).Msg(message)
+		case keyActionPromote:
+			log.Info().Str("from", active).Str("to", wanted).Str("source", source).Msg(message)
+			target, promotion = wanted, true
 		}
-		scanned, reencrypted = scanned+s, reencrypted+r
-		if r == 0 {
-			break
-		}
+		break
 	}
 
+	setSweepState(sweepStatus{State: "running", Target: target, StartedAt: time.Now().Format(time.RFC3339)})
+	scanned, reencrypted, err := sweepPasses(ctx, target, promotion)
 	sweepMu.Lock()
 	sweepState.Scanned, sweepState.Reencrypted = scanned, reencrypted
 	sweepState.FinishedAt = time.Now().Format(time.RFC3339)
@@ -488,18 +638,73 @@ func runEncryptionSweep(target string) {
 		sweepState.State = "done"
 	}
 	sweepMu.Unlock()
-
 	if err != nil {
 		log.Error().Err(err).Bool("promotion", promotion).Str("key", target).Msg("re-encryption of stored values failed")
-		return
+		return false
 	}
 	event := log.Info()
 	if reencrypted > 0 && !promotion {
-		// a consistency pass found rows under another key: a peer wrote them
-		// before it learned of the rotation
+		// a pass without a promotion found rows under another key: a peer
+		// wrote them before it learned of the rotation
 		event = log.Warn()
 	}
 	event.Bool("promotion", promotion).Int("scanned", scanned).Int("reencrypted", reencrypted).Str("key", target).Msg("re-encryption of stored values finished")
+	return true
+}
+
+// sweepPasses re-encrypts under the target: for a promotion the first pass,
+// the flip and the passes until one rewrites nothing; otherwise the passes
+// alone. Bounded by sweepMaxPasses, which the shared-lock read of the key
+// (activeKeyForWrite) makes unreachable.
+func sweepPasses(ctx context.Context, target string, promotion bool) (scanned, reencrypted int, err error) {
+	if promotion {
+		if scanned, reencrypted, err = encryptionSweep(ctx, target); err != nil {
+			return
+		}
+		if err = withLockRetry(ctx, "the flip of the key registry", func() error { return setRegisteredActive(ctx, target) }); err != nil {
+			return
+		}
+	}
+	for pass := 0; ; pass++ {
+		if pass == sweepMaxPasses {
+			return scanned, reencrypted, fmt.Errorf("stored values were still being written under another key after %d passes", sweepMaxPasses)
+		}
+		s, r, err := encryptionSweep(ctx, target)
+		if err != nil {
+			return scanned, reencrypted, err
+		}
+		scanned, reencrypted = scanned+s, reencrypted+r
+		if r == 0 {
+			return scanned, reencrypted, nil
+		}
+	}
+}
+
+// withLockRetry runs an operation again after a deadlock (1213) or a lock
+// wait timeout (1205), a few times with a growing pause. The flip of the key
+// registry waits for every in-flight encrypted write and can be the victim
+// InnoDB picks to break a cycle — a create holds a gap lock on the path
+// index before it reads the key, and a second create under another parent
+// can wait for that gap while holding the shared key lock — and the
+// re-encryption of a row can wait behind a write that holds the row longer
+// than the server's lock wait timeout, sealing a long history.
+func withLockRetry(ctx context.Context, what string, op func() error) error {
+	pause := lockRetryPause
+	for attempt := 1; ; attempt++ {
+		err := op()
+		if err == nil || !isRetryableLockError(err) || attempt == lockRetryAttempts {
+			return err
+		}
+		log.Ctx(ctx).Warn().Err(err).Int("attempt", attempt).Msg("retrying " + what)
+		time.Sleep(pause)
+		pause *= 2
+	}
+}
+
+// isRetryableLockError reports a deadlock or a lock wait timeout.
+func isRetryableLockError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return errors.As(err, &mysqlErr) && (mysqlErr.Number == 1213 || mysqlErr.Number == 1205)
 }
 
 // encryptionSweep is one pass over both tables.
@@ -519,11 +724,15 @@ type sweepRow struct {
 
 // reencryptTable walks the encrypted rows of a table in ID batches and
 // rewrites every envelope under a key other than the target, with a
-// compare-and-swap so that a concurrent write always wins.
+// compare-and-swap so that a concurrent write always wins. The batch query
+// says Encrypted = 1 and forces the index: the bare column becomes the range
+// Encrypted <> 0, which cannot deliver the rows in ID order, so that every
+// batch would read and sort every encrypted row above the last id — a pass
+// quadratic in the encrypted rows.
 func reencryptTable(ctx context.Context, table, target string, scanned, reencrypted *int) error {
 	lastID := int64(0)
 	for {
-		rows, err := DB.QueryContext(ctx, "SELECT ID, Value FROM "+table+" WHERE ID > ? AND "+encryptedRowsWhere+" ORDER BY ID LIMIT ?", lastID, sweepBatch)
+		rows, err := DB.QueryContext(ctx, "SELECT ID, Value FROM "+table+" FORCE INDEX (Encrypted) WHERE Encrypted = 1 AND ID > ? ORDER BY ID LIMIT ?", lastID, sweepBatch)
 		if err != nil {
 			return err
 		}
@@ -554,8 +763,12 @@ func reencryptTable(ctx context.Context, table, target string, scanned, reencryp
 			if !changed {
 				continue
 			}
-			res, err := DB.ExecContext(ctx, "UPDATE "+table+" SET Value = ? WHERE ID = ? AND Value = ?", newValue, r.id, r.value)
-			if err != nil {
+			var res sql.Result
+			if err := withLockRetry(ctx, "the re-encryption of a row", func() error {
+				var err error
+				res, err = DB.ExecContext(ctx, "UPDATE "+table+" SET Value = ? WHERE ID = ? AND Value = ?", newValue, r.id, r.value)
+				return err
+			}); err != nil {
 				return err
 			}
 			if n, _ := res.RowsAffected(); n == 1 {
@@ -587,15 +800,20 @@ type EncryptionStatus struct {
 	Configured bool             `json:"configured"`
 	Wanted     *wantedKeyStatus `json:"wanted,omitempty"`
 	Keys       []keyStatus      `json:"keys"`
+	Instance   string           `json:"instance"`
 	Sweep      sweepStatus      `json:"sweep"`
 }
+
+// instanceName names this instance in the status: the sweep state is this
+// instance's, and several instances may answer behind one address.
+var instanceName, _ = os.Hostname()
 
 // SelectEncryptionStatus answers the operator's questions "did the rotation
 // take?" and "may the old key go now?": the wanted key, the keyring's keys
 // with their registry state (recorded marks the key in use), and the sweep
-// state.
+// state of the instance that answers, which it names.
 func SelectEncryptionStatus(ctx context.Context) (*EncryptionStatus, error) {
-	status := &EncryptionStatus{Configured: Keys != nil, Keys: []keyStatus{}}
+	status := &EncryptionStatus{Configured: Keys != nil, Keys: []keyStatus{}, Instance: instanceName}
 	rows, err := DB.QueryContext(ctx, "SELECT KeyID, Verifier, Active, CreatedAt FROM my_config_encryption_key ORDER BY CreatedAt, KeyID")
 	if err != nil {
 		return nil, err

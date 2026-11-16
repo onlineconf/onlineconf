@@ -9,7 +9,7 @@ import { EncryptionContext } from './UIConfig';
 import TypeValueFields from './TypeValueFields';
 import { ParamType, EncryptionConfig } from '../api';
 
-function renderFields(encryption: EncryptionConfig, type: ParamType, encrypted?: boolean, branch?: boolean) {
+function renderFields(encryption: EncryptionConfig, type: ParamType, encrypted?: boolean, branch?: boolean, maskByDefault?: boolean) {
 	const value = type === 'application/x-case' ? '[]' : type === 'application/x-null' ? null : 'a,b';
 	const div = document.createElement('div');
 	document.body.appendChild(div);
@@ -17,7 +17,7 @@ function renderFields(encryption: EncryptionConfig, type: ParamType, encrypted?:
 		ReactDOM.render(
 			<ThemeProvider theme={createTheme()}>
 				<EncryptionContext.Provider value={encryption}>
-					<TypeValueFields type={type} value={value} encrypted={encrypted} branch={branch} onChange={() => undefined} onError={() => undefined}/>
+					<TypeValueFields type={type} value={value} encrypted={encrypted} branch={branch} maskByDefault={maskByDefault} onChange={() => undefined} onError={() => undefined}/>
 				</EncryptionContext.Provider>
 			</ThemeProvider>,
 			div,
@@ -30,7 +30,8 @@ function renderFields(encryption: EncryptionConfig, type: ParamType, encrypted?:
 	const input = div.querySelector<HTMLInputElement>('input[type="checkbox"]');
 	const hasSwitch = input !== null;
 	const disabled = input !== null && input.disabled;
-	return { hasSwitch, disabled, cleanup };
+	const passwordInput = div.querySelector<HTMLInputElement>('input[type="password"]');
+	return { hasSwitch, disabled, passwordInput, cleanup };
 }
 
 const on: EncryptionConfig = { enabled: true };
@@ -79,4 +80,11 @@ it('shows the switch disabled for an ineligible type', () => {
 		expect(r.disabled).toBe(true);
 		r.cleanup();
 	}
+});
+
+it('keeps password managers out of a secret typed blind', () => {
+	const r = renderFields(on, 'application/x-list', true, undefined, true);
+	expect(r.passwordInput).not.toBeNull();
+	expect(r.passwordInput?.getAttribute('autocomplete')).toBe('new-password');
+	r.cleanup();
 });

@@ -681,13 +681,12 @@ func restoreParameter(ctx context.Context, tx *sql.Tx, path string, version *int
 	if exists && !deleted {
 		return ErrAlreadyExists
 	}
-	if entry.encrypted {
-		// the secret's own node decides who may bring it back; a deleted
-		// node's access groups were cleared at its deletion, so that is the
-		// parent's access under the policy
-		if err := checkEntryAccess(ctx, tx, entry.nodeID, true); err != nil {
-			return err
-		}
+	// the entry's own node decides who may bring it back — the rights the
+	// history listing needs to show the entry's value, and the reveal right
+	// for a secret: a deleted node keeps its access groups, and a node that
+	// left the path alive has its own, which is not the parent's
+	if err := checkEntryAccess(ctx, tx, entry.nodeID, entry.encrypted); err != nil {
+		return err
 	}
 	if err := validateParameter(ctx, entry.contentType, encrypted, plaintext); err != nil {
 		return err
@@ -965,16 +964,12 @@ func isSymlink(param *Parameter) bool {
 	case ContentTypeSymlink:
 		return true
 	case ContentTypeCase:
-		var caseType []struct {
-			Type string `json:"mime"`
-		}
-
-		if err := json.Unmarshal([]byte(param.Value.String), &caseType); err != nil {
+		var branches []CaseBranch
+		if err := json.Unmarshal([]byte(param.Value.String), &branches); err != nil {
 			return false
 		}
-
-		for _, ct := range caseType {
-			if ct.Type == ContentTypeSymlink {
+		for _, b := range branches {
+			if b.ContentType == ContentTypeSymlink {
 				return true
 			}
 		}
@@ -1188,21 +1183,6 @@ func decryptStored(encrypted bool, value NullString) (NullString, error) {
 	return NullStringOf(plaintext), nil
 }
 
-// caseBranch is one entry of a case value. Absent condition keys stay invalid
-// NullStrings, mirroring the resolver's selection semantics. Unknown keys are
-// ignored, as they always were. Encrypted is read only to refuse it: a branch
-// is never encrypted, and a client still sending the marker is told so
-// rather than stored.
-type caseBranch struct {
-	Server      NullString `json:"server"`
-	Group       NullString `json:"group"`
-	Datacenter  NullString `json:"datacenter"`
-	Service     NullString `json:"service"`
-	ContentType NullString `json:"mime"`
-	Value       NullString `json:"value"`
-	Encrypted   bool       `json:"encrypted"`
-}
-
 // validateParameter checks a plaintext value against its content type and
 // marker — before encryption, which is the only place the structure of a
 // secret can be checked.
@@ -1227,14 +1207,22 @@ func validateParameter(ctx context.Context, contentType string, encrypted bool, 
 		if !value.Valid {
 			return ErrInvalidValue
 		}
+		// the decoder's error is not returned: it quotes the value, which
+		// may be a secret, and a 500 would log it
 		var i interface{}
-		return json.Unmarshal([]byte(value.String), &i)
+		if err := json.Unmarshal([]byte(value.String), &i); err != nil {
+			return ErrInvalidValue
+		}
+		return nil
 	case ContentTypeYAML:
 		if !value.Valid {
 			return ErrInvalidValue
 		}
 		var i interface{}
-		return yaml.Unmarshal([]byte(value.String), &i)
+		if err := yaml.Unmarshal([]byte(value.String), &i); err != nil {
+			return ErrInvalidValue
+		}
+		return nil
 	case ContentTypeSymlink:
 		if !value.Valid {
 			return ErrInvalidValue
@@ -1251,7 +1239,7 @@ func validateParameter(ctx context.Context, contentType string, encrypted bool, 
 		if !value.Valid {
 			return ErrInvalidValue
 		}
-		var cases []caseBranch
+		var cases []CaseBranch
 		if err := json.Unmarshal([]byte(value.String), &cases); err != nil {
 			return err
 		}
@@ -1271,12 +1259,10 @@ func validateParameter(ctx context.Context, contentType string, encrypted bool, 
 			} else if i > 1 {
 				return ErrInvalidValue
 			}
-			if c.Encrypted {
-				// a branch holds no secret: it reaches one through a symlink
-				// to an encrypted parameter
-				return ErrEncryptionNotAllowed
-			}
-			if err := validateParameter(ctx, c.ContentType.String, false, c.Value); err != nil {
+			// a branch holds no secret: it reaches one through a symlink to
+			// an encrypted parameter, and a stray marker on it is an unknown
+			// key like any other
+			if err := validateParameter(ctx, c.ContentType, false, c.Value); err != nil {
 				return err
 			}
 		}

@@ -201,6 +201,13 @@ func TestEncryptedCRUD(t *testing.T) {
 	if got := dbInt(t, "SELECT COUNT(*) FROM my_config_audit WHERE Path = "+sqlQuote(p)+" AND Kind = 'reveal_view'"); got != 4 {
 		t.Errorf("reveal audit rows after the edits = %d, want 4 (view, view with children, two edits)", got)
 	}
+	// an invalid encrypted value is refused with the bare code: nothing of
+	// the secret in the message
+	status, body = setParam(t, p, url.Values{"mime": {"application/json"}, "data": {`{"zq":`}, "encrypted": {"1"}})
+	expectError(t, status, body, http.StatusBadRequest, "InvalidValue")
+	if strings.Contains(string(body), "zq") {
+		t.Errorf("the invalid value's text is in the response: %s", body)
+	}
 	// the type cannot become ineligible while encrypted
 	status, body = setParam(t, p, url.Values{"mime": {"application/x-symlink"}, "data": {p + "/child"}, "encrypted": {"1"}})
 	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
@@ -233,17 +240,19 @@ func TestEncryptedCRUD(t *testing.T) {
 func TestCaseBranchesNotEncrypted(t *testing.T) {
 	p := uniqPath("enc-case")
 	plain := `[{"mime":"text/plain","value":"dev"}]`
-	marked := `[{"group":"prod","mime":"text/plain","encrypted":true,"value":"prod-secret"},{"mime":"text/plain","value":"dev"}]`
-	status, body := adminReq(t, "POST", "/config"+p, url.Values{"mime": {"application/x-case"}, "data": {marked}, "comment": {"mk"}})
+	// a stray "encrypted" key on a branch is an unknown key, ignored like any
+	// other: the branch is stored as the plaintext it is, the case carries
+	// no marker
+	marked := `[{"group":"prod","mime":"text/plain","encrypted":true,"value":"prod-plain"},{"mime":"text/plain","value":"dev"}]`
+	mkParam(t, p, "application/x-case", marked, "mk case")
+	if info := getParamInfo(t, p, ""); info.Encrypted || info.CanReveal || dataOf(info) != marked {
+		t.Errorf("case with a stray marker on a branch: %+v data=%s", info, dataOf(info))
+	}
+	// the node-level marker on a case is refused
+	status, body := setParam(t, p, url.Values{"mime": {"application/x-case"}, "data": {plain}, "encrypted": {"1"}})
 	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
-	mkParam(t, p, "application/x-case", plain, "mk case")
-	status, body = setParam(t, p, url.Values{"mime": {"application/x-case"}, "data": {marked}})
-	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
-	// the node-level marker on a case is refused too
-	status, body = setParam(t, p, url.Values{"mime": {"application/x-case"}, "data": {plain}, "encrypted": {"1"}})
-	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
-	if dataOf(getParamInfo(t, p, "")) != plain {
-		t.Errorf("the refused writes changed the case")
+	if dataOf(getParamInfo(t, p, "")) != marked {
+		t.Errorf("the refused write changed the case")
 	}
 
 	// a symlink branch to an encrypted parameter: the case is served plain
@@ -782,6 +791,19 @@ func TestRestore(t *testing.T) {
 	// a stale version is refused like any write
 	status, body = adminReq(t, "POST", "/config"+p, url.Values{"version": {"1"}, "restore": {strconv.Itoa(logEntryID(t, p, "mk"))}, "comment": {"stale"}})
 	expectError(t, status, body, http.StatusBadRequest, "VersionNotMatch")
+	// a non-numeric restore or version is a 400, not a 500
+	status, body = adminReq(t, "POST", "/config"+p, url.Values{"version": {"1"}, "restore": {"abc"}, "comment": {"garbage"}})
+	expectError(t, status, body, http.StatusBadRequest, "InvalidParam")
+	status, body = adminReq(t, "POST", "/config"+p, url.Values{"version": {"abc"}, "mime": {"text/plain"}, "data": {"x"}, "comment": {"garbage"}})
+	expectError(t, status, body, http.StatusBadRequest, "InvalidParam")
+	status, body = adminReq(t, "DELETE", "/config"+p, url.Values{"version": {"abc"}, "comment": {"garbage"}})
+	expectError(t, status, body, http.StatusBadRequest, "InvalidParam")
+	// the history's reveal parameter is as strict as the parameter's
+	status, body = adminReq(t, "GET", "/log"+p+"?reveal=yes", nil)
+	expectError(t, status, body, http.StatusBadRequest, "InvalidParam")
+	if status, _ := adminReq(t, "GET", "/log"+p+"?reveal=1", nil); status != http.StatusOK {
+		t.Errorf("GET /log?reveal=1: status %d", status)
+	}
 }
 
 // A path's history lists the entries of its former occupants too: a node
@@ -811,8 +833,9 @@ func TestRestoreFormerOccupant(t *testing.T) {
 	expectError(t, status, body, http.StatusBadRequest, "InvalidValue")
 
 	// a user with write access to the current node but read access only to
-	// the former occupant (whose access is the parent's: its groups were
-	// cleared at its deletion) may not restore its secret under the rw policy
+	// the former occupant (through the base: a deleted node keeps its own
+	// groups, and this one has none) may not restore its secret under the rw
+	// policy
 	ro, rw := fmt.Sprintf("it-occ-ro-%d", os.Getpid()), fmt.Sprintf("it-occ-rw-%d", os.Getpid())
 	adminReqOK(t, "POST", "/group/"+ro, nil)
 	adminReqOK(t, "POST", "/group/"+ro+"/meerkat", nil)
@@ -983,6 +1006,82 @@ func TestRestoreDeletedParameter(t *testing.T) {
 	expectError(t, status, body, http.StatusForbidden, "AccessDenied")
 }
 
+// A path's history lists the entries of nodes that left it alive too, and
+// those nodes keep their own access: a writer of the old parent restores
+// such an entry only with read access to the node — else the restore would
+// hand them a value the history listing blanks for them. The undelete of a
+// zombie by a writer of the parent is unaffected: a zombie keeps its groups,
+// and the access function inherits per group from the nearest row.
+func TestRestoreMovedAwayNode(t *testing.T) {
+	base := uniqPath("enc-moved-acl")
+	mkParam(t, base, "application/x-null", "", "mk base")
+	rw := fmt.Sprintf("it-moved-rw-%d", os.Getpid())
+	adminReqOK(t, "POST", "/group/"+rw, nil)
+	adminReqOK(t, "POST", "/group/"+rw+"/meerkat", nil)
+	adminReqOK(t, "POST", "/access"+base, url.Values{"group": {rw}, "rw": {"true"}})
+
+	// the node leaves for a path under the root, where meerkat has no access
+	p, away := base+"/p", fmt.Sprintf("/it-enc-moved-away-%d", os.Getpid())
+	mkParam(t, p, "text/plain", "hidden-plain", "mk hidden")
+	moveParam(t, p, away, "move away")
+	entry := logEntryID(t, p, "mk hidden")
+
+	// the listing blanks the entry's value for meerkat...
+	status, body := reqAs(t, "meerkat", "meerkat", "GET", "/log"+p, nil)
+	if status != http.StatusOK {
+		t.Fatalf("GET /log%s as meerkat: status %d, body %s", p, status, body)
+	}
+	var entries []logEntry
+	if err := json.Unmarshal(body, &entries); err != nil {
+		t.Fatal(err)
+	}
+	listed := false
+	for _, e := range entries {
+		if e.ID == entry {
+			listed = true
+			if e.Data != nil {
+				t.Errorf("the moved node's entry shows its value to meerkat: %s", *e.Data)
+			}
+		}
+	}
+	if !listed {
+		t.Fatalf("the moved node's entry is not listed at %s", p)
+	}
+	// ...and the restore into the old path is refused the same way
+	restoreAsMeerkat := func() (int, []byte) {
+		return reqAs(t, "meerkat", "meerkat", "POST", "/config"+p, url.Values{"restore": {strconv.Itoa(entry)}, "comment": {"restore"}})
+	}
+	status, body = restoreAsMeerkat()
+	expectError(t, status, body, http.StatusForbidden, "AccessDenied")
+	if s, _ := getParamInfoAs(t, "admin", "admin", p, ""); s != http.StatusNotFound {
+		t.Errorf("a node appeared at %s: status %d", p, s)
+	}
+
+	// with read access to the moved node the restore goes through
+	ro := fmt.Sprintf("it-moved-ro-%d", os.Getpid())
+	adminReqOK(t, "POST", "/group/"+ro, nil)
+	adminReqOK(t, "POST", "/group/"+ro+"/meerkat", nil)
+	adminReqOK(t, "POST", "/access"+away, url.Values{"group": {ro}, "rw": {"false"}})
+	if status, body := restoreAsMeerkat(); status != http.StatusOK {
+		t.Fatalf("restore with read access to the moved node: status %d, body %s", status, body)
+	}
+	if info := getParamInfo(t, p, ""); dataOf(info) != "hidden-plain" {
+		t.Errorf("restored at the old path: %+v", info)
+	}
+
+	// the undelete of a zombie by a writer of the parent needs nothing more
+	z := base + "/z"
+	mkParam(t, z, "text/plain", "zombie", "mk zombie")
+	deleteParam(t, z, "rm zombie")
+	status, body = reqAs(t, "meerkat", "meerkat", "POST", "/config"+z, url.Values{"restore": {strconv.Itoa(logEntryID(t, z, "mk zombie"))}, "comment": {"undelete"}})
+	if status != http.StatusOK {
+		t.Fatalf("undelete by a writer of the parent: status %d, body %s", status, body)
+	}
+	if info := getParamInfo(t, z, ""); dataOf(info) != "zombie" {
+		t.Errorf("undeleted zombie: %+v", info)
+	}
+}
+
 func TestEncryptionGated(t *testing.T) {
 	p := uniqPath("enc-gate")
 	mkEncrypted(t, p, "text/plain", "gated", "mk")
@@ -1046,11 +1145,13 @@ func TestTemplatesNotEncrypted(t *testing.T) {
 		"mime": {"application/x-template"}, "data": {"${/x}"}, "encrypted": {"1"}, "comment": {"mk"},
 	})
 	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
+	// a template branch with a stray marker is stored as the plaintext
+	// template it is
 	caseRef := uniqPath("enc-tmpl-case")
-	status, body = adminReq(t, "POST", "/config"+caseRef, url.Values{
-		"mime": {"application/x-case"}, "data": {`[{"mime":"application/x-template","encrypted":true,"value":"${/x}"}]`}, "comment": {"mk"},
-	})
-	expectError(t, status, body, http.StatusBadRequest, "EncryptionNotAllowed")
+	mkParam(t, caseRef, "application/x-case", `[{"mime":"application/x-template","encrypted":true,"value":"${/x}"}]`, "mk")
+	if info := getParamInfo(t, caseRef, ""); info.Encrypted || info.CanReveal {
+		t.Errorf("case with a marked template branch: %+v", info)
+	}
 
 	// a plaintext template referencing an encrypted parameter is served plain,
 	// delivered expanded with the plaintext, and keeps its target from being
@@ -1129,6 +1230,55 @@ func TestStartupWithoutKeyFails(t *testing.T) {
 		!strings.Contains(string(out), "an encrypted value cannot be decrypted with the configured keys") {
 		t.Errorf("the instance failed for another reason:\n%s", out)
 	}
+
+	// 2. with no live encrypted parameter — the suite's replaced by plaintext,
+	// the deleted ones and the sealed history staying — the instance comes
+	// up: what the resolver loads needs no key, and a restore of a deleted
+	// secret or a reveal of a sealed version is what fails, at use
+	for _, row := range dbQuery(t, "SELECT Path FROM my_config_tree WHERE Encrypted = 1 AND NOT Deleted") {
+		if status, body := setParam(t, row[0], url.Values{"mime": {"text/plain"}, "data": {"declassified"}, "encrypted": {"0"}, "comment": {"declassify"}}); status != http.StatusOK {
+			t.Fatalf("declassify %s: status %d, body %s", row[0], status, body)
+		}
+	}
+	if n := dbInt(t, "SELECT COUNT(*) FROM my_config_tree WHERE Encrypted = 1 AND Deleted"); n == 0 {
+		t.Errorf("no deleted secret left in the database: the case is not covered")
+	}
+	if n := dbInt(t, "SELECT COUNT(*) FROM my_config_tree_log WHERE Encrypted = 1"); n == 0 {
+		t.Errorf("no sealed history left in the database: the case is not covered")
+	}
+	detached, err := exec.Command("docker", append([]string{"run", "-d"}, args[2:]...)...).Output()
+	if err != nil {
+		t.Fatalf("docker run -d: %v", err)
+	}
+	container := strings.TrimSpace(string(detached))
+	defer exec.Command("docker", "rm", "-f", container).Run()
+	time.Sleep(10 * time.Second)
+	running, _ := exec.Command("docker", "inspect", "--format", "{{.State.Running}}", container).Output()
+	logs, _ := exec.Command("docker", "logs", container).CombinedOutput()
+	if strings.TrimSpace(string(running)) != "true" {
+		t.Fatalf("the instance without a key file did not stay up against deleted secrets and sealed history only:\n%s", logs)
+	}
+	if !strings.Contains(string(logs), "value encryption is not configured") {
+		t.Errorf("the instance without a key file did not say so:\n%s", logs)
+	}
+}
+
+// TestSweepQueryPlan pins the plan of the sweep's batch query on the MySQL
+// the stack runs: a range on the Encrypted index extended by the primary
+// key, in ID order, without a filesort — else a pass costs the square of
+// the encrypted rows.
+func TestSweepQueryPlan(t *testing.T) {
+	for _, table := range []string{"my_config_tree", "my_config_tree_log"} {
+		rows := dbQuery(t, "EXPLAIN SELECT ID, Value FROM "+table+" FORCE INDEX (Encrypted) WHERE Encrypted = 1 AND ID > 0 ORDER BY ID LIMIT 500")
+		if len(rows) != 1 || len(rows[0]) < 12 {
+			t.Fatalf("%s: unexpected EXPLAIN output %v", table, rows)
+		}
+		// id, select_type, table, partitions, type, possible_keys, key, key_len, ref, rows, filtered, Extra
+		key, keyLen, extra := rows[0][6], rows[0][7], rows[0][11]
+		if key != "Encrypted" || keyLen != "9" || strings.Contains(extra, "filesort") {
+			t.Errorf("%s: key=%s key_len=%s extra=%q, want the Encrypted index with the primary key (9) and no filesort", table, key, keyLen, extra)
+		}
+	}
 }
 
 // --- key rotation ---------------------------------------------------------------
@@ -1145,26 +1295,90 @@ type encryptionStatus struct {
 		Verified   bool   `json:"verified"`
 		Recorded   bool   `json:"recorded"`
 	} `json:"keys"`
-	Sweep struct {
+	Instance string `json:"instance"`
+	Sweep    struct {
 		State       string `json:"state"`
 		Target      string `json:"target"`
 		Reencrypted int    `json:"reencrypted"`
 	} `json:"sweep"`
 }
 
-// awaitSweep waits for this instance's sweep to report done for the target.
+// awaitSweep waits for this instance's sweep to report done for the target:
+// the condition the README gives for dropping the old key.
 func awaitSweep(t *testing.T, target string) encryptionStatus {
 	t.Helper()
-	deadline := time.Now().Add(60 * time.Second)
+	return awaitSweepFor(t, target, 60*time.Second)
+}
+
+func awaitSweepFor(t *testing.T, target string, timeout time.Duration) encryptionStatus {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
 	for {
 		status := getEncryptionStatus(t)
 		if status.Sweep.State == "done" && status.Sweep.Target == target {
+			if status.Instance == "" {
+				t.Errorf("the status does not name the instance")
+			}
 			return status
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("the sweep to %s did not complete: %+v", target, status.Sweep)
 		}
 		time.Sleep(time.Second)
+	}
+}
+
+// awaitSweepState waits for this instance's sweep to report the state.
+func awaitSweepState(t *testing.T, state string, timeout time.Duration) encryptionStatus {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for {
+		status := getEncryptionStatus(t)
+		if status.Sweep.State == state {
+			return status
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the sweep did not report %s: %+v", state, status.Sweep)
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+// dbSession runs statements in one session of the stack's database, in the
+// background: a lock the session takes is held until its statements end, or
+// until it is killed (killDBSession).
+func dbSession(statements string) <-chan error {
+	done := make(chan error, 1)
+	go func() {
+		_, err := composeStdout("exec", "-T", "onlineconf-database",
+			"mysql", "-N", "-uonlineconf", "-ponlineconf", "onlineconf", "-e", statements)
+		done <- err
+	}()
+	return done
+}
+
+// killDBSession kills the sessions whose current statement matches the LIKE
+// pattern; the locks they held go with their connections.
+func killDBSession(t *testing.T, infoLike string) {
+	t.Helper()
+	for _, row := range dbQuery(t, "SELECT ID FROM information_schema.PROCESSLIST WHERE INFO LIKE "+sqlQuote(infoLike)) {
+		dbQuery(t, "KILL "+row[0])
+	}
+}
+
+// awaitSweepLock waits until the sweep's advisory lock is held, or free.
+func awaitSweepLock(t *testing.T, held bool) {
+	t.Helper()
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		rows := dbQuery(t, "SELECT IS_USED_LOCK(CONCAT(DATABASE(), '/encryption-sweep'))")
+		if len(rows) == 1 && (rows[0][0] != "NULL") == held {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the sweep lock did not become held=%v: %v", held, rows)
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -1228,21 +1442,6 @@ func randomKey(t *testing.T) string {
 	return base64.StdEncoding.EncodeToString(raw)
 }
 
-func adminLogsContain(t *testing.T, needle string, timeout time.Duration) bool {
-	t.Helper()
-	deadline := time.Now().Add(timeout)
-	for {
-		logs, _ := compose("logs", "--tail", "300", "onlineconf-admin")
-		if strings.Contains(logs, needle) {
-			return true
-		}
-		if time.Now().After(deadline) {
-			return false
-		}
-		time.Sleep(2 * time.Second)
-	}
-}
-
 // TestKeyRotationSweep rotates the stack's encryption key the way an
 // operator does: the new key joins the key file (a restart here, through
 // docker compose, whatever manages the stack), then its id is written to
@@ -1293,6 +1492,32 @@ func TestKeyRotationSweep(t *testing.T) {
 		if k.Recorded != (k.ID == oldID) {
 			t.Errorf("key status after adding a retired key: %+v", k)
 		}
+	}
+
+	// 2a. a request queued behind a held lock is not lost, and the latest
+	// wish wins: while a session holds the sweep's advisory lock, the new
+	// key's id is written — the goroutine reports waiting, without a target
+	// — and then the old key's id again; once the session is killed, the
+	// sweep plans with the latest wish: one pass that rewrites nothing, the
+	// old key still recorded
+	session := dbSession("SELECT GET_LOCK(CONCAT(DATABASE(), '/encryption-sweep'), 60); DO SLEEP(120)")
+	t.Cleanup(func() { killDBSession(t, "DO SLEEP(120)%") }) // never left held behind a failure
+	awaitSweepLock(t, true)
+	writeKeyID(t, newID)
+	if status := awaitSweepState(t, "waiting", 30*time.Second); status.Sweep.Target != "" {
+		t.Errorf("a waiting sweep names a target: %+v", status.Sweep)
+	}
+	writeKeyID(t, oldID)
+	time.Sleep(15 * time.Second) // the watcher sees the second write at a reload after the log margin
+	killDBSession(t, "DO SLEEP(120)%")
+	<-session
+	awaitSweepLock(t, false)
+	status = awaitSweep(t, oldID)
+	if status.Sweep.Reencrypted != 0 {
+		t.Errorf("the sweep behind the held lock rewrote %d rows: the latest wish is the key in use", status.Sweep.Reencrypted)
+	}
+	if got := registeredActive(); got != oldID {
+		t.Errorf("registered active key after the queued requests = %s, want %s", got, oldID)
 	}
 
 	// 2. the promotion: the operator writes the new key's id; a writer keeps
@@ -1426,6 +1651,50 @@ func TestKeyRotationSweep(t *testing.T) {
 		if k.Verified != (k.ID == newID) || k.Recorded != (k.ID == newID) {
 			t.Errorf("key status with the new key alone: %+v", k)
 		}
+	}
+}
+
+// TestSweepFlipRetried: the flip of the key registry waits for every
+// in-flight encrypted write, and a write holding the shared key lock longer
+// than the server's lock wait timeout fails it with a lock wait timeout —
+// the sweep retries the flip instead of failing. A session holds the shared
+// lock for 80 s: the first attempt times out at the server's 50 s, the
+// retry succeeds once the session ends, and the log shows the retry — the
+// proof, since a flip that merely waited would end the same way.
+func TestSweepFlipRetried(t *testing.T) {
+	current := containerKeyring(t)
+	oldID := strings.Fields(current[0])[0]
+	newID := fmt.Sprintf("flip%d", os.Getpid())
+	installKeyring(t, append(append([]string{}, current...), newID+" "+randomKey(t))...)
+	if err := waitReady(2 * time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	p := uniqPath("enc-flip")
+	mkEncrypted(t, p, "text/plain", "flip-secret", "mk")
+
+	since := time.Now()
+	session := dbSession("BEGIN; SELECT KeyID FROM my_config_encryption_key WHERE Active LOCK IN SHARE MODE; DO SLEEP(80); COMMIT")
+	t.Cleanup(func() { killDBSession(t, "DO SLEEP(80)%") })
+	time.Sleep(3 * time.Second) // the session holds the shared lock
+	writeKeyID(t, newID)
+	status := awaitSweepFor(t, newID, 150*time.Second)
+	if err := <-session; err != nil {
+		t.Errorf("the session holding the shared lock: %v", err)
+	}
+	if !adminLogsSince(t, since, "retrying the flip of the key registry", 5*time.Second) || !adminLogsSince(t, since, "Lock wait timeout", 5*time.Second) {
+		t.Errorf("the flip was not retried after a lock wait timeout")
+	}
+	if status.Sweep.Reencrypted == 0 {
+		t.Errorf("the promotion re-encrypted nothing: %+v", status.Sweep)
+	}
+	if got := dbQuery(t, "SELECT KeyID FROM my_config_encryption_key WHERE Active"); len(got) != 1 || got[0][0] != newID {
+		t.Errorf("registered active key after the retried flip = %v, want %s", got, newID)
+	}
+	if n := dbInt(t, "SELECT COUNT(*) FROM my_config_tree WHERE Value LIKE '%oc1:"+oldID+":%'"); n != 0 {
+		t.Errorf("%d tree rows still under %s", n, oldID)
+	}
+	if dataOf(getParamInfo(t, p, "?reveal=1")) != "flip-secret" {
+		t.Errorf("value lost in the retried promotion")
 	}
 }
 

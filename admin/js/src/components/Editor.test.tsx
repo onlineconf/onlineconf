@@ -19,6 +19,7 @@ const off: EncryptionConfig = { enabled: false };
 interface Opened {
 	create?: boolean;
 	encrypted?: boolean;
+	initialEncrypted?: boolean;
 }
 
 // opens the editor on /p, a list value "a" at version 1 (or a create under /p)
@@ -38,7 +39,8 @@ function openEditor(encryption: EncryptionConfig, opened: Opened) {
 						type="application/x-list"
 						value="a"
 						encrypted={opened.encrypted}
-						revealed={opened.encrypted}
+						initialEncrypted={opened.initialEncrypted}
+						revealed={opened.encrypted || opened.initialEncrypted}
 						summary=""
 						description=""
 						onClose={() => undefined}
@@ -204,5 +206,25 @@ it('omits the flag when a plain parameter becomes a case', async () => {
 	const p = posted();
 	expect(p.mime).toBe('application/x-case');
 	expect(p.encrypted).toBeUndefined();
+	cleanup();
+});
+
+it('states the flag as the switch says when a secret version seeds it on a plain parameter, without a confirmation', async () => {
+	// the feature off and the parameter plain: the switch, seeded on, is
+	// shown and its state is posted — an omitted field would store the
+	// revealed secret in plaintext
+	let cleanup = openEditor(off, { encrypted: false, initialEncrypted: true });
+	expect(dialog().querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+	comment();
+	await save();
+	expect(posted().encrypted).toBe(true);
+	cleanup();
+	// switched off: plaintext, and nothing to confirm
+	cleanup = openEditor(off, { encrypted: false, initialEncrypted: true });
+	toggleEncrypted();
+	comment();
+	await save();
+	expect(posted().encrypted).toBeUndefined();
+	expect(document.body.textContent).not.toContain('Store in plaintext?');
 	cleanup();
 });

@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"database/sql"
+	"net/http"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -84,9 +85,9 @@ func truthy(value string) bool {
 
 // policyMemo holds the reveal policy for one request: a request that serves
 // rows reads the policy once (revealRequiresWrite), so that a change of the
-// policy applies to the next request on every instance. The admin's
-// authMiddleware attaches one to every request; a background context
-// carries none and reads the database each time.
+// policy applies to the next request on every instance.
+// policyMemoMiddleware attaches one to every request of the admin API; a
+// background context carries none and reads the database each time.
 type policyMemo struct {
 	mu           sync.Mutex
 	read         bool
@@ -98,4 +99,11 @@ type policyMemoKey struct{}
 // withPolicyMemo attaches a fresh memo to a request's context.
 func withPolicyMemo(ctx context.Context) context.Context {
 	return context.WithValue(ctx, policyMemoKey{}, &policyMemo{})
+}
+
+// policyMemoMiddleware gives every request of the admin API its memo.
+func policyMemoMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(w, req.WithContext(withPolicyMemo(req.Context())))
+	})
 }
