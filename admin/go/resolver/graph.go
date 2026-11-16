@@ -13,17 +13,8 @@ import (
 
 var templateRe = regexp.MustCompile(`\$\{(.*?)\}`)
 
-type Case struct {
-	ContentType string     `json:"mime"`
-	Value       NullString `json:"value"`
-	Server      string     `json:"server"`
-	Group       string     `json:"group"`
-	Datacenter  string     `json:"datacenter"`
-	Service     string     `json:"service"`
-}
-
 type caseResolver interface {
-	resolveCase(context.Context, *Param) *Case
+	resolveCase(context.Context, *Param) *CaseBranch
 	getTemplateVar(context.Context, *Param, string) (string, bool)
 }
 

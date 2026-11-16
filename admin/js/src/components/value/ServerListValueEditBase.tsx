@@ -120,6 +120,7 @@ export default withStyles(styles)(
 									fullWidth
 									margin="none"
 									type={this.props.masked ? 'password' : 'text'}
+									autoComplete={this.props.masked ? 'new-password' : undefined}
 									value={item.host}
 									onChange={this.createChangeHostHandler(i)}
 									autoFocus={item.host === ''}
@@ -131,6 +132,7 @@ export default withStyles(styles)(
 											fullWidth
 											margin="none"
 											type={this.props.masked ? 'password' : 'text'}
+											autoComplete={this.props.masked ? 'new-password' : undefined}
 											value={port}
 											onChange={this.createChangePortHandler(i, j)}
 											autoFocus={port === '' && item.host !== ''}

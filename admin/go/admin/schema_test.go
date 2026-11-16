@@ -24,7 +24,7 @@ func TestCheckSchema(t *testing.T) {
 		{"missing table", sql.NullInt64{}, &mysql.MySQLError{Number: 1146}, "apply admin/etc/update-8.sql", ""},
 		{"wrapped missing table", sql.NullInt64{}, fmt.Errorf("x: %w", &mysql.MySQLError{Number: 1146}), "update-8.sql", ""},
 		{"empty table", sql.NullInt64{}, nil, "update-8.sql", ""},
-		{"connectivity", sql.NullInt64{}, errors.New("connection refused"), "", "skipped"},
+		{"connectivity", sql.NullInt64{}, errors.New("connection refused"), "", "retry"},
 		{"behind by one", version(7), nil, "apply admin/etc/update-8.sql", ""},
 		{"behind by many", version(5), nil, "update-6.sql through update-8.sql", ""},
 		{"current", version(8), nil, "", ""},

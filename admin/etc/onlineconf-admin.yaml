@@ -10,6 +10,8 @@ auth:
   realm: MY-admin
 
 # Value encryption at rest: a key file with one "<key-id> <base64 of 32 random
-# bytes>" per line, the first line being the active key.
+# bytes>" per line. A fresh installation starts encrypting with the first
+# line; from then on the key in use is the one the key registry records (see
+# Rotation in the README), and the other lines are kept for decryption.
 #encryption:
 #  key_file: /usr/local/etc/onlineconf-admin.keys

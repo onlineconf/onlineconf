@@ -24,6 +24,12 @@ import (
 var (
 	baseURL  string
 	adminDir string
+	// coldStartLog is the admin's log once the startup checks have run: what
+	// a cold start logs when the suite recreated the stack, or when a caller
+	// did just before running the suite (ONLINECONF_NO_COMPOSE=1) — the
+	// registration the log shows tells TestColdStartLog a fresh database
+	// from a stack that was merely running.
+	coldStartLog string
 )
 
 func TestMain(m *testing.M) {
@@ -54,6 +60,8 @@ func TestMain(m *testing.M) {
 		}
 		os.Exit(1)
 	}
+	// the cold start's work ends with the pass after the registration
+	coldStartLog = awaitAdminLog("re-encryption of stored values finished", 60*time.Second)
 
 	code := m.Run()
 
@@ -66,6 +74,19 @@ func TestMain(m *testing.M) {
 		}
 	}
 	os.Exit(code)
+}
+
+// awaitAdminLog returns the admin's whole log once it holds the needle, or
+// whatever it holds when the timeout passes.
+func awaitAdminLog(needle string, timeout time.Duration) string {
+	deadline := time.Now().Add(timeout)
+	for {
+		logs, _ := compose("logs", "onlineconf-admin")
+		if strings.Contains(logs, needle) || time.Now().After(deadline) {
+			return logs
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func compose(args ...string) (string, error) {

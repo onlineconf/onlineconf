@@ -13,7 +13,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 
 import EditIcon from '@mui/icons-material/Edit';
 
-import { ParamDialogProps, ValueProps } from './common';
+import { ParamDialogProps, ValueProps, encryptionEligible } from './common';
 import ParamDialogTitle from './ParamDialogTitle';
 import { ValueView } from './value';
 import * as API from '../api';
@@ -91,16 +91,17 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 	// cannot be edited client-side; a revealed or plain one can
 	const masked = props.encrypted === true && props.value === null;
 	// the current value holds a secret: encryption never downgrades
-	const currentEncrypted = current !== null && current.can_reveal === true;
+	const currentEncrypted = current !== null && current.encrypted === true;
 
 	const handleEdit = current !== null
-		? (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>> & Pick<EditorProps, 'encrypted' | 'isValueMasked' | 'revealed'>) => setEditor(
+		? (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>> & Pick<EditorProps, 'encrypted' | 'initialEncrypted' | 'isValueMasked' | 'revealed'>) => setEditor(
 			<Editor
 				path={edit.path}
 				version={current.version}
 				type={edit.type}
 				value={edit.value}
 				encrypted={edit.encrypted}
+				initialEncrypted={edit.initialEncrypted}
 				isValueMasked={edit.isValueMasked}
 				revealed={edit.revealed}
 				summary={current.summary}
@@ -166,7 +167,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 								{handleEdit && !masked && (
 									<div className={classes.edit}>
 										<IconButton
-											onClick={() => handleEdit({ path: props.path, type: props.type, value: props.value, encrypted: props.encrypted || currentEncrypted, revealed: true })}
+											onClick={() => handleEdit({ path: props.path, type: props.type, value: props.value, encrypted: currentEncrypted, initialEncrypted: props.encrypted || currentEncrypted, revealed: true })}
 											size="large">
 											<EditIcon/>
 										</IconButton>
@@ -174,7 +175,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 								)}
 							</div>
 							<ValueView type={props.type} value={props.value} encrypted={props.encrypted}/>
-							{currentEncrypted && !props.encrypted && (
+							{currentEncrypted && !props.encrypted && encryptionEligible(props.type) && (
 								<DialogContentText>{t('param.encrypted.rollbackKeepsEncrypted')}</DialogContentText>
 							)}
 						</React.Fragment>

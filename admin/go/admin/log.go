@@ -289,7 +289,7 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 			message += valueSymbol(new.ContentType, true)
 		case new.ContentType == ContentTypeCase:
 			message += contentTypeSymbol(new.ContentType)
-			var data []caseBranch
+			var data []CaseBranch
 			err = json.Unmarshal([]byte(new.Value.String), &data)
 			if err == nil {
 				for _, c := range data {
@@ -307,10 +307,10 @@ func notify(ctx context.Context, tx *sql.Tx, versionId int64) error {
 						message += "☆️: "
 					}
 					switch {
-					case !c.Value.Valid || c.ContentType.String == ContentTypeNull:
+					case !c.Value.Valid || c.ContentType == ContentTypeNull:
 						message += "∅"
 					default:
-						message += contentTypeSymbol(c.ContentType.String) + "«" + c.Value.String + "»"
+						message += contentTypeSymbol(c.ContentType) + "«" + c.Value.String + "»"
 					}
 				}
 			} else {

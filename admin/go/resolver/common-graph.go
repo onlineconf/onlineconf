@@ -167,7 +167,7 @@ func (graph *commonGraph) synchronize(ctx context.Context, path string, target S
 // meant to hold plain values.
 type commonCaseResolver struct{}
 
-func (cr commonCaseResolver) resolveCase(ctx context.Context, param *Param) *Case {
+func (cr commonCaseResolver) resolveCase(ctx context.Context, param *Param) *CaseBranch {
 	log.Ctx(ctx).Warn().Str("param", param.Path).Msg("a case cannot be resolved outside a server's graph: treated as absent")
 	return nil
 }
