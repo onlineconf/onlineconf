@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ThemeProvider, Theme, StyledEngineProvider, adaptV4Theme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
-import { UIConfig, AvatarConfig, getUIConfig } from '../api';
+import { UIConfig, AvatarConfig, EncryptionConfig, getUIConfig } from '../api';
 import createTheme from '../theme';
 
 
@@ -13,6 +13,12 @@ declare module '@mui/styles/defaultTheme' {
 
 
 export const AvatarContext = React.createContext<AvatarConfig | undefined>(undefined);
+
+const noEncryption: EncryptionConfig = { enabled: false };
+
+// Off until /ui-config arrives: the switch must not show on an installation
+// that has the feature off.
+export const EncryptionContext = React.createContext<EncryptionConfig>(noEncryption);
 
 export type PaletteType = 'system' | 'light' | 'dark';
 
@@ -32,6 +38,8 @@ export default function UIConfigProvider(props: UIConfigProviderProps) {
 			.catch(error => onError(error));
 	}, [onError]);
 
+	const encryption = config?.encryption ?? noEncryption;
+
 	const systemPaletteType = useMediaQuery('(prefers-color-scheme: dark)') ? 'dark' : 'light';
 	const themePaletteType = props.paletteType === 'system' ? systemPaletteType : props.paletteType;
 	const theme = React.useMemo(() => createTheme(adaptV4Theme({
@@ -44,7 +52,9 @@ export default function UIConfigProvider(props: UIConfigProviderProps) {
 		<StyledEngineProvider injectFirst>
 			<ThemeProvider theme={theme}>
 				<AvatarContext.Provider value={config?.avatar}>
-					{props.children}
+					<EncryptionContext.Provider value={encryption}>
+						{props.children}
+					</EncryptionContext.Provider>
 				</AvatarContext.Provider>
 			</ThemeProvider>
 		</StyledEngineProvider>

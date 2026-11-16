@@ -15,11 +15,13 @@ import Notifications from '@mui/icons-material/Notifications';
 
 import { IParamNode } from './common';
 import { ValuePreview } from './value';
+import { RevealButton, useReveal } from './value/encrypted';
 import IconButtonProgress from './IconButtonProgress';
 import ButtonProgress from './ButtonProgress';
 import ParamMenu, { ParamMenuProps } from './ParamMenu';
 import NoAccess from './NoAccess';
 import WhoAmIContext from './WhoAmIContext';
+import ErrorContext from './ErrorContext';
 import ParamIcon from './ParamIcon';
 
 export const spacingUnit = 2;
@@ -118,12 +120,15 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 	const { param, onMenuOpen: onViewOpen, onLog, onAccess, onNotification, onValuePopoverOpen, onValuePopoverClose } = props;
 	const classes = usePreviewStyles();
 	const { userIsRoot } = React.useContext(WhoAmIContext);
+	const onError = React.useContext(ErrorContext);
+	// the plaintext of a revealed secret lives here only, never in the tree
+	const { revealed, loading, reveal, hide } = useReveal(param.path, param.version, onError);
 
 	const className = clsx(classes.root, { [classes.matched]: param.match });
 
 	return (
 		<Typography component="div" variant="body2" className={className}>
-			<ParamIcon type={param.mime} path={param.path} numChildren={param.num_children} className={classes.icon} color="action"/>
+			<ParamIcon type={param.mime} path={param.path} numChildren={param.num_children} encrypted={param.encrypted} className={classes.icon} color="action"/>
 			<div className={classes.name}>
 				{param.name}
 				{param.summary !== '' && <span className={classes.summary}>{param.summary}</span>}
@@ -132,10 +137,13 @@ function ConfigTreeParamPreview(props: ConfigTreeParamPreviewProps) {
 				<div className={classes.value}>
 					{param.rw === null ? <NoAccess/> : (
 						<span onMouseEnter={onValuePopoverOpen} onMouseLeave={onValuePopoverClose}>
-							<ValuePreview type={param.mime} value={param.data}/>
+							<ValuePreview type={param.mime} value={revealed ? revealed.data : param.data} encrypted={param.encrypted}/>
 						</span>
 					)}
 				</div>
+				{param.can_reveal && (
+					<RevealButton revealed={revealed !== undefined} loading={loading} onReveal={reveal} onHide={hide} className={classes.iconButton}/>
+				)}
 				{param.notification_modified && (
 					<IconButton
 						onClick={onNotification}

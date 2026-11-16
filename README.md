@@ -98,6 +98,105 @@ The daemon is written in Go, has no dependencies and easily deployed on any syst
 * Case - a conditional value, works as the switch operator;
 * Various types of lists: a simple comma-separated list, *ip:port* pairs separated by a comma and *ip:ports* pairs separated by a semicolon (where ports are separated by a comma).
 
+### Encrypted values
+
+A value of any type except Null, Symlink, Case and Template can be marked
+**Encrypted** (the reasons are listed below). Such a value is stored in
+the database as an AES-256-GCM envelope written by `onlineconf-admin` with
+a key from its key file, and so is every version of it in the change
+history: the moment a parameter becomes encrypted its older versions are
+sealed as well — every version a secret could have been stored as, while
+a null, symlink, case or template version stays as it is. Database dumps,
+backups, replicas and database accounts never see the plaintext, and
+neither do the admin's side channels: value search skips encrypted values,
+change notifications and the bot feed show a lock instead of the value,
+server logs print `<encrypted>`.
+
+Values of four types are never encrypted, each for a reason of its own.
+**Null** has no value. A **Symlink** is a reference, and references must
+stay readable: the server resolves it, and the deletion check — like a
+user searching for the symlinks that point at a parameter — must find
+it. A **Case** is a structure whose conditions and branches must stay
+readable for the same reasons; a branch that needs a secret is a
+**symlink** to an encrypted parameter — the resolver follows it and
+delivers the plaintext, the secret keeps its own access rights, reveal
+and history, and the case stays searchable and visible. A **Template** is a
+text of references: its `${/path}` variables must stay searchable,
+because "which templates refer to this parameter" is what the deletion
+check and the users ask, and a secret never needs to be in a template —
+put it in an encrypted parameter and reference it; the plaintext is
+substituted at resolution and delivered as any other encrypted value,
+while the template stays searchable and visible. Every other type
+(Text, JSON, YAML, List, Server, Server2) can be stored encrypted.
+
+Encryption is at rest only. Managed servers keep receiving plaintext from
+`/client/config` exactly as before (over TLS, which is mandatory in
+production), and the resolver decrypts the whole tree in memory. It does
+not protect against a compromised admin host, against users the reveal
+policy admits, or against copies of the database taken before a value was
+encrypted.
+
+**Reading a secret is an explicit act.** The UI and the API serve
+an encrypted value as `null` in every listing; the plaintext is returned
+only by `GET /config/<path>?reveal=1` (and the parameter's history by
+`GET /log/<path>?reveal=1`), subject to the reveal policy (see
+`/onlineconf/value-encryption/reveal` below).
+Writing an encrypted parameter requires stating the `encrypted` form field
+explicitly, as `1` or `0` — any other spelling is refused: a client that
+does not know about encryption is refused rather than allowed to overwrite
+the secret with the `null` it was served. Rolling a parameter back to a
+historical version is done server-side (`POST /config/<path>` with
+`restore=<log entry id>`, the `id` of a `/log` entry, and the current
+`version`; without `version` a deleted parameter is brought back from its
+history), needs no reveal, and never downgrades encryption.
+
+**Configuration.** The key file is a text file with one
+`<key-id> <base64 of 32 random bytes>` per line (`#` comments allowed); a
+fresh installation encrypts with the first key, and from then on with the
+key the registry records as active (see *Rotation* below), whatever the
+file's order; every other key is kept for decryption. Generate a key with
+`head -c 32 /dev/urandom | base64`, keep the file readable by the service
+user only, and point the admin to it:
+
+```yaml
+encryption:
+  key_file: /usr/local/etc/onlineconf-admin.keys
+```
+
+(the Docker image sets it from the `ONLINECONF_ENCRYPTION_KEY_FILE`
+environment variable). The startup log always states the outcome:
+`encryption keyring loaded` with the ids of the keys loaded (the key in
+use is named by `encryption key in use` once the registry has been
+consulted), or `value encryption is not configured` — a key file is never
+loaded implicitly. Without a key the UI offers no *Encrypted* switch and
+`/ui-config` reports `"encryption": {"enabled": false}`. An instance that
+finds encrypted values in the database without a key file, or a key whose
+material differs from the one registered in the database under the same
+id, refuses to start; one that cannot decrypt a value at reload keeps
+serving its last good configuration. Every instance of an installation
+must have the same keys.
+
+**Rotation** needs no tool, only the key file and one restart. Add the new
+key to the key file on every instance — on any line: the file's order
+matters on a fresh installation only — and restart them. Once every
+instance holds it, write its id to `/onlineconf/value-encryption/key-id`:
+that names the *wanted* key, a request every instance notices at its next
+tree reload, within seconds. The instance that takes the job re-encrypts
+every stored value in the background, in the tree and in the history,
+without touching versions, timestamps or notifications, then records the
+new key as active in the key registry (`my_config_encryption_key`): from
+that moment it is the key *in use*, the one every encrypted write on every
+instance encrypts with — a write reads it in its own transaction, so no
+write lands under the old key after the switch — and the sweep walks both
+tables again until a pass finds nothing left under another key.
+`GET /encryption-status` (root users only) reports the wanted key
+(`wanted`), the key in use (`recorded`) and the sweep; `done` means
+verified, and once it reports done, delete the old key from the files at
+any later deploy. A retired key is promoted again the same way. An id
+written before every instance holds the key is refused by the instances
+without it (logged, nothing changes on them), and after the sweep they
+cannot decrypt what the others wrote until they get the key.
+
 ## Authentication
 
 Right now two authentication methods are supported:
@@ -186,6 +285,51 @@ supported) and should be treated as a foolproof only and not as a formal consist
 some parameter is deleted.
 
 To disable this foolproof, you can set `/onlineconf/disable-deleted-key-symlinks-check` to any non-empty text value other than `0`.
+
+### /onlineconf/value-encryption
+
+`/onlineconf/value-encryption` enables writing encrypted values (see
+*Encrypted values* above) when it holds a non-empty text value other than
+`0` **and** the instance has a key file. Fresh installations get it seeded
+with `1`. On an upgraded installation the parameter does not exist and the
+feature stays off — applying the schema migration alone changes nothing —
+until the operator creates it, once every instance runs a version that
+understands encrypted values and has the key file: an older instance would
+serve the stored envelope as the value. Switching it off later refuses new
+encrypted writes only — a create, a set or a rollback whose result would
+hold a secret; reveals and declassification (`encrypted=0`) keep working,
+so no parameter is ever trapped.
+
+`/onlineconf/value-encryption/reveal` sets who may reveal an encrypted value:
+`rw` (the default, also when the parameter is absent) requires write access
+to the parameter, `ro` lets anyone with read access reveal it. Both
+parameters are plain text read by path — symlinks are followed, access
+rights are not consulted — and must not be encrypted themselves: an
+encrypted value, a case or a template there counts as absent. A change of
+the reveal policy applies to the next request on every instance.
+
+`/onlineconf/value-encryption/key-id` — read the same way — names, by its
+id in the key file, the key the installation *wants* new encryptions under;
+writing a new id there is how a key is rotated (see *Rotation* above). The
+key *in use* is the one the key registry records as active, which the
+rotation's sweep changes once everything is re-encrypted. The wanted key,
+in order of precedence:
+
+1. the key named by this parameter, when it is present and not empty;
+2. otherwise the key the key registry (`my_config_encryption_key`) records
+   as active: the key the last rotation promoted, or, in an installation
+   that has never rotated, the key that was the first line of the key file
+   when the installation first started with encryption;
+3. otherwise — a fresh installation, nothing registered yet — the first
+   key of the key file, which is registered as active at that moment.
+
+The key file's order matters in case 3 only, but the file must hold the key
+in use: an instance whose file lacks it refuses to start, and a running
+instance that lacks it (a rotation it has not been given the key for)
+answers encrypted writes with the error `EncryptionKeyMissing`.
+`GET /encryption-status` shows the wanted key and where it comes from
+(`wanted`: `parameter`, `registry` or `key file`) and the key in use
+(`recorded`).
 
 ## Reading a configuration from an application
 

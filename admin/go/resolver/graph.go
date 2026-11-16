@@ -24,7 +24,7 @@ type Case struct {
 
 type caseResolver interface {
 	resolveCase(context.Context, *Param) *Case
-	getTemplateVar(string) (string, bool)
+	getTemplateVar(context.Context, *Param, string) (string, bool)
 }
 
 type graph struct {
@@ -70,7 +70,7 @@ func (g *graph) resolve(ctx context.Context, paramPtr **Param) {
 			return
 		}
 	}
-	log.Ctx(ctx).Warn().Str("param", param.Path).Str("content_type", param.ContentType).Str("value", param.Value.String).Msg("resolve failed")
+	log.Ctx(ctx).Warn().Str("param", param.Path).Str("content_type", param.ContentType).Str("value", param.logValue()).Msg("resolve failed")
 }
 
 func (g *graph) resolveSymlink(ctx context.Context, paramPtr **Param) {
@@ -80,11 +80,13 @@ func (g *graph) resolveSymlink(ctx context.Context, paramPtr **Param) {
 		*paramPtr = target
 		return
 	}
-	log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Msg("symlink is pointing to nowhere")
+	log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.logValue()).Msg("symlink is pointing to nowhere")
 }
 
 func (g *graph) resolveCase(ctx context.Context, param *Param) {
 	cs := g.caseResolver.resolveCase(ctx, param)
+	// a case holds no secret: a branch that is a symlink to an encrypted
+	// parameter continues into that parameter, whose own marker is the taint
 	if cs != nil {
 		param.ContentType = cs.ContentType
 		param.Value = cs.Value
@@ -107,12 +109,15 @@ func (g *graph) resolveTemplate(ctx context.Context, param *Param) {
 				if target.ContentType == ContentTypeTemplate {
 					expanded = false
 				}
+				if target.Encrypted {
+					param.Encrypted = true // the expansion now carries a secret
+				}
 				return target.Value.String
 			} else {
-				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.Value.String).Str("var", name).Msg("failed to expand variable")
+				log.Ctx(ctx).Warn().Str("param", param.Path).Str("value", param.logValue()).Str("var", name).Msg("failed to expand variable")
 				return ""
 			}
-		} else if value, ok := g.caseResolver.getTemplateVar(name); ok {
+		} else if value, ok := g.caseResolver.getTemplateVar(ctx, param, name); ok {
 			return value
 		} else {
 			expanded = false

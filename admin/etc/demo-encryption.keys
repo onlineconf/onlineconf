@@ -1,0 +1,4 @@
+# Demo keyring of the docker-compose stack: as secret as the demo passwords.
+# One key per line, "<key-id> <base64 of 32 random bytes>"; the first line is
+# the active key, the others are retired keys kept for decryption.
+demo L3qn57md4OCfjE5fSfu0H6zvuYtxKbE1psqe+9Wnj9U=

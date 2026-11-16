@@ -18,6 +18,11 @@ interface ParamFields {
 	path: string;
 	name: string;
 	mime: ParamType;
+	// the value is stored encrypted: in a listing its data is null — a
+	// masked secret, not an empty value — until explicitly revealed
+	encrypted?: boolean;
+	// the parameter is encrypted and the current user may reveal it
+	can_reveal?: boolean;
 	data: string | null;
 	summary: string;
 	description: string;
@@ -38,7 +43,10 @@ export interface ParamModify extends Partial<ParamFields> {
 	notification?: Notification | null;
 	symlink?: boolean;
 	comment?: string;
+	// server-side rollback to a historical version (no plaintext round trip)
+	restore?: number;
 }
+
 
 const commonOptions = { headers: { 'X-Requested-With': 'XMLHttpRequest' } };
 const commonUrlencodedOptions = {
@@ -53,14 +61,19 @@ function encodePath(path: string) {
 	return path.split('/').map(encodeURIComponent).join('/');
 }
 
-export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree', options: AxiosRequestConfig = {}) {
-	const params = { symlink, depth };
+// reveal asks for the plaintext of an encrypted value: an audited request
+// the server accepts as reveal=1 only
+export async function getParam(path: string, symlink?: 'resolve' | 'follow', depth?: 'children' | 'subtree' | 'none', options: AxiosRequestConfig = {}, reveal?: boolean) {
+	const params: { symlink?: string, depth?: string, reveal?: 1 } = { symlink, depth };
+	if (reveal) {
+		params.reveal = 1;
+	}
 	const response = await axios.get<IParam>('/config' + encodePath(path), { ...options, ...commonOptions, params });
 	return response.data;
 }
 
 export async function postParam(path: string, modify: ParamModify) {
-	const { data, notification, symlink, ...rest } = modify;
+	const { data, notification, symlink, encrypted, can_reveal, restore, ...rest } = modify;
 	const params = new URLSearchParams(rest as Record<string, string>);
 	if (data !== undefined) {
 		params.append('data', data !== null ? data : '');
@@ -70,6 +83,14 @@ export async function postParam(path: string, modify: ParamModify) {
 	}
 	if (symlink) {
 		params.append('symlink', '1');
+	}
+	// stated only when the caller means it: on an encrypted parameter the
+	// server requires it, on a plain one an absent field keeps it plain
+	if (encrypted !== undefined) {
+		params.append('encrypted', encrypted ? '1' : '0');
+	}
+	if (restore !== undefined) {
+		params.append('restore', restore.toString());
 	}
 	const response = await axios.post<IParam>('/config' + encodePath(path), params, commonUrlencodedOptions);
 	return response.data;
@@ -122,7 +143,9 @@ export interface IParamLog {
 	path: string;
 	version: number;
 	mime: ParamType;
-	data: string;
+	encrypted?: boolean;
+	can_reveal?: boolean;
+	data: string | null;
 	mtime: string;
 	author: string;
 	comment: string;
@@ -131,8 +154,11 @@ export interface IParamLog {
 	same: boolean;
 }
 
-export async function getParamLog(path: string, lastID?: number, options: AxiosRequestConfig = {}) {
-	const params: LogPagination = { lastid: lastID };
+export async function getParamLog(path: string, lastID?: number, options: AxiosRequestConfig = {}, reveal?: boolean) {
+	const params: LogPagination & { reveal?: 1 } = { lastid: lastID };
+	if (reveal) {
+		params.reveal = 1;
+	}
 	const response = await axios.get<IParamLog[]>('/log' + encodePath(path), { ...options, ...commonOptions, params });
 	return response.data;
 }
@@ -265,6 +291,12 @@ export async function getUsers(term: string) {
 
 export interface UIConfig {
 	avatar?: AvatarConfig;
+	encryption: EncryptionConfig;
+}
+
+export interface EncryptionConfig {
+	// encrypted writes are accepted on this instance (switch on, key loaded)
+	enabled: boolean;
 }
 
 export interface AvatarConfig {

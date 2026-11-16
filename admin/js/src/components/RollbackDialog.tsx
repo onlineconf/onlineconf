@@ -41,6 +41,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 interface RollbackDialogProps extends ParamDialogProps, ValueProps {
+	// the log entry the rollback restores
+	id: number;
 	version: number;
 	deleted: boolean;
 	onChange: (param: API.IParam | null) => void;
@@ -85,13 +87,22 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 		props.onClose();
 	};
 
+	// a masked value (an encrypted version the history has not revealed)
+	// cannot be edited client-side; a revealed or plain one can
+	const masked = props.encrypted === true && props.value === null;
+	// the current value holds a secret: encryption never downgrades
+	const currentEncrypted = current !== null && current.can_reveal === true;
+
 	const handleEdit = current !== null
-		? (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>>) => setEditor(
+		? (edit: Required<Pick<EditorProps, 'path' | 'type' | 'value'>> & Pick<EditorProps, 'encrypted' | 'isValueMasked' | 'revealed'>) => setEditor(
 			<Editor
 				path={edit.path}
 				version={current.version}
 				type={edit.type}
 				value={edit.value}
+				encrypted={edit.encrypted}
+				isValueMasked={edit.isValueMasked}
+				revealed={edit.revealed}
 				summary={current.summary}
 				description={current.description}
 				onChange={changeDone}
@@ -111,11 +122,12 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 				.then(() => changeDone(null))
 				.catch(props.onError);
 		} else {
-			const ver = current !== null ? { version: current.version } : {};
+			// every rollback is server-side, by its log entry: no plaintext
+			// round trip, no reveal, encryption never downgraded; a deleted
+			// parameter comes back from its history the same way
 			API.postParam(props.path, {
-				...ver,
-				mime: props.type,
-				data: props.value,
+				...(current !== null ? { version: current.version } : {}),
+				restore: props.id,
 				comment,
 			})
 				.then(changeDone)
@@ -134,7 +146,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 							{handleEdit && (
 								<div className={classes.edit}>
 									<IconButton
-										onClick={() => handleEdit({ path: current.path, type: current.mime, value: current.data })}
+										onClick={() => handleEdit({ path: current.path, type: current.mime, value: current.data, encrypted: current.encrypted, isValueMasked: current.can_reveal })}
 										size="large">
 										<EditIcon/>
 									</IconButton>
@@ -142,7 +154,7 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 							)}
 						</div>
 						{current.rw === null ? <NoAccess/> : (
-							<ValueView type={current.mime} value={current.data}/>
+							<ValueView type={current.mime} value={current.data} encrypted={current.encrypted}/>
 						)}
 					</DialogContentText>
 				)}
@@ -151,11 +163,20 @@ export default function RollbackDialog(props: RollbackDialogProps) {
 						<React.Fragment>
 							<div className={classes.textBlock}>
 								<div className={classes.text}>{t('log.rollback.confirmation', { param: props.path, version: props.version })}</div>
-								{handleEdit && (
-									<div className={classes.edit}><IconButton onClick={() => handleEdit(props)} size="large"><EditIcon/></IconButton></div>
+								{handleEdit && !masked && (
+									<div className={classes.edit}>
+										<IconButton
+											onClick={() => handleEdit({ path: props.path, type: props.type, value: props.value, encrypted: props.encrypted || currentEncrypted, revealed: true })}
+											size="large">
+											<EditIcon/>
+										</IconButton>
+									</div>
 								)}
 							</div>
-							<ValueView type={props.type} value={props.value}/>
+							<ValueView type={props.type} value={props.value} encrypted={props.encrypted}/>
+							{currentEncrypted && !props.encrypted && (
+								<DialogContentText>{t('param.encrypted.rollbackKeepsEncrypted')}</DialogContentText>
+							)}
 						</React.Fragment>
 					)}
 				</DialogContentText>

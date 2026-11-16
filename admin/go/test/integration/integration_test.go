@@ -222,10 +222,13 @@ func setNotification(t *testing.T, path, notification string) {
 }
 
 type logEntry struct {
-	Version int    `json:"version"`
-	Path    string `json:"path"`
-	Comment string `json:"comment"`
-	Deleted bool   `json:"deleted"`
+	ID        int     `json:"id"`
+	Version   int     `json:"version"`
+	Path      string  `json:"path"`
+	Comment   string  `json:"comment"`
+	Deleted   bool    `json:"deleted"`
+	Encrypted bool    `json:"encrypted"`
+	Data      *string `json:"data"`
 }
 
 func getLog(t *testing.T, path string) []logEntry {
