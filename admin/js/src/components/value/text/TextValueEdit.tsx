@@ -32,6 +32,12 @@ const useStyles = makeStyles({
 		'& .CodeMirror-line, & .CodeMirror-line > span': {
 			['-webkit-text-security' as never]: 'disc',
 		},
+		// CodeMirror holds an empty line open with a zero-width space that is
+		// not part of the value; masked, it would show as a dot that cannot be
+		// deleted
+		'& .CodeMirror-line [cm-text=""]': {
+			['-webkit-text-security' as never]: 'none',
+		},
 	},
 	helper: {
 		padding: 0,
